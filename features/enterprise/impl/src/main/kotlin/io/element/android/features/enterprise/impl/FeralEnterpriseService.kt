@@ -45,6 +45,13 @@ class FeralEnterpriseService @Inject constructor(
             description = "Serveur pour la France",  // "Server for France"
             locales = setOf("fr", "FR")
         ),
+        // Add a placeholder for international server to ensure multiple servers
+        // This ensures the normal "Choose account provider" flow works
+        ServerInfo(
+            url = "https://feralism.net",
+            description = "International server (coming soon)",
+            locales = emptySet()  // Default/fallback
+        ),
         // Add more servers as they become available:
         // ServerInfo(
         //     url = "https://feral.de",
@@ -55,11 +62,6 @@ class FeralEnterpriseService @Inject constructor(
         //     url = "https://feral.es",
         //     description = "Servidor para España",  // "Server for Spain"
         //     locales = setOf("es", "ES")
-        // ),
-        // ServerInfo(
-        //     url = "https://feral.chat",
-        //     description = "International server",
-        //     locales = emptySet()  // Default/fallback
         // ),
     )
 
@@ -77,8 +79,8 @@ class FeralEnterpriseService @Inject constructor(
             server.locales.contains(locale.country) || server.locales.contains(locale.language)
         }?.let { return it.url }
         
-        // Default to first server if no match
-        return feralServers.firstOrNull()?.url ?: "https://feralisme.fr"
+        // Default to first server if no match (for now, always feralisme.fr since feralism.net is not ready)
+        return "https://feralisme.fr"
     }
 
     // List of allowed Feral regional servers
