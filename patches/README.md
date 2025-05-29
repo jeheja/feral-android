@@ -12,6 +12,7 @@ This directory contains patches that customize Element Android to create Feral A
 6. **006-feral-icon-backgrounds.patch** - Updates launcher icon backgrounds
 7. **007-feral-enterprise-service.patch** - Restricts to Feral servers only with locale-based defaults
 8. **008-fix-server-classification.patch** - Fixes server classification to not mark Feral servers as matrix.org
+9. **009-single-server-with-descriptions.patch** - Updates to single server (feralisme.fr) with descriptions and pre-selection
 
 ## Binary Assets
 

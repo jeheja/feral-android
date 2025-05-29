@@ -22,7 +22,8 @@ git checkout -- \
     appicon/element/src/release/res/drawable/ic_launcher_background.xml \
     appicon/element/src/debug/res/drawable/ic_launcher_background.xml \
     features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/ \
-    features/enterprise/impl/src/main/kotlin/io/element/android/features/enterprise/impl/DefaultEnterpriseService.kt 2>/dev/null || true
+    features/enterprise/impl/src/main/kotlin/io/element/android/features/enterprise/impl/DefaultEnterpriseService.kt \
+    features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/chooseaccountprovider/ChooseAccountProviderPresenter.kt 2>/dev/null || true
 
 # Also reset all translation files
 echo "Resetting translation files..."

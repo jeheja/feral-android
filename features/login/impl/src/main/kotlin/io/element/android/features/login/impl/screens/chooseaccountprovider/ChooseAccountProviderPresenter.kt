@@ -62,12 +62,24 @@ class ChooseAccountProviderPresenter @Inject constructor(
                 .map { url ->
                     AccountProvider(
                         url = url,
-                        subtitle = null,
+                        subtitle = when (url) {
+                            "https://feralisme.fr" -> "Serveur pour la France"
+                            // Add more server descriptions as they become available:
+                            // "https://feral.de" -> "Server für Deutschland"
+                            // "https://feral.es" -> "Servidor para España"
+                            // "https://feral.chat" -> "International server"
+                            else -> null
+                        },
                         isPublic = false,  // Feral servers require external signup
                         isMatrixOrg = false,  // None of our servers are matrix.org
                         isValid = true,
                     )
                 }
+        }
+        
+        // Pre-select the first server (which is the locale-appropriate one)
+        if (selectedAccountProvider == null && staticAccountProviderList.isNotEmpty()) {
+            selectedAccountProvider = staticAccountProviderList.first()
         }
 
         return ChooseAccountProviderState(
