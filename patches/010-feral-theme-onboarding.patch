@@ -1,0 +1,21 @@
+diff --git a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingView.kt b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingView.kt
+index abc123..def456 100644
+--- a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingView.kt
++++ b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingView.kt
+@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
+ import io.element.android.compound.theme.ElementTheme
+ import io.element.android.compound.tokens.generated.CompoundIcons
+ import io.element.android.features.login.impl.R
++import io.element.android.libraries.designsystem.theme.FeralTypography
+ import io.element.android.features.login.impl.login.LoginModeView
+ import io.element.android.libraries.architecture.AsyncData
+ import io.element.android.libraries.designsystem.atomic.atoms.ElementLogoAtom
+@@ -126,7 +127,7 @@ fun OnBoardingView(
+                 Text(
+                     text = stringResource(id = R.string.screen_onboarding_welcome_title),
+                     color = ElementTheme.colors.textPrimary,
+-                    style = ElementTheme.typography.fontHeadingLgBold,
++                    style = FeralTypography.welcomeTitle,
+                     textAlign = TextAlign.Center
+                 )
+                 Spacer(modifier = Modifier.height(8.dp))

@@ -13,6 +13,7 @@ import io.element.android.compound.tokens.generated.SemanticColors
 import io.element.android.compound.tokens.generated.compoundColorsDark
 import io.element.android.compound.tokens.generated.compoundColorsLight
 import io.element.android.features.enterprise.api.EnterpriseService
+import io.element.android.libraries.designsystem.theme.FeralTheme
 import io.element.android.libraries.di.AppScope
 import io.element.android.libraries.di.ApplicationContext
 import io.element.android.libraries.matrix.api.core.SessionId
@@ -110,9 +111,9 @@ class FeralEnterpriseService @Inject constructor(
 
     override suspend fun isElementCallAvailable(): Boolean = true
 
-    override fun semanticColorsLight(): SemanticColors = compoundColorsLight
+    override fun semanticColorsLight(): SemanticColors = FeralTheme.createFeralLightColors()
 
-    override fun semanticColorsDark(): SemanticColors = compoundColorsDark
+    override fun semanticColorsDark(): SemanticColors = FeralTheme.createFeralDarkColors()
 
     override fun firebasePushGateway(): String? = null
     override fun unifiedPushDefaultPushGateway(): String? = null
