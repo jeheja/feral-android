@@ -29,42 +29,8 @@ object FeralTheme {
      * Based on the web design with cream backgrounds and dark forest accents
      */
     fun createFeralLightColors(): SemanticColors {
-        return compoundColorsLight.copy(
-            // Backgrounds - cream and light tones
-            bgCanvasDefault = FeralColors.cream,
-            bgSubtleSecondary = Color(0xFFFAFAFA),
-            bgSubtlePrimary = Color.White,
-            
-            // Action colors - keep Element defaults (commenting out golden)
-            // bgActionPrimaryRest = FeralColors.golden,
-            // bgActionPrimaryHovered = FeralColors.goldenBright,
-            // bgActionPrimaryPressed = FeralColors.warmBrown,
-            // bgActionPrimaryDisabled = FeralColors.golden.copy(alpha = 0.4f),
-            
-            // Text colors
-            textPrimary = FeralColors.textDark,
-            textSecondary = FeralColors.textDark.copy(alpha = 0.7f),
-            // textActionPrimary = FeralColors.golden,
-            textOnSolidPrimary = Color.White,
-            
-            // Borders
-            // borderInteractivePrimary = FeralColors.golden,
-            borderInteractiveSecondary = FeralColors.mossGreen,
-            
-            // Icon colors
-            iconPrimary = FeralColors.deepForest,
-            iconSecondary = FeralColors.mossGreen,
-            // iconAccentTertiary = FeralColors.golden,  // Using iconAccentTertiary instead of iconActionPrimary
-            iconOnSolidPrimary = Color.White,
-            
-            // Critical colors (keep original for safety)
-            bgCriticalPrimary = Color(0xFFD32F2F),
-            textCriticalPrimary = Color(0xFFD32F2F),
-            
-            // Success colors
-            bgSuccessSubtle = FeralColors.successGreen,  // Using bgSuccessSubtle instead of bgSuccessPrimary
-            textSuccessPrimary = FeralColors.successGreen,
-        )
+        // Return default Element colors - no customizations
+        return compoundColorsLight
     }
     
     /**
@@ -72,42 +38,8 @@ object FeralTheme {
      * Deep forest atmosphere with golden accents
      */
     fun createFeralDarkColors(): SemanticColors {
-        return compoundColorsDark.copy(
-            // Backgrounds - deep forest tones
-            bgCanvasDefault = FeralColors.forestShadow,
-            bgSubtleSecondary = FeralColors.deepForest,
-            bgSubtlePrimary = FeralColors.forestMedium,
-            
-            // Action colors - keep Element defaults (commenting out golden)
-            // bgActionPrimaryRest = FeralColors.golden,
-            // bgActionPrimaryHovered = FeralColors.goldenBright,
-            // bgActionPrimaryPressed = FeralColors.warmBrown,
-            // bgActionPrimaryDisabled = FeralColors.golden.copy(alpha = 0.4f),
-            
-            // Text colors
-            textPrimary = FeralColors.textLight,
-            textSecondary = FeralColors.textLight.copy(alpha = 0.7f),
-            // textActionPrimary = FeralColors.golden,
-            textOnSolidPrimary = FeralColors.deepForest,
-            
-            // Borders
-            // borderInteractivePrimary = FeralColors.golden,
-            borderInteractiveSecondary = FeralColors.sageGreen,
-            
-            // Icon colors
-            iconPrimary = FeralColors.textLight,
-            iconSecondary = FeralColors.sageGreen,
-            // iconAccentTertiary = FeralColors.golden,  // Using iconAccentTertiary instead of iconActionPrimary
-            iconOnSolidPrimary = FeralColors.deepForest,
-            
-            // Critical colors (keep original for safety)
-            bgCriticalPrimary = Color(0xFFEF5350),
-            textCriticalPrimary = Color(0xFFEF5350),
-            
-            // Success colors
-            bgSuccessSubtle = FeralColors.successGreen,  // Using bgSuccessSubtle instead of bgSuccessPrimary
-            textSuccessPrimary = FeralColors.successGreen,
-        )
+        // Return default Element colors - no customizations
+        return compoundColorsDark
     }
 }
 

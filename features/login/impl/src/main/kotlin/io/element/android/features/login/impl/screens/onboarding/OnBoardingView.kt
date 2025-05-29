@@ -106,15 +106,10 @@ private fun OnBoardingContent(state: OnBoardingState) {
                 verticalBias = -0.4f
             )
         ) {
-            FeralEnhancedLogo(
+            FeralLogo(
                 modifier = Modifier
-                    .padding(top = ElementLogoAtomSize.Large.shadowRadius / 2)
-            ) {
-                ElementLogoAtom(
-                    size = ElementLogoAtomSize.Large,
-                    modifier = Modifier
-                )
-            }
+                    .padding(top = 30.dp)
+            )
         }
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -139,7 +134,10 @@ private fun OnBoardingContent(state: OnBoardingState) {
                 FeralShadowText(
                     text = stringResource(id = R.string.screen_onboarding_welcome_message, state.productionApplicationName),
                     color = ElementTheme.colors.textSecondary,
-                    style = ElementTheme.typography.fontBodyLgRegular.copy(fontSize = 17.sp),
+                    style = FeralTypography.sectionTitle.copy(
+                        fontSize = 17.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
+                    ),
                     textAlign = TextAlign.Center,
                     shadowIntensity = 0.6f
                 )

@@ -33,32 +33,21 @@ fun FeralOnBoardingBackground(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        FeralColors.forestShadow,
-                        FeralColors.deepForest.copy(alpha = 0.7f),
-                        FeralColors.forestMedium.copy(alpha = 0.5f),
-                        FeralColors.forestLight.copy(alpha = 0.3f)
+                        Color(0xFF1A2F1A), // Dark forest green at top
+                        Color(0xFF2D4A2D), // Medium dark forest
+                        Color(0xFF4A6B4A), // Medium forest
+                        Color(0xFF6B8B6B), // Lighter medium forest
+                        Color(0xFF8FAC8F), // Light forest green
+                        Color(0xFFB5CDB5), // Soft light green
+                        Color(0xFFE5F0E5), // Very light green
+                        Color(0xFFF5FAF5)  // Near white at bottom
                     ),
                     startY = 0f,
-                    endY = 2000f
+                    endY = 1800f  // Smoother gradient spread
                 )
             ),
         contentAlignment = Alignment.Center
     ) {
-        // Add subtle radial gradient overlay for depth
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(0.3f)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            FeralColors.forestShadow.copy(alpha = 0.5f)
-                        ),
-                        radius = 1000f
-                    )
-                )
-        )
         content()
     }
 }
