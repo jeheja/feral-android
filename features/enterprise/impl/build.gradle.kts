@@ -22,6 +22,7 @@ dependencies {
     api(projects.features.enterprise.api)
     implementation(projects.libraries.architecture)
     implementation(projects.libraries.matrix.api)
+    implementation(projects.libraries.designsystem)
 
     testImplementation(libs.coroutines.test)
     testImplementation(libs.test.junit)

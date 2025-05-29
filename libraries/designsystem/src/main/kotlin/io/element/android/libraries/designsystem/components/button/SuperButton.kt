@@ -42,7 +42,6 @@ import io.element.android.compound.tokens.generated.internal.DarkColorTokens
 import io.element.android.compound.tokens.generated.internal.LightColorTokens
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.FeralColors
 import io.element.android.libraries.designsystem.theme.LocalBuildMeta
 import io.element.android.libraries.designsystem.theme.components.ButtonSize
 import io.element.android.libraries.designsystem.theme.components.HorizontalDivider
@@ -68,18 +67,12 @@ fun SuperButton(
         }
     }
     val isLightTheme = ElementTheme.isLightTheme
-    val colors = if (LocalBuildMeta.current.isEnterpriseBuild) {
+    val textActionAccent = ElementTheme.colors.textActionAccent
+    val colors = remember(isLightTheme, textActionAccent) {
         listOf(
-            ElementTheme.colors.textActionAccent,
-            ElementTheme.colors.textActionAccent,
+            textActionAccent,
+            textActionAccent,
         )
-    } else {
-        remember(isLightTheme) {
-            listOf(
-                FeralColors.gradientStart,
-                FeralColors.gradientEnd,
-            )
-        }
     }
 
     val shaderBrush = remember(colors) {

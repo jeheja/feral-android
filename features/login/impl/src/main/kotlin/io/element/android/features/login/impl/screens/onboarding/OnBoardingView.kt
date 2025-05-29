@@ -35,13 +35,11 @@ import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.atomic.atoms.ElementLogoAtom
 import io.element.android.libraries.designsystem.atomic.atoms.ElementLogoAtomSize
 import io.element.android.libraries.designsystem.atomic.molecules.ButtonColumnMolecule
-import io.element.android.libraries.designsystem.atomic.pages.OnBoardingPage
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.components.Button
 import io.element.android.libraries.designsystem.theme.components.IconSource
 import io.element.android.libraries.designsystem.theme.components.Text
-import io.element.android.libraries.designsystem.theme.components.TextButton
+import io.element.android.libraries.designsystem.theme.FeralTypography
 import io.element.android.libraries.matrix.api.auth.OidcDetails
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.testtags.testTag
@@ -66,32 +64,34 @@ fun OnBoardingView(
     onReportProblem: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OnBoardingPage(
-        modifier = modifier,
-        content = {
-            OnBoardingContent(state = state)
-            LoginModeView(
-                loginMode = state.loginMode,
-                onClearError = {
-                    state.eventSink(OnBoardingEvents.ClearError)
-                },
-                onLearnMoreClick = onLearnMoreClick,
-                onOidcDetails = onOidcDetails,
-                onNeedLoginPassword = onNeedLoginPassword,
-                onCreateAccountContinue = onCreateAccountContinue,
-            )
-        },
-        footer = {
-            OnBoardingButtons(
-                state = state,
-                onSignInWithQrCode = onSignInWithQrCode,
-                onSignIn = onSignIn,
-                onCreateAccount = onCreateAccount,
-                onExternalSignup = onExternalSignup,
-                onReportProblem = onReportProblem,
-            )
-        }
-    )
+    FeralOnBoardingBackground {
+        FeralOnBoardingPage(
+            modifier = modifier,
+            content = {
+                OnBoardingContent(state = state)
+                LoginModeView(
+                    loginMode = state.loginMode,
+                    onClearError = {
+                        state.eventSink(OnBoardingEvents.ClearError)
+                    },
+                    onLearnMoreClick = onLearnMoreClick,
+                    onOidcDetails = onOidcDetails,
+                    onNeedLoginPassword = onNeedLoginPassword,
+                    onCreateAccountContinue = onCreateAccountContinue,
+                )
+            },
+            footer = {
+                OnBoardingButtons(
+                    state = state,
+                    onSignInWithQrCode = onSignInWithQrCode,
+                    onSignIn = onSignIn,
+                    onCreateAccount = onCreateAccount,
+                    onExternalSignup = onExternalSignup,
+                    onReportProblem = onReportProblem,
+                )
+            }
+        )
+    }
 }
 
 @Composable
@@ -106,10 +106,15 @@ private fun OnBoardingContent(state: OnBoardingState) {
                 verticalBias = -0.4f
             )
         ) {
-            ElementLogoAtom(
-                size = ElementLogoAtomSize.Large,
-                modifier = Modifier.padding(top = ElementLogoAtomSize.Large.shadowRadius / 2)
-            )
+            FeralEnhancedLogo(
+                modifier = Modifier
+                    .padding(top = ElementLogoAtomSize.Large.shadowRadius / 2)
+            ) {
+                ElementLogoAtom(
+                    size = ElementLogoAtomSize.Large,
+                    modifier = Modifier
+                )
+            }
         }
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -123,18 +128,20 @@ private fun OnBoardingContent(state: OnBoardingState) {
                     .fillMaxWidth(),
                 horizontalAlignment = CenterHorizontally,
             ) {
-                Text(
+                FeralShadowText(
                     text = stringResource(id = R.string.screen_onboarding_welcome_title),
                     color = ElementTheme.colors.textPrimary,
-                    style = ElementTheme.typography.fontHeadingLgBold,
-                    textAlign = TextAlign.Center
+                    style = FeralTypography.welcomeTitle,
+                    textAlign = TextAlign.Center,
+                    shadowIntensity = 0.7f
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
+                FeralShadowText(
                     text = stringResource(id = R.string.screen_onboarding_welcome_message, state.productionApplicationName),
                     color = ElementTheme.colors.textSecondary,
                     style = ElementTheme.typography.fontBodyLgRegular.copy(fontSize = 17.sp),
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    shadowIntensity = 0.6f
                 )
             }
         }
@@ -163,26 +170,25 @@ private fun OnBoardingButtons(
             CommonStrings.action_continue
         }
         if (state.canLoginWithQrCode) {
-            Button(
+            FeralButton(
                 text = stringResource(id = R.string.screen_onboarding_sign_in_with_qr_code),
                 leadingIcon = IconSource.Vector(CompoundIcons.QrCode()),
                 onClick = onSignInWithQrCode,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
             )
         }
         val defaultAccountProvider = state.defaultAccountProvider
         if (defaultAccountProvider == null) {
-            Button(
+            FeralButton(
                 text = stringResource(id = signInButtonStringRes),
                 onClick = {
                     onSignIn(state.mustChooseAccountProvider)
                 },
                 modifier = Modifier
-                    .fillMaxWidth()
                     .testTag(TestTags.onBoardingSignIn)
             )
         } else {
-            Button(
+            FeralButton(
                 text = stringResource(id = R.string.screen_onboarding_sign_in_to, defaultAccountProvider),
                 showProgress = isLoading,
                 onClick = {
@@ -190,34 +196,32 @@ private fun OnBoardingButtons(
                 },
                 enabled = state.submitEnabled || isLoading,
                 modifier = Modifier
-                    .fillMaxWidth()
             )
         }
         if (state.canCreateAccount) {
-            TextButton(
+            FeralTextButton(
                 text = stringResource(id = R.string.screen_onboarding_sign_up),
                 onClick = onCreateAccount,
                 modifier = Modifier
-                    .fillMaxWidth()
             )
         }
         if (state.canExternalSignup) {
-            TextButton(
+            FeralTextButton(
                 text = stringResource(id = R.string.screen_onboarding_sign_up),
                 onClick = onExternalSignup,
                 modifier = Modifier
-                    .fillMaxWidth()
             )
         }
         if (state.canReportBug) {
             // Add a report problem text button. Use a Text since we need a special theme here.
-            Text(
+            FeralShadowText(
                 modifier = Modifier
                     .padding(16.dp)
                     .clickable(onClick = onReportProblem),
                 text = stringResource(id = CommonStrings.common_report_a_problem),
                 style = ElementTheme.typography.fontBodySmRegular,
-                color = ElementTheme.colors.textSecondary,
+                color = ElementTheme.colors.textPrimary.copy(alpha = 0.8f),
+                shadowIntensity = 0.5f
             )
         }
     }

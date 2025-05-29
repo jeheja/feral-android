@@ -33,10 +33,10 @@ fun FeralOnBoardingBackground(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        FeralColors.forestLight.copy(alpha = 0.3f),
-                        FeralColors.forestMedium.copy(alpha = 0.5f),
+                        FeralColors.forestShadow,
                         FeralColors.deepForest.copy(alpha = 0.7f),
-                        FeralColors.forestShadow
+                        FeralColors.forestMedium.copy(alpha = 0.5f),
+                        FeralColors.forestLight.copy(alpha = 0.3f)
                     ),
                     startY = 0f,
                     endY = 2000f

@@ -38,7 +38,7 @@
   <string name="screen_onboarding_sign_in_to">"Sign in to %1$s"</string>
   <string name="screen_onboarding_sign_in_with_qr_code">"Sign in with QR code"</string>
   <string name="screen_onboarding_sign_up">"Create account"</string>
-  <string name="screen_onboarding_welcome_message">"Welcome to the feralist network. Where civilized humans learn to rewild."</string>
+  <string name="screen_onboarding_welcome_message">"Welcome to the ferallist network. Where civilized humans learn to rewild."</string>
   <string name="screen_onboarding_welcome_subtitle">"Welcome to the feralist network. Where civilized humans learn to rewild."</string>
   <string name="screen_onboarding_welcome_title">"Be Feral"</string>
   <string name="screen_qr_code_login_connecting_subtitle">"Establishing a secure connection"</string>
