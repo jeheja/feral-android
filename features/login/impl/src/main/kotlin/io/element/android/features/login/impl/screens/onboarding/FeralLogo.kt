@@ -46,7 +46,7 @@ fun FeralLogo(
             modifier = Modifier
                 .fillMaxSize()
                 .scale(1.11f), // Scale up by 11% - maximum breathing room
-            painter = painterResource(id = R.drawable.element_logo),
+            painter = painterResource(id = io.element.android.features.login.impl.R.drawable.feral_logo_black),
             contentDescription = null,
             contentScale = ContentScale.Crop // Crop to fill
         )

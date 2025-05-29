@@ -66,7 +66,7 @@ class ChooseAccountProviderPresenter @Inject constructor(
                         // Add more server descriptions as they become available:
                         // "https://feral.de" -> "Server für Deutschland"
                         // "https://feral.es" -> "Servidor para España"
-                        else -> null
+                        else -> "DEBUG: Unknown URL: $url"
                     }
                     AccountProvider(
                         url = url,

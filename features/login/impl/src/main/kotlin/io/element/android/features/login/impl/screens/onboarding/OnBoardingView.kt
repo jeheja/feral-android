@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -125,7 +126,7 @@ private fun OnBoardingContent(state: OnBoardingState) {
             ) {
                 FeralShadowText(
                     text = stringResource(id = R.string.screen_onboarding_welcome_title),
-                    color = ElementTheme.colors.textPrimary,
+                    color = Color(0xFF1A1A1A), // Always dark color for title
                     style = FeralTypography.welcomeTitle,
                     textAlign = TextAlign.Center,
                     shadowIntensity = 0.7f
@@ -133,7 +134,7 @@ private fun OnBoardingContent(state: OnBoardingState) {
                 Spacer(modifier = Modifier.height(8.dp))
                 FeralShadowText(
                     text = stringResource(id = R.string.screen_onboarding_welcome_message, state.productionApplicationName),
-                    color = ElementTheme.colors.textSecondary,
+                    color = Color(0xFF2D2D2D), // Always dark grey for subtitle
                     style = FeralTypography.sectionTitle.copy(
                         fontSize = 17.sp,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
@@ -220,7 +221,7 @@ private fun OnBoardingButtons(
                     .clickable(onClick = onReportProblem),
                 text = stringResource(id = CommonStrings.common_report_a_problem),
                 style = ElementTheme.typography.fontBodySmRegular,
-                color = ElementTheme.colors.textPrimary.copy(alpha = 0.8f),
+                color = Color(0xFF1A1A1A).copy(alpha = 0.8f), // Always dark color
                 shadowIntensity = 0.5f
             )
         }

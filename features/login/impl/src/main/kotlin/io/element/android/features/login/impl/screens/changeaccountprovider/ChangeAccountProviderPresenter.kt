@@ -32,7 +32,14 @@ class ChangeAccountProviderPresenter @Inject constructor(
                 .map { url ->
                     AccountProvider(
                         url = url,
-                        subtitle = null,
+                        subtitle = when (url) {
+                            "https://feralisme.fr" -> "Serveur pour la France"
+                            "https://feralism.net" -> "International server (coming soon)"
+                            // Add more server descriptions as they become available:
+                            // "https://feral.de" -> "Server für Deutschland"
+                            // "https://feral.es" -> "Servidor para España"
+                            else -> null
+                        },
                         isPublic = false,  // Feral servers require external signup
                         isMatrixOrg = false,  // None of our servers are matrix.org
                         isValid = true,
