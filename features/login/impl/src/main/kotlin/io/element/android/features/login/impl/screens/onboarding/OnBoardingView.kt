@@ -180,7 +180,9 @@ private fun OnBoardingButtons(
             FeralButton(
                 text = stringResource(id = signInButtonStringRes),
                 onClick = {
-                    onSignIn(state.mustChooseAccountProvider)
+                    // For Feral, always navigate to ConfirmAccountProvider to avoid navigation loops
+                    // The user can change provider from there if needed
+                    onSignIn(false)
                 },
                 modifier = Modifier
                     .testTag(TestTags.onBoardingSignIn)

@@ -10,8 +10,10 @@ package io.element.android.features.login.impl.screens.confirmaccountprovider
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -50,6 +52,20 @@ fun ConfirmAccountProviderView(
         }
     }
     val eventSink = state.eventSink
+    
+    // Track if this is the first render to prevent automatic navigation
+    val isFirstRender = remember { mutableStateOf(true) }
+    
+    // Clear first render flag after a short delay
+    LaunchedEffect(Unit) {
+        if (isFirstRender.value) {
+            // Clear any existing state on first render
+            eventSink(ConfirmAccountProviderEvents.ClearError)
+            // Wait a moment then allow normal operation
+            kotlinx.coroutines.delay(100)
+            isFirstRender.value = false
+        }
+    }
 
     HeaderFooterPage(
         modifier = modifier,
@@ -65,13 +81,7 @@ fun ConfirmAccountProviderView(
                     },
                     state.accountProvider.title
                 ),
-                subTitle = stringResource(
-                    id = if (state.isAccountCreation) {
-                        R.string.screen_account_provider_signup_subtitle
-                    } else {
-                        R.string.screen_account_provider_signin_subtitle
-                    },
-                )
+                subTitle = null
             )
         },
         footer = {
@@ -96,16 +106,19 @@ fun ConfirmAccountProviderView(
             }
         }
     ) {
-        LoginModeView(
-            loginMode = state.loginMode,
-            onClearError = {
-                eventSink(ConfirmAccountProviderEvents.ClearError)
-            },
-            onLearnMoreClick = onLearnMoreClick,
-            onOidcDetails = onOidcDetails,
-            onNeedLoginPassword = onNeedLoginPassword,
-            onCreateAccountContinue = onCreateAccountContinue,
-        )
+        // Only render LoginModeView after the initial delay to prevent automatic navigation
+        if (!isFirstRender.value) {
+            LoginModeView(
+                loginMode = state.loginMode,
+                onClearError = {
+                    eventSink(ConfirmAccountProviderEvents.ClearError)
+                },
+                onLearnMoreClick = onLearnMoreClick,
+                onOidcDetails = onOidcDetails,
+                onNeedLoginPassword = onNeedLoginPassword,
+                onCreateAccountContinue = onCreateAccountContinue,
+            )
+        }
     }
 }
 

@@ -185,12 +185,12 @@ fun SearchAccountProviderView(
 
 @Composable
 private fun HomeserverData.toAccountProvider(): AccountProvider {
-    val isMatrixOrg = homeserverUrl == AuthenticationConfig.MATRIX_ORG_URL
+    val isMatrixOrg = false  // None of our servers are matrix.org
     return AccountProvider(
         url = homeserverUrl,
         subtitle = if (isMatrixOrg) stringResource(id = R.string.screen_change_account_provider_matrix_org_subtitle) else null,
-        // There is no need to know for other servers right now
-        isPublic = isMatrixOrg,
+        // Feral servers require external signup
+        isPublic = false,
         isMatrixOrg = isMatrixOrg,
         isValid = isWellknownValid,
     )

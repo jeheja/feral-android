@@ -8,7 +8,7 @@
 package io.element.android.appconfig
 
 object AuthenticationConfig {
-    const val MATRIX_ORG_URL = "https://feralisme.fr"
+    const val MATRIX_ORG_URL = ""
 
     /**
      * URL with some docs that explain what's sliding sync and how to add it to your home server.

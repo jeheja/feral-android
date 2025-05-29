@@ -60,16 +60,17 @@ class ChooseAccountProviderPresenter @Inject constructor(
             enterpriseService.defaultHomeserverList()
                 .map { it.ensureProtocol() }
                 .map { url ->
+                    val subtitle = when (url) {
+                        "https://feralisme.fr" -> "Serveur pour la France"
+                        "https://feralism.net" -> "International server (coming soon)"
+                        // Add more server descriptions as they become available:
+                        // "https://feral.de" -> "Server für Deutschland"
+                        // "https://feral.es" -> "Servidor para España"
+                        else -> null
+                    }
                     AccountProvider(
                         url = url,
-                        subtitle = when (url) {
-                            "https://feralisme.fr" -> "Serveur pour la France"
-                            "https://feralism.net" -> "International server (coming soon)"
-                            // Add more server descriptions as they become available:
-                            // "https://feral.de" -> "Server für Deutschland"
-                            // "https://feral.es" -> "Servidor para España"
-                            else -> null
-                        },
+                        subtitle = subtitle,
                         isPublic = false,  // Feral servers require external signup
                         isMatrixOrg = false,  // None of our servers are matrix.org
                         isValid = url != "https://feralism.net",  // Disable selection for servers not yet available

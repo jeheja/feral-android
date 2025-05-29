@@ -1,0 +1,49 @@
+diff --git a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/accountprovider/AccountProviderDataSource.kt b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/accountprovider/AccountProviderDataSource.kt
+index abcdef..123456 100644
+--- a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/accountprovider/AccountProviderDataSource.kt
++++ b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/accountprovider/AccountProviderDataSource.kt
+@@ -26,8 +26,8 @@ class AccountProviderDataSource @Inject constructor(
+                 AccountProvider(
+                     url = url,
+                     subtitle = null,
+-                    isPublic = url == AuthenticationConfig.MATRIX_ORG_URL,
+-                    isMatrixOrg = url == AuthenticationConfig.MATRIX_ORG_URL,
++                    isPublic = false,  // Feral servers require external signup
++                    isMatrixOrg = false,  // None of our servers are matrix.org
+                 )
+             }
+ 
+diff --git a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/changeaccountprovider/ChangeAccountProviderPresenter.kt b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/changeaccountprovider/ChangeAccountProviderPresenter.kt
+index abcdef..123456 100644
+--- a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/changeaccountprovider/ChangeAccountProviderPresenter.kt
++++ b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/changeaccountprovider/ChangeAccountProviderPresenter.kt
+@@ -33,8 +33,8 @@ class ChangeAccountProviderPresenter @Inject constructor(
+                     AccountProvider(
+                         url = url,
+                         subtitle = null,
+-                        isPublic = url == AuthenticationConfig.MATRIX_ORG_URL,
+-                        isMatrixOrg = url == AuthenticationConfig.MATRIX_ORG_URL,
++                        isPublic = false,  // Feral servers require external signup
++                        isMatrixOrg = false,  // None of our servers are matrix.org
+                         isValid = true,
+                     )
+                 }
+
+diff --git a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/searchaccountprovider/SearchAccountProviderView.kt b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/searchaccountprovider/SearchAccountProviderView.kt
+index abcdef..123456 100644
+--- a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/searchaccountprovider/SearchAccountProviderView.kt
++++ b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/searchaccountprovider/SearchAccountProviderView.kt
+@@ -185,11 +185,11 @@ fun SearchAccountProviderView(
+ 
+ @Composable
+ private fun HomeserverData.toAccountProvider(): AccountProvider {
+-    val isMatrixOrg = homeserverUrl == AuthenticationConfig.MATRIX_ORG_URL
++    val isMatrixOrg = false  // None of our servers are matrix.org
+     return AccountProvider(
+         url = homeserverUrl,
+         subtitle = if (isMatrixOrg) stringResource(id = R.string.screen_change_account_provider_matrix_org_subtitle) else null,
+-        // There is no need to know for other servers right now
+-        isPublic = isMatrixOrg,
++        // Feral servers require external signup
++        isPublic = false,
+         isMatrixOrg = isMatrixOrg,
