@@ -1,0 +1,48 @@
+diff --git a/app/src/main/res/values/colors.xml b/app/src/main/res/values/colors.xml
+index f61fb33868..e88b927684 100644
+--- a/app/src/main/res/values/colors.xml
++++ b/app/src/main/res/values/colors.xml
+@@ -6,7 +6,7 @@
+   -->
+ <resources>
+     <!-- Must be equal to DarkColorTokens.colorThemeBg -->
+-    <color name="splashscreen_bg_dark">#FF101317</color>
++    <color name="splashscreen_bg_dark">#FF0F2C1E</color>
+     <!-- Must be equal to LightColorTokens.colorThemeBg -->
+-    <color name="splashscreen_bg_light">#FFFFFFFF</color>
++    <color name="splashscreen_bg_light">#FFF8E7</color>
+ </resources>
+diff --git a/libraries/designsystem/src/main/kotlin/io/element/android/libraries/designsystem/components/button/SuperButton.kt b/libraries/designsystem/src/main/kotlin/io/element/android/libraries/designsystem/components/button/SuperButton.kt
+index a53955afc2..7c1284f647 100644
+--- a/libraries/designsystem/src/main/kotlin/io/element/android/libraries/designsystem/components/button/SuperButton.kt
++++ b/libraries/designsystem/src/main/kotlin/io/element/android/libraries/designsystem/components/button/SuperButton.kt
+@@ -42,6 +42,7 @@ import io.element.android.compound.tokens.generated.internal.DarkColorTokens
+ import io.element.android.compound.tokens.generated.internal.LightColorTokens
+ import io.element.android.libraries.designsystem.preview.ElementPreview
+ import io.element.android.libraries.designsystem.preview.PreviewsDayNight
++import io.element.android.libraries.designsystem.theme.FeralColors
+ import io.element.android.libraries.designsystem.theme.LocalBuildMeta
+ import io.element.android.libraries.designsystem.theme.components.ButtonSize
+ import io.element.android.libraries.designsystem.theme.components.HorizontalDivider
+@@ -74,17 +75,10 @@ fun SuperButton(
+         )
+     } else {
+         remember(isLightTheme) {
+-            if (isLightTheme) {
+-                listOf(
+-                    LightColorTokens.colorBlue900,
+-                    LightColorTokens.colorGreen1100,
+-                )
+-            } else {
+-                listOf(
+-                    DarkColorTokens.colorBlue900,
+-                    DarkColorTokens.colorGreen1100,
+-                )
+-            }
++            listOf(
++                FeralColors.gradientStart,
++                FeralColors.gradientEnd,
++            )
+         }
+     }
+ 

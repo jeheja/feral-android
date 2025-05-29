@@ -42,6 +42,7 @@ import io.element.android.compound.tokens.generated.internal.DarkColorTokens
 import io.element.android.compound.tokens.generated.internal.LightColorTokens
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
+import io.element.android.libraries.designsystem.theme.FeralColors
 import io.element.android.libraries.designsystem.theme.LocalBuildMeta
 import io.element.android.libraries.designsystem.theme.components.ButtonSize
 import io.element.android.libraries.designsystem.theme.components.HorizontalDivider
@@ -74,17 +75,10 @@ fun SuperButton(
         )
     } else {
         remember(isLightTheme) {
-            if (isLightTheme) {
-                listOf(
-                    LightColorTokens.colorBlue900,
-                    LightColorTokens.colorGreen1100,
-                )
-            } else {
-                listOf(
-                    DarkColorTokens.colorBlue900,
-                    DarkColorTokens.colorGreen1100,
-                )
-            }
+            listOf(
+                FeralColors.gradientStart,
+                FeralColors.gradientEnd,
+            )
         }
     }
 

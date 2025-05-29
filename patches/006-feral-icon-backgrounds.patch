@@ -1,0 +1,26 @@
+diff --git a/appicon/element/src/nightly/res/drawable/ic_launcher_background.xml b/appicon/element/src/nightly/res/drawable/ic_launcher_background.xml
+index dc27f37adf..8307e7f474 100644
+--- a/appicon/element/src/nightly/res/drawable/ic_launcher_background.xml
++++ b/appicon/element/src/nightly/res/drawable/ic_launcher_background.xml
+@@ -4,7 +4,7 @@
+     android:viewportWidth="108"
+     android:viewportHeight="108">
+     <path
+-        android:fillColor="#07007E"
++        android:fillColor="#0a1f15"
+         android:fillType="evenOdd"
+         android:pathData="m0,0h108v108h-108z" />
+ </vector>
+diff --git a/appicon/element/src/release/res/drawable/ic_launcher_background.xml b/appicon/element/src/release/res/drawable/ic_launcher_background.xml
+index 1cbabacb4f..e0e0d276ed 100644
+--- a/appicon/element/src/release/res/drawable/ic_launcher_background.xml
++++ b/appicon/element/src/release/res/drawable/ic_launcher_background.xml
+@@ -4,7 +4,7 @@
+     android:viewportWidth="108"
+     android:viewportHeight="108">
+     <path
+-        android:fillColor="#010302"
++        android:fillColor="#0F2C1E"
+         android:fillType="evenOdd"
+         android:pathData="m0,0h108v108h-108z" />
+ </vector>

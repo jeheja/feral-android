@@ -16,6 +16,7 @@ data class OnBoardingState(
     val mustChooseAccountProvider: Boolean,
     val canLoginWithQrCode: Boolean,
     val canCreateAccount: Boolean,
+    val canExternalSignup: Boolean = false,
     val canReportBug: Boolean,
     val loginMode: AsyncData<LoginMode>,
     val eventSink: (OnBoardingEvents) -> Unit,

@@ -1,0 +1,155 @@
+diff --git a/appconfig/src/main/kotlin/io/element/android/appconfig/OnBoardingConfig.kt b/appconfig/src/main/kotlin/io/element/android/appconfig/OnBoardingConfig.kt
+index c84cc273bb..92a6bb5d70 100644
+--- a/appconfig/src/main/kotlin/io/element/android/appconfig/OnBoardingConfig.kt
++++ b/appconfig/src/main/kotlin/io/element/android/appconfig/OnBoardingConfig.kt
+@@ -12,5 +12,8 @@ object OnBoardingConfig {
+     const val CAN_LOGIN_WITH_QR_CODE = true
+ 
+     /** Whether the user can create an account using the app. */
+-    const val CAN_CREATE_ACCOUNT = true
++    const val CAN_CREATE_ACCOUNT = false
++    
++    /** External signup URL for account creation. */
++    const val EXTERNAL_SIGNUP_URL = "https://feralisme.fr/inscription/"
+ }
+diff --git a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingNode.kt b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingNode.kt
+index d9c1615fde..f04d98b1a3 100644
+--- a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingNode.kt
++++ b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingNode.kt
+@@ -17,7 +17,9 @@ import com.bumble.appyx.core.plugin.plugins
+ import dagger.assisted.Assisted
+ import dagger.assisted.AssistedInject
+ import io.element.android.anvilannotations.ContributesNode
++import io.element.android.appconfig.OnBoardingConfig
+ import io.element.android.features.login.impl.util.openLearnMorePage
++import io.element.android.libraries.androidutils.browser.openUrlInChromeCustomTab
+ import io.element.android.libraries.architecture.NodeInputs
+ import io.element.android.libraries.architecture.inputs
+ import io.element.android.libraries.di.AppScope
+@@ -90,6 +92,13 @@ class OnBoardingNode @AssistedInject constructor(
+             modifier = modifier,
+             onSignIn = ::onSignIn,
+             onCreateAccount = ::onSignUp,
++            onExternalSignup = {
++                context.openUrlInChromeCustomTab(
++                    session = null,
++                    darkMode = false,
++                    url = OnBoardingConfig.EXTERNAL_SIGNUP_URL
++                )
++            },
+             onSignInWithQrCode = ::onSignInWithQrCode,
+             onReportProblem = ::onReportProblem,
+             onOidcDetails = ::onOidcDetails,
+diff --git a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingPresenter.kt b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingPresenter.kt
+index f4696133fe..e51d3164fd 100644
+--- a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingPresenter.kt
++++ b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingPresenter.kt
+@@ -91,6 +91,7 @@ class OnBoardingPresenter @AssistedInject constructor(
+             mustChooseAccountProvider = mustChooseAccountProvider,
+             canLoginWithQrCode = canLoginWithQrCode,
+             canCreateAccount = defaultAccountProvider == null && canConnectToAnyHomeserver && OnBoardingConfig.CAN_CREATE_ACCOUNT,
++            canExternalSignup = defaultAccountProvider == null && canConnectToAnyHomeserver && !OnBoardingConfig.CAN_CREATE_ACCOUNT,
+             canReportBug = canReportBug,
+             loginMode = loginMode,
+             eventSink = ::handleEvent,
+diff --git a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingState.kt b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingState.kt
+index 98484a1fc2..86b0056831 100644
+--- a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingState.kt
++++ b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingState.kt
+@@ -16,6 +16,7 @@ data class OnBoardingState(
+     val mustChooseAccountProvider: Boolean,
+     val canLoginWithQrCode: Boolean,
+     val canCreateAccount: Boolean,
++    val canExternalSignup: Boolean = false,
+     val canReportBug: Boolean,
+     val loginMode: AsyncData<LoginMode>,
+     val eventSink: (OnBoardingEvents) -> Unit,
+diff --git a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingStateProvider.kt b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingStateProvider.kt
+index 9be36719e2..03364ac54c 100644
+--- a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingStateProvider.kt
++++ b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingStateProvider.kt
+@@ -20,6 +20,8 @@ open class OnBoardingStateProvider : PreviewParameterProvider<OnBoardingState> {
+             anOnBoardingState(canLoginWithQrCode = true, canCreateAccount = true),
+             anOnBoardingState(canLoginWithQrCode = true, canCreateAccount = true, canReportBug = true),
+             anOnBoardingState(defaultAccountProvider = "element.io", canCreateAccount = false, canReportBug = true),
++            anOnBoardingState(canExternalSignup = true),
++            anOnBoardingState(canLoginWithQrCode = true, canExternalSignup = true, canReportBug = true),
+         )
+ }
+ 
+@@ -29,6 +31,7 @@ fun anOnBoardingState(
+     mustChooseAccountProvider: Boolean = false,
+     canLoginWithQrCode: Boolean = false,
+     canCreateAccount: Boolean = false,
++    canExternalSignup: Boolean = false,
+     canReportBug: Boolean = false,
+     loginMode: AsyncData<LoginMode> = AsyncData.Uninitialized,
+     eventSink: (OnBoardingEvents) -> Unit = {},
+@@ -38,6 +41,7 @@ fun anOnBoardingState(
+     mustChooseAccountProvider = mustChooseAccountProvider,
+     canLoginWithQrCode = canLoginWithQrCode,
+     canCreateAccount = canCreateAccount,
++    canExternalSignup = canExternalSignup,
+     canReportBug = canReportBug,
+     loginMode = loginMode,
+     eventSink = eventSink,
+diff --git a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingView.kt b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingView.kt
+index 99ab348b06..d176707b81 100644
+--- a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingView.kt
++++ b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/OnBoardingView.kt
+@@ -58,6 +58,7 @@ fun OnBoardingView(
+     onSignInWithQrCode: () -> Unit,
+     onSignIn: (mustChooseAccountProvider: Boolean) -> Unit,
+     onCreateAccount: () -> Unit,
++    onExternalSignup: () -> Unit,
+     onOidcDetails: (OidcDetails) -> Unit,
+     onNeedLoginPassword: () -> Unit,
+     onLearnMoreClick: () -> Unit,
+@@ -86,6 +87,7 @@ fun OnBoardingView(
+                 onSignInWithQrCode = onSignInWithQrCode,
+                 onSignIn = onSignIn,
+                 onCreateAccount = onCreateAccount,
++                onExternalSignup = onExternalSignup,
+                 onReportProblem = onReportProblem,
+             )
+         }
+@@ -145,6 +147,7 @@ private fun OnBoardingButtons(
+     onSignInWithQrCode: () -> Unit,
+     onSignIn: (mustChooseAccountProvider: Boolean) -> Unit,
+     onCreateAccount: () -> Unit,
++    onExternalSignup: () -> Unit,
+     onReportProblem: () -> Unit,
+ ) {
+     val isLoading by remember(state.loginMode) {
+@@ -154,7 +157,7 @@ private fun OnBoardingButtons(
+     }
+ 
+     ButtonColumnMolecule {
+-        val signInButtonStringRes = if (state.canLoginWithQrCode || state.canCreateAccount) {
++        val signInButtonStringRes = if (state.canLoginWithQrCode || state.canCreateAccount || state.canExternalSignup) {
+             R.string.screen_onboarding_sign_in_manually
+         } else {
+             CommonStrings.action_continue
+@@ -198,6 +201,14 @@ private fun OnBoardingButtons(
+                     .fillMaxWidth()
+             )
+         }
++        if (state.canExternalSignup) {
++            TextButton(
++                text = stringResource(id = R.string.screen_onboarding_sign_up),
++                onClick = onExternalSignup,
++                modifier = Modifier
++                    .fillMaxWidth()
++            )
++        }
+         if (state.canReportBug) {
+             // Add a report problem text button. Use a Text since we need a special theme here.
+             Text(
+@@ -222,6 +233,7 @@ internal fun OnBoardingViewPreview(
+         onSignInWithQrCode = {},
+         onSignIn = {},
+         onCreateAccount = {},
++        onExternalSignup = {},
+         onReportProblem = {},
+         onOidcDetails = {},
+         onNeedLoginPassword = {},

@@ -91,6 +91,7 @@ class OnBoardingPresenter @AssistedInject constructor(
             mustChooseAccountProvider = mustChooseAccountProvider,
             canLoginWithQrCode = canLoginWithQrCode,
             canCreateAccount = defaultAccountProvider == null && canConnectToAnyHomeserver && OnBoardingConfig.CAN_CREATE_ACCOUNT,
+            canExternalSignup = defaultAccountProvider == null && canConnectToAnyHomeserver && !OnBoardingConfig.CAN_CREATE_ACCOUNT,
             canReportBug = canReportBug,
             loginMode = loginMode,
             eventSink = ::handleEvent,

@@ -46,6 +46,17 @@ class OnboardingViewTest {
     }
 
     @Test
+    fun `when can external signup - clicking on sign up calls the expected callback`() {
+        ensureCalledOnce { callback ->
+            rule.setOnboardingView(
+                state = anOnBoardingState(canExternalSignup = true),
+                onExternalSignup = callback,
+            )
+            rule.clickOn(R.string.screen_onboarding_sign_up)
+        }
+    }
+
+    @Test
     fun `when can login with QR code - clicking on sign in with QR code calls the expected callback`() {
         ensureCalledOnce { callback ->
             rule.setOnboardingView(
@@ -174,6 +185,7 @@ class OnboardingViewTest {
         onSignInWithQrCode: () -> Unit = EnsureNeverCalled(),
         onSignIn: (Boolean) -> Unit = EnsureNeverCalledWithParam(),
         onCreateAccount: () -> Unit = EnsureNeverCalled(),
+        onExternalSignup: () -> Unit = EnsureNeverCalled(),
         onReportProblem: () -> Unit = EnsureNeverCalled(),
         onOidcDetails: (OidcDetails) -> Unit = EnsureNeverCalledWithParam(),
         onNeedLoginPassword: () -> Unit = EnsureNeverCalled(),
@@ -186,6 +198,7 @@ class OnboardingViewTest {
                 onSignInWithQrCode = onSignInWithQrCode,
                 onSignIn = onSignIn,
                 onCreateAccount = onCreateAccount,
+                onExternalSignup = onExternalSignup,
                 onReportProblem = onReportProblem,
                 onOidcDetails = onOidcDetails,
                 onNeedLoginPassword = onNeedLoginPassword,

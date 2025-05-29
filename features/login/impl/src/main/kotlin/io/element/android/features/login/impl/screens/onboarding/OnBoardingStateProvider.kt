@@ -20,6 +20,8 @@ open class OnBoardingStateProvider : PreviewParameterProvider<OnBoardingState> {
             anOnBoardingState(canLoginWithQrCode = true, canCreateAccount = true),
             anOnBoardingState(canLoginWithQrCode = true, canCreateAccount = true, canReportBug = true),
             anOnBoardingState(defaultAccountProvider = "element.io", canCreateAccount = false, canReportBug = true),
+            anOnBoardingState(canExternalSignup = true),
+            anOnBoardingState(canLoginWithQrCode = true, canExternalSignup = true, canReportBug = true),
         )
 }
 
@@ -29,6 +31,7 @@ fun anOnBoardingState(
     mustChooseAccountProvider: Boolean = false,
     canLoginWithQrCode: Boolean = false,
     canCreateAccount: Boolean = false,
+    canExternalSignup: Boolean = false,
     canReportBug: Boolean = false,
     loginMode: AsyncData<LoginMode> = AsyncData.Uninitialized,
     eventSink: (OnBoardingEvents) -> Unit = {},
@@ -38,6 +41,7 @@ fun anOnBoardingState(
     mustChooseAccountProvider = mustChooseAccountProvider,
     canLoginWithQrCode = canLoginWithQrCode,
     canCreateAccount = canCreateAccount,
+    canExternalSignup = canExternalSignup,
     canReportBug = canReportBug,
     loginMode = loginMode,
     eventSink = eventSink,

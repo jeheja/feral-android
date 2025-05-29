@@ -1,0 +1,32 @@
+/*
+ * Copyright 2025 Feral
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * Please see LICENSE files in the repository root for full details.
+ */
+
+package io.element.android.libraries.designsystem.theme
+
+import androidx.compose.ui.graphics.Color
+
+/**
+ * Feral custom color palette
+ */
+object FeralColors {
+    // Primary colors
+    val deepForest = Color(0xFF0F2C1E)
+    val forestShadow = Color(0xFF0A1F15)
+    
+    // Accent colors
+    val golden = Color(0xFFD4AF37)
+    val goldenBright = Color(0xFFF1C40F)
+    
+    // Secondary colors
+    val cream = Color(0xFFFFF8E7)
+    val sageGreen = Color(0xFF87A96B)
+    val mossGreen = Color(0xFF4A5D3A)
+    
+    // Gradient colors for SuperButton
+    val gradientStart = golden
+    val gradientEnd = goldenBright
+}

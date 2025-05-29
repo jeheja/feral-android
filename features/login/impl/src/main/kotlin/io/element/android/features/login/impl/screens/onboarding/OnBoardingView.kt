@@ -58,6 +58,7 @@ fun OnBoardingView(
     onSignInWithQrCode: () -> Unit,
     onSignIn: (mustChooseAccountProvider: Boolean) -> Unit,
     onCreateAccount: () -> Unit,
+    onExternalSignup: () -> Unit,
     onOidcDetails: (OidcDetails) -> Unit,
     onNeedLoginPassword: () -> Unit,
     onLearnMoreClick: () -> Unit,
@@ -86,6 +87,7 @@ fun OnBoardingView(
                 onSignInWithQrCode = onSignInWithQrCode,
                 onSignIn = onSignIn,
                 onCreateAccount = onCreateAccount,
+                onExternalSignup = onExternalSignup,
                 onReportProblem = onReportProblem,
             )
         }
@@ -145,6 +147,7 @@ private fun OnBoardingButtons(
     onSignInWithQrCode: () -> Unit,
     onSignIn: (mustChooseAccountProvider: Boolean) -> Unit,
     onCreateAccount: () -> Unit,
+    onExternalSignup: () -> Unit,
     onReportProblem: () -> Unit,
 ) {
     val isLoading by remember(state.loginMode) {
@@ -154,7 +157,7 @@ private fun OnBoardingButtons(
     }
 
     ButtonColumnMolecule {
-        val signInButtonStringRes = if (state.canLoginWithQrCode || state.canCreateAccount) {
+        val signInButtonStringRes = if (state.canLoginWithQrCode || state.canCreateAccount || state.canExternalSignup) {
             R.string.screen_onboarding_sign_in_manually
         } else {
             CommonStrings.action_continue
@@ -198,6 +201,14 @@ private fun OnBoardingButtons(
                     .fillMaxWidth()
             )
         }
+        if (state.canExternalSignup) {
+            TextButton(
+                text = stringResource(id = R.string.screen_onboarding_sign_up),
+                onClick = onExternalSignup,
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+        }
         if (state.canReportBug) {
             // Add a report problem text button. Use a Text since we need a special theme here.
             Text(
@@ -222,6 +233,7 @@ internal fun OnBoardingViewPreview(
         onSignInWithQrCode = {},
         onSignIn = {},
         onCreateAccount = {},
+        onExternalSignup = {},
         onReportProblem = {},
         onOidcDetails = {},
         onNeedLoginPassword = {},

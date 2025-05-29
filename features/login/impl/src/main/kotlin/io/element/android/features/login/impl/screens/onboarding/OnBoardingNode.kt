@@ -10,6 +10,7 @@ package io.element.android.features.login.impl.screens.onboarding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.LocalActivity
 import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.core.node.Node
 import com.bumble.appyx.core.plugin.Plugin
@@ -17,7 +18,9 @@ import com.bumble.appyx.core.plugin.plugins
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import io.element.android.anvilannotations.ContributesNode
+import io.element.android.appconfig.OnBoardingConfig
 import io.element.android.features.login.impl.util.openLearnMorePage
+import io.element.android.libraries.androidutils.browser.openUrlInChromeCustomTab
 import io.element.android.libraries.architecture.NodeInputs
 import io.element.android.libraries.architecture.inputs
 import io.element.android.libraries.di.AppScope
@@ -85,11 +88,19 @@ class OnBoardingNode @AssistedInject constructor(
     override fun View(modifier: Modifier) {
         val state = presenter.present()
         val context = LocalContext.current
+        val activity = LocalActivity.current
         OnBoardingView(
             state = state,
             modifier = modifier,
             onSignIn = ::onSignIn,
             onCreateAccount = ::onSignUp,
+            onExternalSignup = {
+                activity?.openUrlInChromeCustomTab(
+                    session = null,
+                    darkTheme = false,
+                    url = OnBoardingConfig.EXTERNAL_SIGNUP_URL
+                )
+            },
             onSignInWithQrCode = ::onSignInWithQrCode,
             onReportProblem = ::onReportProblem,
             onOidcDetails = ::onOidcDetails,
