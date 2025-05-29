@@ -1,0 +1,109 @@
+/*
+ * Copyright 2024 New Vector Ltd.
+ *
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * Please see LICENSE files in the repository root for full details.
+ */
+
+package io.element.android.features.enterprise.impl
+
+import android.content.Context
+import com.squareup.anvil.annotations.ContributesBinding
+import io.element.android.compound.tokens.generated.SemanticColors
+import io.element.android.compound.tokens.generated.compoundColorsDark
+import io.element.android.compound.tokens.generated.compoundColorsLight
+import io.element.android.features.enterprise.api.EnterpriseService
+import io.element.android.libraries.di.AppScope
+import io.element.android.libraries.di.ApplicationContext
+import io.element.android.libraries.matrix.api.core.SessionId
+import java.util.Locale
+import javax.inject.Inject
+
+/**
+ * Feral Enterprise Service that provides a list of regional Feral Matrix servers
+ * Users can choose between different regional servers but cannot add custom servers
+ * The default server is selected based on the user's locale/language
+ */
+@ContributesBinding(AppScope::class)
+class FeralEnterpriseService @Inject constructor(
+    @ApplicationContext private val context: Context
+) : EnterpriseService {
+    override val isEnterpriseBuild = true
+
+    override suspend fun isEnterpriseUser(sessionId: SessionId) = true
+
+    // Map of language/country codes to homeservers
+    private val localeToHomeserver = mapOf(
+        "fr" to "https://feralisme.fr",      // French
+        "FR" to "https://feralisme.fr",      // France
+        // Add more mappings as servers become available:
+        // "de" to "https://feral.de",       // German
+        // "DE" to "https://feral.de",       // Germany
+        // "es" to "https://feral.es",       // Spanish
+        // "ES" to "https://feral.es",       // Spain
+        // "GB" to "https://feral.uk",       // UK
+        // "pt" to "https://feral.pt",       // Portuguese
+        // "PT" to "https://feral.pt",       // Portugal
+        // "BR" to "https://feral.com.br",   // Brazil
+    )
+
+    // Get the default homeserver based on locale
+    private fun getDefaultHomeserverForLocale(): String {
+        val locale = Locale.getDefault()
+        
+        // First try country code
+        localeToHomeserver[locale.country]?.let { return it }
+        
+        // Then try language code
+        localeToHomeserver[locale.language]?.let { return it }
+        
+        // Default to international server
+        return "https://feral.chat"
+    }
+
+    // List of allowed Feral regional servers
+    // The list is ordered with the locale-appropriate server first
+    override fun defaultHomeserverList(): List<String> {
+        val defaultServer = getDefaultHomeserverForLocale()
+        val allServers = listOf(
+            "https://feralisme.fr",      // France
+            "https://feral.chat",        // International/Default
+            // Add more regional servers as they become available:
+            // "https://feral.de",       // Germany
+            // "https://feral.es",       // Spain
+            // "https://feral.uk",       // UK
+            // etc.
+        )
+        
+        // Put the default server first in the list
+        return listOf(defaultServer) + allServers.filter { it != defaultServer }
+    }
+    
+    // Only allow connections to official Feral servers
+    override suspend fun isAllowedToConnectToHomeserver(homeserverUrl: String): Boolean {
+        val normalizedUrl = normalizeHomeserverUrl(homeserverUrl)
+        val allowedServers = listOf(
+            "https://feralisme.fr",
+            "https://feral.chat",
+            // Add more as needed
+        )
+        return allowedServers.any { normalizedUrl == it || normalizedUrl == it.removePrefix("https://") }
+    }
+
+    private fun normalizeHomeserverUrl(url: String): String {
+        return when {
+            url.startsWith("https://") -> url
+            url.startsWith("http://") -> url.replace("http://", "https://")
+            else -> "https://$url"
+        }
+    }
+
+    override suspend fun isElementCallAvailable(): Boolean = true
+
+    override fun semanticColorsLight(): SemanticColors = compoundColorsLight
+
+    override fun semanticColorsDark(): SemanticColors = compoundColorsDark
+
+    override fun firebasePushGateway(): String? = null
+    override fun unifiedPushDefaultPushGateway(): String? = null
+}

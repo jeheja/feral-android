@@ -21,7 +21,12 @@ git checkout -- \
     appicon/element/src/nightly/res/drawable/ic_launcher_background.xml \
     appicon/element/src/release/res/drawable/ic_launcher_background.xml \
     appicon/element/src/debug/res/drawable/ic_launcher_background.xml \
-    features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/ 2>/dev/null || true
+    features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/onboarding/ \
+    features/enterprise/impl/src/main/kotlin/io/element/android/features/enterprise/impl/DefaultEnterpriseService.kt 2>/dev/null || true
+
+# Also reset all translation files
+echo "Resetting translation files..."
+git checkout -- features/login/impl/src/main/res/values*/translations.xml features/login/impl/src/main/res/values/localazy.xml 2>/dev/null || true
 
 # Remove added files
 echo "Removing added files..."
@@ -29,6 +34,7 @@ rm -f libraries/designsystem/src/main/kotlin/io/element/android/libraries/design
 rm -f libraries/push/impl/src/main/res/drawable-xxhdpi/element_logo_green.png
 rm -f libraries/designsystem/src/main/res/drawable-xxhdpi/element_logo.png
 rm -f libraries/designsystem/src/main/res/drawable-night-xxhdpi/element_logo.png
+rm -f features/enterprise/impl/src/main/kotlin/io/element/android/features/enterprise/impl/FeralEnterpriseService.kt
 
 # Reset icon files
 echo "Resetting icon files..."

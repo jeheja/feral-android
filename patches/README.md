@@ -10,6 +10,7 @@ This directory contains patches that customize Element Android to create Feral A
 4. **004-feral-colors.patch** - Updates color scheme to Feral branding
 5. **005-feral-colors-new-file.patch** - Adds FeralColors.kt with custom color definitions
 6. **006-feral-icon-backgrounds.patch** - Updates launcher icon backgrounds
+7. **007-feral-enterprise-service.patch** - Restricts to Feral servers only with locale-based defaults
 
 ## Binary Assets
 

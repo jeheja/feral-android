@@ -16,7 +16,8 @@ import io.element.android.libraries.di.AppScope
 import io.element.android.libraries.matrix.api.core.SessionId
 import javax.inject.Inject
 
-@ContributesBinding(AppScope::class)
+// Disabled in favor of FeralEnterpriseService
+// @ContributesBinding(AppScope::class)
 class DefaultEnterpriseService @Inject constructor() : EnterpriseService {
     override val isEnterpriseBuild = false
 

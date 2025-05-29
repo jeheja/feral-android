@@ -50,6 +50,13 @@ We use a **patch-based system** to keep our customizations separate from the ups
 - In-app logos for light/dark themes
 - Custom splash screen colors
 
+### 6. Localization
+- **Files**: All `values-*/translations.xml` files
+- **Changes**:
+  - Welcome title: "Be Feral" (keeping "Feral" word in all 33 languages)
+  - Welcome message: "Welcome to the feralist network. Where civilized humans learn to rewild."
+  - All translations maintain the "Feral/feralist" branding
+
 ## Maintenance Workflow
 
 ### Initial Setup
@@ -116,6 +123,8 @@ After applying customizations or updating from upstream:
 - [ ] Sign up button opens external registration
 - [ ] Color theme is consistent throughout
 - [ ] No Element branding visible
+- [ ] Welcome screen shows "Be Feral" in user's language
+- [ ] Welcome message shows feralist network text
 
 ## Troubleshooting
 
