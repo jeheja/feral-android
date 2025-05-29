@@ -1,0 +1,23 @@
+diff --git a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/chooseaccountprovider/ChooseAccountProviderView.kt b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/chooseaccountprovider/ChooseAccountProviderView.kt
+index 760e39ce85..0a5a6bab98 100644
+--- a/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/chooseaccountprovider/ChooseAccountProviderView.kt
++++ b/features/login/impl/src/main/kotlin/io/element/android/features/login/impl/screens/chooseaccountprovider/ChooseAccountProviderView.kt
+@@ -90,16 +90,9 @@ fun ChooseAccountProviderView(
+                 )
+ 
+                 state.accountProviders.forEach { item ->
+-                    val alteredItem = if (item.isMatrixOrg) {
+-                        // Set the subtitle from the resource
+-                        item.copy(
+-                            subtitle = stringResource(id = R.string.screen_change_account_provider_matrix_org_subtitle),
+-                        )
+-                    } else {
+-                        item
+-                    }
++                    // Don't show subtitle for any servers in Feral
+                     AccountProviderView(
+-                        item = alteredItem,
++                        item = item,
+                         selected = item == state.selectedAccountProvider,
+                         onClick = {
+                             state.eventSink(ChooseAccountProviderEvents.SelectAccountProvider(item))
