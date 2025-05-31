@@ -13,7 +13,4 @@ object OnBoardingConfig {
 
     /** Whether the user can create an account using the app. */
     const val CAN_CREATE_ACCOUNT = false
-    
-    /** External signup URL for account creation. */
-    const val EXTERNAL_SIGNUP_URL = "https://feralisme.fr/inscription/"
 }

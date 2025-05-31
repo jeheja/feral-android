@@ -199,20 +199,6 @@ private fun OnBoardingButtons(
                 modifier = Modifier
             )
         }
-        if (state.canCreateAccount) {
-            FeralTextButton(
-                text = stringResource(id = R.string.screen_onboarding_sign_up),
-                onClick = onCreateAccount,
-                modifier = Modifier
-            )
-        }
-        if (state.canExternalSignup) {
-            FeralTextButton(
-                text = stringResource(id = R.string.screen_onboarding_sign_up),
-                onClick = onExternalSignup,
-                modifier = Modifier
-            )
-        }
         if (state.canReportBug) {
             // Add a report problem text button. Use a Text since we need a special theme here.
             FeralShadowText(
