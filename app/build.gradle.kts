@@ -26,6 +26,7 @@ import extension.locales
 import extension.setupAnvil
 import extension.setupKover
 import java.util.Locale
+import java.util.Properties
 
 plugins {
     id("io.element.android-compose-application")
@@ -100,6 +101,18 @@ android {
             storePassword = System.getenv("ELEMENT_ANDROID_NIGHTLY_STOREPASSWORD")
                 ?: project.property("signing.element.nightly.storePassword") as? String?
         }
+        register("release") {
+            val signingPropertiesFile = rootProject.file("signing.properties")
+            if (signingPropertiesFile.exists()) {
+                val signingProperties = Properties()
+                signingProperties.load(signingPropertiesFile.inputStream())
+                
+                storeFile = rootProject.file(signingProperties.getProperty("FERAL_RELEASE_STORE_FILE"))
+                storePassword = signingProperties.getProperty("FERAL_RELEASE_STORE_PASSWORD")
+                keyAlias = signingProperties.getProperty("FERAL_RELEASE_KEY_ALIAS")
+                keyPassword = signingProperties.getProperty("FERAL_RELEASE_KEY_PASSWORD")
+            }
+        }
     }
 
     val baseAppName = BuildTimeConfig.APPLICATION_NAME
@@ -125,7 +138,7 @@ android {
                 "login_redirect_scheme",
                 oidcRedirectSchemeBase,
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
 
             postprocessing {
                 isRemoveUnusedCode = true
