@@ -34,6 +34,7 @@
   <string name="screen_login_error_refresh_tokens">"此服务器使用刷新令牌。使用密码登录时不支持这些功能。"</string>
   <string name="screen_login_error_unsupported_authentication">"该服务器不支持密码登录和 OIDC 第三方账户登录。请联系服务器管理员，或选择别的服务器。"</string>
   <string name="screen_login_form_header">"输入您的详细信息"</string>
+  <string name="screen_login_members_only_notice">"仅限 Feralist 社区成员访问"</string>
   <string name="screen_login_subtitle">"Matrix 是一个用于安全、去中心化通信的开放网络。"</string>
   <string name="screen_login_title">"欢迎回来！"</string>
   <string name="screen_login_title_with_homeserver">"登录到 %1$s"</string>

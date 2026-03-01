@@ -34,6 +34,7 @@
   <string name="screen_login_error_refresh_tokens">"Ez a kiszolgáló frissítési tokenek használatára van beállítva. Ezek jelszó alapú bejelentkezés esetén nem támogatottak."</string>
   <string name="screen_login_error_unsupported_authentication">"A kiválasztott Matrix-kiszolgáló nem támogatja a jelszavas vagy OIDC-alapú bejelentkezést. Lépjen kapcsolatba a kiszolgáló adminisztrátorával, vagy válasszon másik Matrix-kiszolgálót."</string>
   <string name="screen_login_form_header">"Adja meg adatait"</string>
+  <string name="screen_login_members_only_notice">"A hozzáférés a Feralist közösség tagjai számára van fenntartva"</string>
   <string name="screen_login_subtitle">"A Matrix egy nyitott hálózat a biztonságos, decentralizált kommunikációhoz."</string>
   <string name="screen_login_title">"Örülünk, hogy visszatért!"</string>
   <string name="screen_login_title_with_homeserver">"Bejelentkezés ide: %1$s"</string>

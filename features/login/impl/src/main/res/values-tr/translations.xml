@@ -29,6 +29,7 @@
   <string name="screen_login_subtitle">"Matrix, güvenli, merkezi olmayan iletişim için açık bir ağdır."</string>
   <string name="screen_login_title">"Tekrar hoş geldiniz!"</string>
   <string name="screen_login_title_with_homeserver">"%1$s adresinde oturum aç"</string>
+  <string name="screen_login_members_only_notice">"Erişim, Feralist topluluğunun üyelerine ayrılmıştır"</string>
   <string name="screen_onboarding_sign_in_manually">"Manuel olarak oturum aç"</string>
   <string name="screen_onboarding_sign_in_to">"%1$s adresinde oturum aç"</string>
   <string name="screen_onboarding_sign_in_with_qr_code">"QR kodu ile giriş yap"</string>

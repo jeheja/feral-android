@@ -37,6 +37,7 @@
   <string name="screen_login_subtitle">"A Matrix é uma rede aberta para comunicação segura e descentralizada."</string>
   <string name="screen_login_title">"Boas-vindas novamente!"</string>
   <string name="screen_login_title_with_homeserver">"Entrar em %1$s"</string>
+  <string name="screen_login_members_only_notice">"O acesso é reservado aos membros da comunidade Feralist"</string>
   <string name="screen_onboarding_app_version">"Versão %1$s"</string>
   <string name="screen_onboarding_sign_in_manually">"Entrar manualmente"</string>
   <string name="screen_onboarding_sign_in_to">"Entrar em %1$s"</string>

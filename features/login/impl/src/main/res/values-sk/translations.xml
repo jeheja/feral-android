@@ -34,6 +34,7 @@
   <string name="screen_login_error_refresh_tokens">"Tento server je nakonfigurovaný tak, aby používal obnovovacie tokeny. Pri prihlasovaní na základe hesla nie sú podporované."</string>
   <string name="screen_login_error_unsupported_authentication">"Vybraný domovský server nepodporuje prihlásenie pomocou hesla alebo OIDC. Obráťte sa na správcu alebo vyberte iný domovský server."</string>
   <string name="screen_login_form_header">"Zadajte svoje údaje"</string>
+  <string name="screen_login_members_only_notice">"Prístup je vyhradený pre členov komunity Feralist"</string>
   <string name="screen_login_subtitle">"Matrix je otvorená sieť pre bezpečnú a decentralizovanú komunikáciu."</string>
   <string name="screen_login_title">"Vitajte späť!"</string>
   <string name="screen_login_title_with_homeserver">"Prihlásiť sa do %1$s"</string>

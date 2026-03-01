@@ -25,6 +25,7 @@
   <string name="screen_login_error_invalid_user_id">"این یک شناسه کاربری معتبر نیست. قالب صحیح: ‪«@user:homeserver.or"</string>
   <string name="screen_login_error_unsupported_authentication">"کارساز اصلی انتخاب شده از رمز عبور یا ورود OIDC پشتیبانی نمی کند. لطفا با مدیر خود تماس بگیرید یا یک کارساز خانگی دیگر را انتخاب کنید."</string>
   <string name="screen_login_form_header">"جزییاتتان را وارد کنید"</string>
+  <string name="screen_login_members_only_notice">"دسترسی فقط برای اعضای جامعه Feralist محفوظ است"</string>
   <string name="screen_login_subtitle">"ماتریکس شبکه‌ای بار برای ارتباطات نامتمرکز و امن است."</string>
   <string name="screen_login_title">"خوش برگشتید!"</string>
   <string name="screen_login_title_with_homeserver">"ورود به %1$s"</string>

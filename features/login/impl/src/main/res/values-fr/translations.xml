@@ -37,6 +37,7 @@
   <string name="screen_login_subtitle">""</string>
   <string name="screen_login_title">"Content de vous revoir !"</string>
   <string name="screen_login_title_with_homeserver">"Connectez-vous à %1$s"</string>
+  <string name="screen_login_members_only_notice">"L\'accès est réservé aux membres de la communauté Feralist"</string>
   <string name="screen_onboarding_app_version">"Version %1$s"</string>
   <string name="screen_onboarding_sign_in_manually">"Se connecter manuellement"</string>
   <string name="screen_onboarding_sign_in_to">"Connectez-vous à %1$s"</string>

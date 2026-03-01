@@ -37,6 +37,7 @@
   <string name="screen_login_subtitle">"Matrix — это открытая сеть для безопасной децентрализованной связи."</string>
   <string name="screen_login_title">"Рады видеть вас снова!"</string>
   <string name="screen_login_title_with_homeserver">"Войти в %1$s"</string>
+  <string name="screen_login_members_only_notice">"Доступ зарезервирован для участников сообщества Feralist"</string>
   <string name="screen_onboarding_app_version">"Версия %1$s"</string>
   <string name="screen_onboarding_sign_in_manually">"Войти вручную"</string>
   <string name="screen_onboarding_sign_in_to">"Войти в %1$s"</string>

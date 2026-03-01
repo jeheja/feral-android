@@ -31,6 +31,7 @@
   <string name="screen_login_error_refresh_tokens">"Αυτός ο διακομιστής έχει ρυθμιστεί ώστε να χρησιμοποιεί διακριτικά ανανέωσης. Αυτά δεν υποστηρίζονται όταν χρησιμοποιείς σύνδεση μέσω κωδικού πρόσβασης."</string>
   <string name="screen_login_error_unsupported_authentication">"Ο επιλεγμένος οικιακός διακομιστής δεν υποστηρίζει κωδικό πρόσβασης ή σύνδεση OIDC. Επικοινωνήστε με τον διαχειριστή σου ή επέλεξε άλλο οικιακό διακομιστή."</string>
   <string name="screen_login_form_header">"Εισήγαγε τα στοιχεία σου"</string>
+  <string name="screen_login_members_only_notice">"Η πρόσβαση είναι αποκλειστικά για μέλη της κοινότητας Feralist"</string>
   <string name="screen_login_subtitle">"Το Matrix είναι ένα ανοιχτό δίκτυο για ασφαλή, αποκεντρωμένη επικοινωνία."</string>
   <string name="screen_login_title">"Καλωσόρισες ξανά!"</string>
   <string name="screen_login_title_with_homeserver">"Συνδέσου στο %1$s"</string>
