@@ -1,64 +1,47 @@
-# Feral Android Customization Summary
+# Feral Android — Quick Reference
 
-## Quick Start
+## Upstream Sync (TL;DR)
 
 ```bash
-# Apply all Feral customizations
-./scripts/apply-feral-patches.sh
-
-# Remove all customizations (restore to Element)
-./scripts/remove-feral-patches.sh
-
-# Update from upstream Element
-./scripts/update-from-upstream.sh
+git fetch upstream
+git merge upstream/develop
+# Resolve conflicts: keep Feral files, take upstream for the rest
+git push origin main
 ```
 
-## What's Changed
+See `FERAL_CUSTOMIZATION.md` for detailed conflict resolution strategy.
 
-### 1. **Branding**
-- App name: "Element X" → "Feral"
-- All app icons replaced with Feral logo
-- In-app logos updated for light/dark themes
+## What's Changed from Element X
 
-### 2. **Server Configuration**
-- Default homeserver: `https://feralisme.fr`
-- External registration: `https://feralisme.fr/inscription/`
+| Area | Element X | Feral |
+|------|-----------|-------|
+| App name | Element X | Feral |
+| App ID | `io.element.android.x` | `feral.app` |
+| Onboarding background | Element blue/gradient | Dark near-black gradient |
+| Onboarding logo | Element logo in container | White Feral logo, no container |
+| Onboarding title | "Element X" | "FERAL" (44sp, letter-spaced) |
+| Onboarding subtitle | Element tagline | "FOR FERALISTS" (faded white) |
+| Buttons | Standard Material | Frosted glass (10% white fill) |
+| Login screen | Standard | + Members-only serif notice |
+| Default server | matrix.org | feralisme.fr |
+| Registration | In-app | External (feralisme.fr/inscription/) |
+| Color scheme | Element colors | Forest green / golden / cream |
+| Typography | Default | Serif-based custom |
 
-### 3. **Visual Design**
-- Color scheme:
-  - Primary: Deep forest green (#0F2C1E)
-  - Accent: Golden (#D4AF37)
-  - Backgrounds: Cream (#FFF8E7)
-- SuperButton gradient uses golden colors
-- Splash screen uses Feral colors
+## Custom Files (Feral-only)
 
-### 4. **Registration Flow**
-- Native registration disabled
-- "Sign up" button opens external registration in browser
+These files don't exist in upstream and are always safe to keep:
 
-## Patch System
-
-All customizations are stored as patches in `/patches/`:
-- `001-feral-app-name.patch`
-- `002-feral-server-config.patch`
-- `003-feral-external-signup.patch`
-- `004-feral-colors.patch`
-- `005-feral-colors-new-file.patch`
-- `006-feral-icon-backgrounds.patch`
+- `FeralLogo.kt` — White logo component
+- `FeralOnBoardingOverlay.kt` — Dark gradient background
+- `FeralStyledComponents.kt` — Styled page layout
+- `FeralButton.kt` — Custom button
+- `FeralColors.kt` — Color definitions
+- `FeralTypography.kt` — Font definitions
 
 ## Building
 
 ```bash
-# Debug APK
-./gradlew assembleGplayDebug
-
-# Release APK
-./gradlew assembleGplayRelease
+./gradlew assembleGplayDebug    # Debug
+./gradlew assembleGplayRelease  # Release
 ```
-
-## Important Notes
-
-- Logo assets must be available at `../logo/` for icon generation
-- ImageMagick required for generating icons
-- Patches are designed to work with Element Android stable releases
-- Always test after applying patches or updating from upstream
