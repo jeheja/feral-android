@@ -8,47 +8,28 @@
 package io.element.android.features.login.impl.screens.onboarding
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import io.element.android.libraries.designsystem.R
 
 /**
- * Feral logo with forest-tinted white background
+ * Clean white Feral logo matching the iOS design.
+ * No container or background — just the logo in white on the dark gradient.
  */
 @Composable
 fun FeralLogo(
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .size(150.dp) // Optimal size for mobile
-            .clip(RoundedCornerShape(40.dp))
-            .background(
-                Color(0xFFD5E5D5) // Stronger green-tinted white
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Image(
-            modifier = Modifier
-                .fillMaxSize()
-                .scale(1.11f), // Scale up by 11% - maximum breathing room
-            painter = painterResource(id = io.element.android.features.login.impl.R.drawable.feral_logo_black),
-            contentDescription = null,
-            contentScale = ContentScale.Crop // Crop to fill
-        )
-    }
+    Image(
+        modifier = modifier.size(160.dp),
+        painter = painterResource(id = io.element.android.features.login.impl.R.drawable.feral_logo_black),
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
+        colorFilter = ColorFilter.tint(Color.White),
+    )
 }

@@ -34,12 +34,14 @@ import androidx.compose.ui.autofill.AutofillType
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.login.impl.R
@@ -57,6 +59,7 @@ import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Button
 import io.element.android.libraries.designsystem.theme.components.Icon
+import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.TextField
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
@@ -115,7 +118,21 @@ fun LoginPasswordView(
                 ),
                 subTitle = stringResource(id = R.string.screen_login_subtitle)
             )
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(24.dp))
+            // Members-only notice matching iOS design
+            Text(
+                text = stringResource(id = R.string.screen_login_members_only_notice),
+                style = ElementTheme.typography.fontBodySmRegular.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                    letterSpacing = 1.sp,
+                ),
+                color = ElementTheme.colors.textSecondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+            )
+            Spacer(Modifier.height(24.dp))
             LoginForm(
                 state = state,
                 isLoading = isLoading,

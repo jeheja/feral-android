@@ -29,9 +29,9 @@
   <string name="screen_onboarding_sign_in_manually">"Qo\'lda tizimga kiring"</string>
   <string name="screen_onboarding_sign_in_with_qr_code">"QR kod bilan tizimga kiring"</string>
   <string name="screen_onboarding_sign_up">"Hisob yaratish"</string>
-  <string name="screen_onboarding_welcome_message">"Feralist tarmog'iga xush kelibsiz. Bu yerda madaniyatli insonlar qayta yovvoyilashishni o'rganadilar."</string>
-  <string name="screen_onboarding_welcome_subtitle">"Feralist tarmog'iga xush kelibsiz. Bu yerda madaniyatli insonlar qayta yovvoyilashishni o'rganadilar."</string>
-  <string name="screen_onboarding_welcome_title">"Feral bo'l"</string>
+  <string name="screen_onboarding_welcome_message">"for feralists"</string>
+  <string name="screen_onboarding_welcome_subtitle">"for feralists"</string>
+  <string name="screen_onboarding_welcome_title">"FERAL"</string>
   <string name="screen_server_confirmation_change_server">"Hisob provayderini o\'zgartiring"</string>
   <string name="screen_server_confirmation_message_login_element_dot_io">"Element xodimlari uchun shaxsiy server."</string>
   <string name="screen_server_confirmation_message_login_matrix_dot_org">"Matrix xavfsiz, markazlashmagan aloqa uchun ochiq tarmoqdir."</string>

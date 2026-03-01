@@ -32,9 +32,9 @@
   <string name="screen_onboarding_sign_in_manually">"Conectați-vă manual"</string>
   <string name="screen_onboarding_sign_in_with_qr_code">"Conectați-vă cu un cod QR"</string>
   <string name="screen_onboarding_sign_up">"Creați un cont"</string>
-  <string name="screen_onboarding_welcome_message">"Bun venit în rețeaua feralistă. Unde oamenii civilizați învață să se reîntoarcă la sălbăticie."</string>
-  <string name="screen_onboarding_welcome_subtitle">"Bun venit în rețeaua feralistă. Unde oamenii civilizați învață să se reîntoarcă la sălbăticie."</string>
-  <string name="screen_onboarding_welcome_title">"Fii Feral"</string>
+  <string name="screen_onboarding_welcome_message">"for feralists"</string>
+  <string name="screen_onboarding_welcome_subtitle">"for feralists"</string>
+  <string name="screen_onboarding_welcome_title">"FERAL"</string>
   <string name="screen_qr_code_login_connecting_subtitle">"Se stabilește o conexiune securizată"</string>
   <string name="screen_qr_code_login_connection_note_secure_state_description">"Nu a putut fi făcută o conexiune sigură la noul dispozitiv. Dispozitivele existente sunt încă în siguranță și nu trebuie să vă faceți griji cu privire la ele."</string>
   <string name="screen_qr_code_login_connection_note_secure_state_list_header">"Și acum?"</string>

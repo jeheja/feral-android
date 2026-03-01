@@ -25,8 +25,8 @@
   <string name="screen_onboarding_sign_in_manually">"Prisijunkite rankiniu būdu"</string>
   <string name="screen_onboarding_sign_in_with_qr_code">"Prisijunkite naudodami QR kodą"</string>
   <string name="screen_onboarding_sign_up">"Sukurti paskyrą"</string>
-  <string name="screen_onboarding_welcome_subtitle">"Sveiki atvykę į feralistų tinklą. Kur civilizuoti žmonės mokosi grįžti į laukinę gamtą."</string>
-  <string name="screen_onboarding_welcome_title">"Būk Feral"</string>
+  <string name="screen_onboarding_welcome_subtitle">"for feralists"</string>
+  <string name="screen_onboarding_welcome_title">"FERAL"</string>
   <string name="screen_server_confirmation_change_server">"Keisti paskyros teikėją"</string>
   <string name="screen_server_confirmation_message_login_element_dot_io">"Privatus serveris “Element” darbuotojams."</string>
   <string name="screen_server_confirmation_message_login_matrix_dot_org">"Matrix yra atviras tinklas, skirtas saugiam, decentralizuotam bendravimui."</string>

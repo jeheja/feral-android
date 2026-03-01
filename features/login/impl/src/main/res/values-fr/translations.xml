@@ -38,9 +38,9 @@
   <string name="screen_onboarding_sign_in_to">"Se connecter à %1$s"</string>
   <string name="screen_onboarding_sign_in_with_qr_code">"Se connecter avec un QR code"</string>
   <string name="screen_onboarding_sign_up">"Créer un compte"</string>
-  <string name="screen_onboarding_welcome_message">"Bienvenue sur le réseau féraliste. Où les humains civilisés apprennent à se réensauvager."</string>
-  <string name="screen_onboarding_welcome_subtitle">"Bienvenue sur le réseau féraliste. Où les humains civilisés apprennent à se réensauvager."</string>
-  <string name="screen_onboarding_welcome_title">"Sois Féral"</string>
+  <string name="screen_onboarding_welcome_message">"for feralists"</string>
+  <string name="screen_onboarding_welcome_subtitle">"for feralists"</string>
+  <string name="screen_onboarding_welcome_title">"FERAL"</string>
   <string name="screen_qr_code_login_connecting_subtitle">"Établissement d’une connexion sécurisée"</string>
   <string name="screen_qr_code_login_connection_note_secure_state_description">"Aucune connexion sécurisée n’a pu être établie avec la nouvelle session. Vos sessions existantes sont toujours en sécurité et vous n’avez pas à vous en soucier."</string>
   <string name="screen_qr_code_login_connection_note_secure_state_list_header">"Et maintenant ?"</string>

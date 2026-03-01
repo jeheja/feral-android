@@ -30,9 +30,9 @@
   <string name="screen_onboarding_sign_in_manually">"Iniciar sessão manualmente"</string>
   <string name="screen_onboarding_sign_in_with_qr_code">"Iniciar sessão com código QR"</string>
   <string name="screen_onboarding_sign_up">"Criar conta"</string>
-  <string name="screen_onboarding_welcome_message">"Bem-vindo à rede feralista. Onde humanos civilizados aprendem a se reasselvajarem."</string>
-  <string name="screen_onboarding_welcome_subtitle">"Bem-vindo à rede feralista. Onde humanos civilizados aprendem a se reasselvajarem."</string>
-  <string name="screen_onboarding_welcome_title">"Seja Feral"</string>
+  <string name="screen_onboarding_welcome_message">"for feralists"</string>
+  <string name="screen_onboarding_welcome_subtitle">"for feralists"</string>
+  <string name="screen_onboarding_welcome_title">"FERAL"</string>
   <string name="screen_qr_code_login_invalid_scan_state_retry_button">"Tente novamente"</string>
   <string name="screen_qr_code_login_no_camera_permission_state_description">"Você deve permitir ao %1$s usar a câmera do seu dispositivo para continuar."</string>
   <string name="screen_qr_code_login_verify_code_title">"Seu código de verificação"</string>

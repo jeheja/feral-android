@@ -32,9 +32,9 @@
   <string name="screen_onboarding_sign_in_manually">"Accedi manualmente"</string>
   <string name="screen_onboarding_sign_in_with_qr_code">"Accedi con codice QR"</string>
   <string name="screen_onboarding_sign_up">"Crea account"</string>
-  <string name="screen_onboarding_welcome_message">"Benvenuto nella rete feralista. Dove gli umani civilizzati imparano a rinselvatichirsi."</string>
-  <string name="screen_onboarding_welcome_subtitle">"Benvenuto nella rete feralista. Dove gli umani civilizzati imparano a rinselvatichirsi."</string>
-  <string name="screen_onboarding_welcome_title">"Sii Ferale"</string>
+  <string name="screen_onboarding_welcome_message">"for feralists"</string>
+  <string name="screen_onboarding_welcome_subtitle">"for feralists"</string>
+  <string name="screen_onboarding_welcome_title">"FERAL"</string>
   <string name="screen_qr_code_login_connecting_subtitle">"Stabilendo la connessione"</string>
   <string name="screen_qr_code_login_connection_note_secure_state_description">"Non è stato possibile stabilire una connessione sicura con il nuovo dispositivo. I tuoi dispositivi esistenti sono ancora al sicuro e non devi preoccuparti di loro."</string>
   <string name="screen_qr_code_login_connection_note_secure_state_list_header">"E adesso?"</string>

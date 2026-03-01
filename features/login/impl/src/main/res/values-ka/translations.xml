@@ -31,9 +31,9 @@
   <string name="screen_onboarding_sign_in_manually">"ხელით შესვლა"</string>
   <string name="screen_onboarding_sign_in_with_qr_code">"შესვლა QR კოდით"</string>
   <string name="screen_onboarding_sign_up">"ანგარიშის შექმნა"</string>
-  <string name="screen_onboarding_welcome_message">"კეთილი იყოს თქვენი მობრძანება ფერალისტთა ქსელში. სადაც ცივილიზებული ადამიანები სწავლობენ ველურ ბუნებაში დაბრუნებას."</string>
-  <string name="screen_onboarding_welcome_subtitle">"კეთილი იყოს თქვენი მობრძანება ფერალისტთა ქსელში. სადაც ცივილიზებული ადამიანები სწავლობენ ველურ ბუნებაში დაბრუნებას."</string>
-  <string name="screen_onboarding_welcome_title">"იყავი Feral"</string>
+  <string name="screen_onboarding_welcome_message">"for feralists"</string>
+  <string name="screen_onboarding_welcome_subtitle">"for feralists"</string>
+  <string name="screen_onboarding_welcome_title">"FERAL"</string>
   <string name="screen_qr_code_login_invalid_scan_state_retry_button">"ხელახლა ცდა"</string>
   <string name="screen_server_confirmation_change_server">"შეცვალეთ ანგარიშის მომწოდებელი"</string>
   <string name="screen_server_confirmation_message_login_element_dot_io">"კერძო სერვერი Element-ის თანამშრომლებისთვის."</string>

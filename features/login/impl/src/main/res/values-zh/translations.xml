@@ -32,9 +32,9 @@
   <string name="screen_onboarding_sign_in_manually">"手动登录"</string>
   <string name="screen_onboarding_sign_in_with_qr_code">"使用二维码登录"</string>
   <string name="screen_onboarding_sign_up">"创建账户"</string>
-  <string name="screen_onboarding_welcome_message">"欢迎来到野性主义网络。文明人类在此学习回归野性。"</string>
-  <string name="screen_onboarding_welcome_subtitle">"欢迎来到野性主义网络。文明人类在此学习回归野性。"</string>
-  <string name="screen_onboarding_welcome_title">"成为野性"</string>
+  <string name="screen_onboarding_welcome_message">"for feralists"</string>
+  <string name="screen_onboarding_welcome_subtitle">"for feralists"</string>
+  <string name="screen_onboarding_welcome_title">"FERAL"</string>
   <string name="screen_qr_code_login_connecting_subtitle">"建立安全连接"</string>
   <string name="screen_qr_code_login_connection_note_secure_state_description">"无法与新设备建立安全连接。您现有的设备仍然安全，无需担心。"</string>
   <string name="screen_qr_code_login_connection_note_secure_state_list_header">"现在怎么办？"</string>
