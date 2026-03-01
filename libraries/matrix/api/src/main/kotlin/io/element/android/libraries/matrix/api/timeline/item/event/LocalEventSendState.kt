@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,7 +15,14 @@ import io.element.android.libraries.matrix.api.core.UserId
 
 @Immutable
 sealed interface LocalEventSendState {
-    data object Sending : LocalEventSendState
+    sealed interface Sending : LocalEventSendState {
+        data object Event : Sending
+        data class MediaWithProgress(
+            val index: Long,
+            val progress: Long,
+            val total: Long
+        ) : Sending
+    }
     sealed interface Failed : LocalEventSendState {
         data class Unknown(val error: String) : Failed
         data object SendingFromUnverifiedDevice : Failed

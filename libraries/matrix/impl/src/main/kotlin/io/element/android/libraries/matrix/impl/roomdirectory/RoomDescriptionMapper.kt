@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -32,6 +33,9 @@ internal fun PublicRoomJoinRule?.map(): RoomDescription.JoinRule {
     return when (this) {
         PublicRoomJoinRule.PUBLIC -> RoomDescription.JoinRule.PUBLIC
         PublicRoomJoinRule.KNOCK -> RoomDescription.JoinRule.KNOCK
+        PublicRoomJoinRule.RESTRICTED -> RoomDescription.JoinRule.RESTRICTED
+        PublicRoomJoinRule.KNOCK_RESTRICTED -> RoomDescription.JoinRule.KNOCK_RESTRICTED
+        PublicRoomJoinRule.INVITE -> RoomDescription.JoinRule.INVITE
         null -> RoomDescription.JoinRule.UNKNOWN
     }
 }

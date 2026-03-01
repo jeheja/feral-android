@@ -1,27 +1,27 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.viewfolder.impl.folder
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.features.viewfolder.impl.model.Item
 import io.element.android.libraries.androidutils.filesize.FileSizeFormatter
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
-import io.element.android.libraries.di.AppScope
 import kotlinx.coroutines.withContext
 import java.io.File
-import javax.inject.Inject
 
 interface FolderExplorer {
     suspend fun getItems(path: String): List<Item>
 }
 
 @ContributesBinding(AppScope::class)
-class DefaultFolderExplorer @Inject constructor(
+class DefaultFolderExplorer(
     private val fileSizeFormatter: FileSizeFormatter,
     private val dispatchers: CoroutineDispatchers,
 ) : FolderExplorer {

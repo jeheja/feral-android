@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -19,14 +20,9 @@ import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.libraries.matrix.test.A_USER_ID
 import io.element.android.libraries.matrix.test.FakeMatrixClient
-import io.element.android.libraries.sessionstorage.api.LoggedInState
 import io.element.android.tests.testutils.lambda.lambdaError
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.simulateLongTask
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flowOf
 
 val A_OIDC_DATA = OidcDetails(url = "a-url")
 
@@ -34,23 +30,14 @@ class FakeMatrixAuthenticationService(
     var matrixClientResult: ((SessionId) -> Result<MatrixClient>)? = null,
     var loginWithQrCodeResult: (qrCodeData: MatrixQrCodeLoginData, progress: (QrCodeLoginStep) -> Unit) -> Result<SessionId> =
         lambdaRecorder<MatrixQrCodeLoginData, (QrCodeLoginStep) -> Unit, Result<SessionId>> { _, _ -> Result.success(A_SESSION_ID) },
-    private val importCreatedSessionLambda: (ExternalSession) -> Result<SessionId> = { lambdaError() }
+    private val importCreatedSessionLambda: (ExternalSession) -> Result<SessionId> = { lambdaError() },
+    private val setHomeserverResult: (String) -> Result<MatrixHomeServerDetails> = { lambdaError() },
 ) : MatrixAuthenticationService {
-    private val homeserver = MutableStateFlow<MatrixHomeServerDetails?>(null)
     private var oidcError: Throwable? = null
     private var oidcCancelError: Throwable? = null
     private var loginError: Throwable? = null
-    private var changeServerError: Throwable? = null
     private var matrixClient: MatrixClient? = null
     private var onAuthenticationListener: ((MatrixClient) -> Unit)? = null
-
-    var getLatestSessionIdLambda: (() -> SessionId?) = { null }
-
-    override fun loggedInStateFlow(): Flow<LoggedInState> {
-        return flowOf(LoggedInState.NotLoggedIn)
-    }
-
-    override suspend fun getLatestSessionId(): SessionId? = getLatestSessionIdLambda()
 
     override suspend fun restoreSession(sessionId: SessionId): Result<MatrixClient> {
         matrixClientResult?.let {
@@ -64,16 +51,8 @@ class FakeMatrixAuthenticationService(
         }
     }
 
-    override fun getHomeserverDetails(): StateFlow<MatrixHomeServerDetails?> {
-        return homeserver
-    }
-
-    fun givenHomeserver(homeserver: MatrixHomeServerDetails) {
-        this.homeserver.value = homeserver
-    }
-
-    override suspend fun setHomeserver(homeserver: String): Result<Unit> = simulateLongTask {
-        changeServerError?.let { Result.failure(it) } ?: Result.success(Unit)
+    override suspend fun setHomeserver(homeserver: String): Result<MatrixHomeServerDetails> = simulateLongTask {
+        setHomeserverResult(homeserver)
     }
 
     override suspend fun login(username: String, password: String): Result<SessionId> = simulateLongTask {
@@ -124,10 +103,6 @@ class FakeMatrixAuthenticationService(
 
     fun givenLoginError(throwable: Throwable?) {
         loginError = throwable
-    }
-
-    fun givenChangeServerError(throwable: Throwable?) {
-        changeServerError = throwable
     }
 
     fun givenMatrixClient(matrixClient: MatrixClient) {

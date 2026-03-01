@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import dev.zacsweers.metro.Inject
 import io.element.android.features.lockscreen.impl.LockScreenConfig
 import io.element.android.features.lockscreen.impl.pin.PinCodeManager
 import io.element.android.features.lockscreen.impl.pin.model.PinEntry
@@ -21,14 +23,14 @@ import io.element.android.features.lockscreen.impl.setup.pin.validation.SetupPin
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.core.meta.BuildMeta
 import kotlinx.coroutines.delay
-import javax.inject.Inject
 
 /**
  * Some time for the ui to refresh before showing confirmation step.
  */
 private const val DELAY_BEFORE_CONFIRMATION_STEP_IN_MILLIS = 100L
 
-class SetupPinPresenter @Inject constructor(
+@Inject
+class SetupPinPresenter(
     private val lockScreenConfig: LockScreenConfig,
     private val pinValidator: PinValidator,
     private val buildMeta: BuildMeta,
@@ -72,7 +74,7 @@ class SetupPinPresenter @Inject constructor(
             }
         }
 
-        fun handleEvents(event: SetupPinEvents) {
+        fun handleEvent(event: SetupPinEvents) {
             when (event) {
                 is SetupPinEvents.OnPinEntryChanged -> {
                     // Use the fromConfirmationStep flag from ui to avoid race condition.
@@ -105,7 +107,7 @@ class SetupPinPresenter @Inject constructor(
             isConfirmationStep = isConfirmationStep,
             setupPinFailure = setupPinFailure,
             appName = buildMeta.applicationName,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 }

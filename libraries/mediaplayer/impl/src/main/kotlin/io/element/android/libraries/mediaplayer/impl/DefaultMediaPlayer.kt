@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -10,11 +11,12 @@ package io.element.android.libraries.mediaplayer.impl
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.SingleIn
 import io.element.android.libraries.audio.api.AudioFocus
 import io.element.android.libraries.audio.api.AudioFocusRequester
 import io.element.android.libraries.di.RoomScope
-import io.element.android.libraries.di.SingleIn
+import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.mediaplayer.api.MediaPlayer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
@@ -27,7 +29,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.timeout
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -35,9 +36,10 @@ import kotlin.time.Duration.Companion.seconds
  */
 @ContributesBinding(RoomScope::class)
 @SingleIn(RoomScope::class)
-class DefaultMediaPlayer @Inject constructor(
+class DefaultMediaPlayer(
     private val player: SimplePlayer,
-    private val coroutineScope: CoroutineScope,
+    @SessionCoroutineScope
+    private val sessionCoroutineScope: CoroutineScope,
     private val audioFocus: AudioFocus,
 ) : MediaPlayer {
     private val listener = object : SimplePlayer.Listener {
@@ -50,7 +52,7 @@ class DefaultMediaPlayer @Inject constructor(
                 )
             }
             if (isPlaying) {
-                job = coroutineScope.launch { updateCurrentPosition() }
+                job = sessionCoroutineScope.launch { updateCurrentPosition() }
             } else {
                 audioFocus.releaseAudioFocus()
                 job?.cancel()
@@ -155,6 +157,10 @@ class DefaultMediaPlayer @Inject constructor(
         _state.update {
             it.copy(currentPosition = player.currentPosition)
         }
+    }
+
+    override fun setPlaybackSpeed(speed: Float) {
+        player.setPlaybackSpeed(speed)
     }
 
     override fun close() {

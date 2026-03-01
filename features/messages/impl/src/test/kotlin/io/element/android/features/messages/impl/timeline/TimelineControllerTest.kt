@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -33,14 +34,14 @@ class TimelineControllerTest {
             liveTimeline = liveTimeline,
             createTimelineResult = { Result.success(detachedTimeline) }
         )
-        val sut = TimelineController(joinedRoom)
+        val sut = TimelineController(room = joinedRoom, liveTimeline = liveTimeline)
 
         sut.activeTimelineFlow().test {
             awaitItem().also { state ->
                 assertThat(state).isEqualTo(liveTimeline)
             }
             assertThat(sut.isLive().first()).isTrue()
-            sut.focusOnEvent(AN_EVENT_ID)
+            sut.focusOnEvent(AN_EVENT_ID, null)
             awaitItem().also { state ->
                 assertThat(state).isEqualTo(detachedTimeline)
             }
@@ -72,20 +73,20 @@ class TimelineControllerTest {
                 }
             }
         )
-        val sut = TimelineController(joinedRoom)
+        val sut = TimelineController(joinedRoom, liveTimeline)
 
         sut.activeTimelineFlow().test {
             awaitItem().also { state ->
                 assertThat(state).isEqualTo(liveTimeline)
             }
-            sut.focusOnEvent(AN_EVENT_ID)
+            sut.focusOnEvent(AN_EVENT_ID, null)
             awaitItem().also { state ->
                 assertThat(state).isEqualTo(detachedTimeline1)
             }
             assertThat(detachedTimeline1.closeCounter).isEqualTo(0)
             assertThat(detachedTimeline2.closeCounter).isEqualTo(0)
             // Focus on another event should close the previous detached timeline
-            sut.focusOnEvent(AN_EVENT_ID)
+            sut.focusOnEvent(AN_EVENT_ID, null)
             awaitItem().also { state ->
                 assertThat(state).isEqualTo(detachedTimeline2)
             }
@@ -100,7 +101,7 @@ class TimelineControllerTest {
         val joinedRoom = FakeJoinedRoom(
             liveTimeline = liveTimeline
         )
-        val sut = TimelineController(joinedRoom)
+        val sut = TimelineController(room = joinedRoom, liveTimeline = liveTimeline)
         sut.activeTimelineFlow().test {
             awaitItem().also { state ->
                 assertThat(state).isEqualTo(liveTimeline)
@@ -119,12 +120,12 @@ class TimelineControllerTest {
             liveTimeline = liveTimeline,
             createTimelineResult = { Result.success(detachedTimeline) }
         )
-        val sut = TimelineController(joinedRoom)
+        val sut = TimelineController(room = joinedRoom, liveTimeline = liveTimeline)
         sut.activeTimelineFlow().test {
             awaitItem().also { state ->
                 assertThat(state).isEqualTo(liveTimeline)
             }
-            sut.focusOnEvent(AN_EVENT_ID)
+            sut.focusOnEvent(AN_EVENT_ID, null)
             awaitItem().also { state ->
                 assertThat(state).isEqualTo(detachedTimeline)
             }
@@ -147,7 +148,7 @@ class TimelineControllerTest {
         val joinedRoom = FakeJoinedRoom(
             liveTimeline = liveTimeline
         )
-        val sut = TimelineController(joinedRoom)
+        val sut = TimelineController(room = joinedRoom, liveTimeline = liveTimeline)
         assertThat(sut.timelineItems().first()).hasSize(1)
     }
 
@@ -169,13 +170,13 @@ class TimelineControllerTest {
             liveTimeline = liveTimeline,
             createTimelineResult = { Result.success(detachedTimeline) }
         )
-        val sut = TimelineController(joinedRoom)
+        val sut = TimelineController(room = joinedRoom, liveTimeline = liveTimeline)
         sut.activeTimelineFlow().test {
-            sut.focusOnEvent(AN_EVENT_ID)
+            sut.focusOnEvent(AN_EVENT_ID, null)
             awaitItem().also { state ->
                 assertThat(state).isEqualTo(liveTimeline)
             }
-            sut.focusOnEvent(AN_EVENT_ID)
+            sut.focusOnEvent(AN_EVENT_ID, null)
             awaitItem().also { state ->
                 assertThat(state).isEqualTo(detachedTimeline)
             }
@@ -194,13 +195,13 @@ class TimelineControllerTest {
             liveTimeline = liveTimeline,
             createTimelineResult = { Result.success(detachedTimeline) }
         )
-        val sut = TimelineController(joinedRoom)
+        val sut = TimelineController(room = joinedRoom, liveTimeline = liveTimeline)
 
         sut.activeTimelineFlow().test {
             awaitItem().also { state ->
                 assertThat(state).isEqualTo(liveTimeline)
             }
-            sut.focusOnEvent(AN_EVENT_ID)
+            sut.focusOnEvent(AN_EVENT_ID, null)
             awaitItem().also { state ->
                 assertThat(state).isEqualTo(detachedTimeline)
             }
@@ -216,4 +217,14 @@ class TimelineControllerTest {
             }
         }
     }
+}
+
+internal fun createTimelineController(
+    room: FakeJoinedRoom = FakeJoinedRoom(liveTimeline = FakeTimeline()),
+    liveTimeline: Timeline = FakeTimeline(name = "live"),
+): TimelineController {
+    return TimelineController(
+        room = room,
+        liveTimeline = liveTimeline
+    )
 }

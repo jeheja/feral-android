@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -32,9 +33,6 @@ import io.element.android.features.messages.impl.utils.FakeTextPillificationHelp
 import io.element.android.features.messages.test.timeline.FakeHtmlConverterProvider
 import io.element.android.libraries.androidutils.filesize.FakeFileSizeFormatter
 import io.element.android.libraries.core.mimetype.MimeTypes
-import io.element.android.libraries.featureflag.api.FeatureFlagService
-import io.element.android.libraries.featureflag.api.FeatureFlags
-import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
 import io.element.android.libraries.matrix.api.media.AudioDetails
 import io.element.android.libraries.matrix.api.media.AudioInfo
 import io.element.android.libraries.matrix.api.media.FileInfo
@@ -43,6 +41,7 @@ import io.element.android.libraries.matrix.api.media.MediaSource
 import io.element.android.libraries.matrix.api.media.ThumbnailInfo
 import io.element.android.libraries.matrix.api.media.VideoInfo
 import io.element.android.libraries.matrix.api.permalink.PermalinkData
+import io.element.android.libraries.matrix.api.timeline.item.EventThreadInfo
 import io.element.android.libraries.matrix.api.timeline.item.event.AudioMessageType
 import io.element.android.libraries.matrix.api.timeline.item.event.EmoteMessageType
 import io.element.android.libraries.matrix.api.timeline.item.event.FileMessageType
@@ -68,6 +67,7 @@ import io.element.android.libraries.mediaviewer.test.util.FileExtensionExtractor
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.test.runTest
+import org.jsoup.nodes.Document
 import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -188,7 +188,7 @@ class TimelineItemContentMessageFactoryTest {
             }
         }.toSpannable()
         val sut = createTimelineItemContentMessageFactory(
-            htmlConverterTransform = { expected }
+            domConverterTransform = { expected }
         )
         val result = sut.create(
             content = createMessageContent(
@@ -231,6 +231,7 @@ class TimelineItemContentMessageFactoryTest {
         )
         val expected = TimelineItemVideoContent(
             filename = "filename",
+            fileSize = 0L,
             caption = null,
             formattedCaption = null,
             isEdited = false,
@@ -283,6 +284,7 @@ class TimelineItemContentMessageFactoryTest {
         )
         val expected = TimelineItemVideoContent(
             filename = "body.mp4",
+            fileSize = 555L,
             caption = "body.mp4 caption",
             formattedCaption = SpannedString("formatted"),
             isEdited = true,
@@ -312,6 +314,7 @@ class TimelineItemContentMessageFactoryTest {
         )
         val expected = TimelineItemAudioContent(
             filename = "filename",
+            fileSize = 0L,
             caption = null,
             formattedCaption = null,
             isEdited = false,
@@ -347,6 +350,7 @@ class TimelineItemContentMessageFactoryTest {
         )
         val expected = TimelineItemAudioContent(
             filename = "body.mp3",
+            fileSize = 123L,
             caption = null,
             formattedCaption = null,
             isEdited = true,
@@ -369,6 +373,7 @@ class TimelineItemContentMessageFactoryTest {
         )
         val expected = TimelineItemVoiceContent(
             filename = "filename",
+            fileSize = 0L,
             eventId = AN_EVENT_ID,
             caption = null,
             formattedCaption = null,
@@ -411,6 +416,7 @@ class TimelineItemContentMessageFactoryTest {
         val expected = TimelineItemVoiceContent(
             eventId = AN_EVENT_ID,
             filename = "body.ogg",
+            fileSize = 123L,
             caption = null,
             formattedCaption = null,
             isEdited = true,
@@ -425,34 +431,6 @@ class TimelineItemContentMessageFactoryTest {
     }
 
     @Test
-    fun `test create VoiceMessageType feature disabled`() = runTest {
-        val sut = createTimelineItemContentMessageFactory(
-            featureFlagService = FakeFeatureFlagService(
-                initialState = mapOf(
-                    FeatureFlags.VoiceMessages.key to false,
-                )
-            )
-        )
-        val result = sut.create(
-            content = createMessageContent(type = VoiceMessageType("filename", null, null, MediaSource("url"), null, null)),
-            senderDisambiguatedDisplayName = "Bob",
-            eventId = AN_EVENT_ID,
-        )
-        val expected = TimelineItemAudioContent(
-            filename = "filename",
-            caption = null,
-            formattedCaption = null,
-            isEdited = false,
-            duration = Duration.ZERO,
-            mediaSource = MediaSource(url = "url", json = null),
-            mimeType = MimeTypes.OctetStream,
-            formattedFileSize = "0 Bytes",
-            fileExtension = ""
-        )
-        assertThat(result).isEqualTo(expected)
-    }
-
-    @Test
     fun `test create ImageMessageType`() = runTest {
         val sut = createTimelineItemContentMessageFactory()
         val result = sut.create(
@@ -462,6 +440,7 @@ class TimelineItemContentMessageFactoryTest {
         )
         val expected = TimelineItemImageContent(
             filename = "filename",
+            fileSize = 0L,
             caption = "body",
             formattedCaption = null,
             isEdited = false,
@@ -492,6 +471,7 @@ class TimelineItemContentMessageFactoryTest {
         )
         val expected = TimelineItemStickerContent(
             filename = "filename",
+            fileSize = 8_192L,
             caption = null,
             formattedCaption = null,
             isEdited = false,
@@ -540,6 +520,7 @@ class TimelineItemContentMessageFactoryTest {
         )
         val expected = TimelineItemImageContent(
             filename = "body.jpg",
+            fileSize = 888L,
             caption = "body.jpg caption",
             formattedCaption = SpannedString("formatted"),
             isEdited = true,
@@ -568,6 +549,7 @@ class TimelineItemContentMessageFactoryTest {
         )
         val expected = TimelineItemFileContent(
             filename = "filename",
+            fileSize = 0L,
             caption = null,
             formattedCaption = null,
             isEdited = false,
@@ -609,6 +591,7 @@ class TimelineItemContentMessageFactoryTest {
         )
         val expected = TimelineItemFileContent(
             filename = "body.pdf",
+            fileSize = 123L,
             caption = null,
             formattedCaption = null,
             isEdited = true,
@@ -697,7 +680,7 @@ class TimelineItemContentMessageFactoryTest {
             }
         }.toSpannable()
         val sut = createTimelineItemContentMessageFactory(
-            htmlConverterTransform = { expectedSpanned },
+            domConverterTransform = { expectedSpanned },
             permalinkParser = FakePermalinkParser { PermalinkData.FallbackLink(Uri.EMPTY) }
         )
         val result = sut.create(
@@ -769,27 +752,26 @@ class TimelineItemContentMessageFactoryTest {
         body: String = "Body",
         inReplyTo: InReplyTo? = null,
         isEdited: Boolean = false,
-        isThreaded: Boolean = false,
+        threadInfo: EventThreadInfo? = null,
         type: MessageType,
     ): MessageContent {
         return MessageContent(
             body = body,
             inReplyTo = inReplyTo,
             isEdited = isEdited,
-            isThreaded = isThreaded,
+            threadInfo = threadInfo,
             type = type,
         )
     }
 
     private fun createTimelineItemContentMessageFactory(
-        featureFlagService: FeatureFlagService = FakeFeatureFlagService(),
         htmlConverterTransform: (String) -> CharSequence = { it },
+        domConverterTransform: (Document) -> CharSequence = { it.body().html() },
         permalinkParser: FakePermalinkParser = FakePermalinkParser(),
     ) = TimelineItemContentMessageFactory(
         fileSizeFormatter = FakeFileSizeFormatter(),
         fileExtensionExtractor = FileExtensionExtractorWithoutValidation(),
-        featureFlagService = featureFlagService,
-        htmlConverterProvider = FakeHtmlConverterProvider(htmlConverterTransform),
+        htmlConverterProvider = FakeHtmlConverterProvider(htmlConverterTransform, domConverterTransform),
         permalinkParser = permalinkParser,
         textPillificationHelper = FakeTextPillificationHelper(),
     )

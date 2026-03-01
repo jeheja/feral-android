@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,13 +14,12 @@ import androidx.compose.ui.Modifier
 import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.core.node.Node
 import com.bumble.appyx.core.plugin.Plugin
-import com.bumble.appyx.core.plugin.plugins
 import com.bumble.appyx.navmodel.backstack.BackStack
 import com.bumble.appyx.navmodel.backstack.operation.pop
 import com.bumble.appyx.navmodel.backstack.operation.push
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
-import io.element.android.anvilannotations.ContributesNode
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
+import io.element.android.annotations.ContributesNode
 import io.element.android.features.call.api.CallType
 import io.element.android.features.call.api.ElementCallEntryPoint
 import io.element.android.features.userprofile.api.UserProfileEntryPoint
@@ -28,23 +28,25 @@ import io.element.android.features.userprofile.shared.UserProfileNodeHelper
 import io.element.android.features.verifysession.api.OutgoingVerificationEntryPoint
 import io.element.android.libraries.architecture.BackstackView
 import io.element.android.libraries.architecture.BaseFlowNode
+import io.element.android.libraries.architecture.callback
 import io.element.android.libraries.architecture.createNode
 import io.element.android.libraries.architecture.inputs
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.core.UserId
-import io.element.android.libraries.matrix.api.user.CurrentSessionIdHolder
 import io.element.android.libraries.matrix.api.verification.VerificationRequest
 import io.element.android.libraries.mediaviewer.api.MediaViewerEntryPoint
 import kotlinx.parcelize.Parcelize
 
 @ContributesNode(SessionScope::class)
-class UserProfileFlowNode @AssistedInject constructor(
+@AssistedInject
+class UserProfileFlowNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
     private val elementCallEntryPoint: ElementCallEntryPoint,
-    private val sessionIdHolder: CurrentSessionIdHolder,
+    private val sessionId: SessionId,
     private val mediaViewerEntryPoint: MediaViewerEntryPoint,
     private val outgoingVerificationEntryPoint: OutgoingVerificationEntryPoint,
 ) : BaseFlowNode<UserProfileFlowNode.NavTarget>(
@@ -66,25 +68,26 @@ class UserProfileFlowNode @AssistedInject constructor(
         data class VerifyUser(val userId: UserId) : NavTarget
     }
 
+    private val callback: UserProfileEntryPoint.Callback = callback()
     private val inputs = inputs<UserProfileEntryPoint.Params>()
 
     override fun resolve(navTarget: NavTarget, buildContext: BuildContext): Node {
         return when (navTarget) {
             NavTarget.Root -> {
                 val callback = object : UserProfileNodeHelper.Callback {
-                    override fun openAvatarPreview(username: String, avatarUrl: String) {
+                    override fun navigateToAvatarPreview(username: String, avatarUrl: String) {
                         backstack.push(NavTarget.AvatarPreview(username, avatarUrl))
                     }
 
-                    override fun onStartDM(roomId: RoomId) {
-                        plugins<UserProfileEntryPoint.Callback>().forEach { it.onOpenRoom(roomId) }
+                    override fun navigateToRoom(roomId: RoomId) {
+                        callback.navigateToRoom(roomId)
                     }
 
-                    override fun onStartCall(dmRoomId: RoomId) {
-                        elementCallEntryPoint.startCall(CallType.RoomCall(sessionId = sessionIdHolder.current, roomId = dmRoomId))
+                    override fun startCall(dmRoomId: RoomId) {
+                        elementCallEntryPoint.startCall(CallType.RoomCall(sessionId = sessionId, roomId = dmRoomId))
                     }
 
-                    override fun onVerifyUser(userId: UserId) {
+                    override fun startVerifyUserFlow(userId: UserId) {
                         backstack.push(NavTarget.VerifyUser(userId))
                     }
                 }
@@ -97,26 +100,48 @@ class UserProfileFlowNode @AssistedInject constructor(
                         backstack.pop()
                     }
 
-                    override fun onViewInTimeline(eventId: EventId) {
-                       // Cannot happen
+                    override fun viewInTimeline(eventId: EventId) {
+                        // Cannot happen
+                    }
+
+                    override fun forwardEvent(eventId: EventId, fromPinnedEvents: Boolean) {
+                        // Cannot happen
                     }
                 }
-                mediaViewerEntryPoint.nodeBuilder(this, buildContext)
-                    .avatar(
-                        filename = navTarget.name,
-                        avatarUrl = navTarget.avatarUrl
-                    )
-                    .callback(callback)
-                    .build()
+                val params = mediaViewerEntryPoint.createParamsForAvatar(
+                    filename = navTarget.name,
+                    avatarUrl = navTarget.avatarUrl,
+                )
+                mediaViewerEntryPoint.createNode(
+                    parentNode = this,
+                    buildContext = buildContext,
+                    params = params,
+                    callback = callback,
+                )
             }
             is NavTarget.VerifyUser -> {
                 val params = OutgoingVerificationEntryPoint.Params(
                     showDeviceVerifiedScreen = false,
                     verificationRequest = VerificationRequest.Outgoing.User(userId = navTarget.userId)
                 )
-                outgoingVerificationEntryPoint.nodeBuilder(this, buildContext)
-                    .params(params)
-                    .build()
+                outgoingVerificationEntryPoint.createNode(
+                    parentNode = this,
+                    buildContext = buildContext,
+                    params = params,
+                    callback = object : OutgoingVerificationEntryPoint.Callback {
+                        override fun navigateToLearnMoreAboutEncryption() {
+                            // No op
+                        }
+
+                        override fun onBack() {
+                            // No op
+                        }
+
+                        override fun onDone() {
+                            // No op
+                        }
+                    }
+                )
             }
         }
     }

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,11 +18,11 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
-import io.element.android.features.createroom.api.StartDMAction
-import io.element.android.features.enterprise.api.EnterpriseService
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
+import io.element.android.features.enterprise.api.SessionEnterpriseService
+import io.element.android.features.startchat.api.StartDMAction
 import io.element.android.features.userprofile.api.UserProfileEvents
 import io.element.android.features.userprofile.api.UserProfileState
 import io.element.android.features.userprofile.api.UserProfileState.ConfirmationDialog
@@ -33,6 +34,8 @@ import io.element.android.libraries.core.bool.orFalse
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.room.powerlevels.canCall
+import io.element.android.libraries.matrix.api.room.powerlevels.use
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -41,11 +44,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
-class UserProfilePresenter @AssistedInject constructor(
+@AssistedInject
+class UserProfilePresenter(
     @Assisted private val userId: UserId,
     private val client: MatrixClient,
     private val startDMAction: StartDMAction,
-    private val enterpriseService: EnterpriseService,
+    private val sessionEnterpriseService: SessionEnterpriseService,
 ) : Presenter<UserProfileState> {
     @AssistedFactory
     interface Factory {
@@ -54,17 +58,16 @@ class UserProfilePresenter @AssistedInject constructor(
 
     @Composable
     private fun getDmRoomId(): State<RoomId?> {
-        return produceState<RoomId?>(initialValue = null) {
-            value = client.findDM(userId)
+        return produceState(initialValue = null) {
+            value = client.findDM(userId).getOrNull()
         }
     }
 
     @Composable
     private fun getCanCall(roomId: RoomId?): State<Boolean> {
         val isElementCallAvailable by produceState(initialValue = false, roomId) {
-            value = enterpriseService.isElementCallAvailable()
+            value = sessionEnterpriseService.isElementCallAvailable()
         }
-
         return produceState(initialValue = false, isElementCallAvailable, roomId) {
             value = when {
                 isElementCallAvailable.not() -> false
@@ -73,7 +76,7 @@ class UserProfilePresenter @AssistedInject constructor(
                     roomId
                         ?.let { client.getRoom(it) }
                         ?.use { room ->
-                            room.canUserJoinCall(client.sessionId).getOrNull()
+                            room.roomPermissions().use(false) { perms -> perms.canCall() }
                         }
                         .orFalse()
             }
@@ -98,7 +101,7 @@ class UserProfilePresenter @AssistedInject constructor(
         }
         val userProfile by produceState<MatrixUser?>(null) { value = client.getProfile(userId).getOrNull() }
 
-        fun handleEvents(event: UserProfileEvents) {
+        fun handleEvent(event: UserProfileEvents) {
             when (event) {
                 is UserProfileEvents.BlockUser -> {
                     if (event.needsConfirmation) {
@@ -150,7 +153,7 @@ class UserProfilePresenter @AssistedInject constructor(
             dmRoomId = dmRoomId,
             canCall = canCall,
             snackbarMessage = null,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,24 +18,11 @@ import org.junit.Test
 
 class LoadingIndicatorsPostProcessorTest {
     @Test
-    fun `LoadingIndicatorsPostProcessor does not alter the items is the timeline is not initialized`() {
-        val sut = LoadingIndicatorsPostProcessor(FakeSystemClock())
-        val result = sut.process(
-            items = listOf(messageEvent, messageEvent2),
-            isTimelineInitialized = false,
-            hasMoreToLoadBackward = true,
-            hasMoreToLoadForward = true,
-        )
-        assertThat(result).containsExactly(messageEvent, messageEvent2)
-    }
-
-    @Test
     fun `LoadingIndicatorsPostProcessor adds Loading indicator at the top of the list if hasMoreToLoadBackward is true`() {
         val clock = FakeSystemClock()
         val sut = LoadingIndicatorsPostProcessor(clock)
         val result = sut.process(
             items = listOf(messageEvent, messageEvent2),
-            isTimelineInitialized = true,
             hasMoreToLoadBackward = true,
             hasMoreToLoadForward = false,
         )
@@ -57,7 +45,6 @@ class LoadingIndicatorsPostProcessorTest {
         val sut = LoadingIndicatorsPostProcessor(clock)
         val result = sut.process(
             items = listOf(messageEvent, messageEvent2),
-            isTimelineInitialized = true,
             hasMoreToLoadBackward = false,
             hasMoreToLoadForward = true,
         )
@@ -80,7 +67,6 @@ class LoadingIndicatorsPostProcessorTest {
         val sut = LoadingIndicatorsPostProcessor(clock)
         val result = sut.process(
             items = listOf(messageEvent, messageEvent2),
-            isTimelineInitialized = true,
             hasMoreToLoadBackward = true,
             hasMoreToLoadForward = true,
         )
@@ -110,7 +96,6 @@ class LoadingIndicatorsPostProcessorTest {
         val sut = LoadingIndicatorsPostProcessor(clock)
         val result = sut.process(
             items = listOf(),
-            isTimelineInitialized = true,
             hasMoreToLoadBackward = true,
             hasMoreToLoadForward = true,
         )

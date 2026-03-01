@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,17 +14,18 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.architecture.Presenter
+import io.element.android.libraries.core.coroutine.mapState
 import io.element.android.libraries.matrix.api.core.EventId
-import io.element.android.libraries.matrix.api.media.MediaPreviewValue
+import io.element.android.libraries.matrix.api.media.MediaPreviewService
 import io.element.android.libraries.matrix.api.media.isPreviewEnabled
 import io.element.android.libraries.matrix.api.room.BaseRoom
-import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import kotlinx.collections.immutable.toImmutableSet
-import javax.inject.Inject
 
-class TimelineProtectionPresenter @Inject constructor(
-    private val appPreferencesStore: AppPreferencesStore,
+@Inject
+class TimelineProtectionPresenter(
+    private val mediaPreviewService: MediaPreviewService,
     private val room: BaseRoom,
 ) : Presenter<TimelineProtectionState> {
     private val allowedEvents = mutableStateOf<Set<EventId>>(setOf())
@@ -31,8 +33,8 @@ class TimelineProtectionPresenter @Inject constructor(
     @Composable
     override fun present(): TimelineProtectionState {
         val mediaPreviewValue = remember {
-            appPreferencesStore.getTimelineMediaPreviewValueFlow()
-        }.collectAsState(initial = MediaPreviewValue.On)
+            mediaPreviewService.mediaPreviewConfigFlow.mapState { config -> config.mediaPreviewValue }
+        }.collectAsState()
         val roomInfo = room.roomInfoFlow.collectAsState()
         val protectionState by remember {
             derivedStateOf {
@@ -55,7 +57,7 @@ class TimelineProtectionPresenter @Inject constructor(
 
         return TimelineProtectionState(
             protectionState = protectionState,
-            eventSink = { event -> handleEvent(event) }
+            eventSink = ::handleEvent,
         )
     }
 }

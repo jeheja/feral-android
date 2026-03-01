@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -37,11 +38,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -211,6 +215,9 @@ fun MediaViewerView(
                             title = {
                                 if (currentData is MediaViewerPageData.Loading) {
                                     Text(
+                                        modifier = Modifier.semantics {
+                                            heading()
+                                        },
                                         text = stringResource(id = CommonStrings.common_loading_more),
                                         style = ElementTheme.typography.fontBodyMdMedium,
                                         color = ElementTheme.colors.textPrimary,
@@ -240,6 +247,9 @@ fun MediaViewerView(
                     (currentData as? MediaViewerPageData.MediaViewerData)?.let {
                         state.eventSink(MediaViewerEvents.Share(currentData))
                     }
+                },
+                onForward = {
+                    state.eventSink(MediaViewerEvents.Forward(it))
                 },
                 onDownload = {
                     (currentData as? MediaViewerPageData.MediaViewerData)?.let {
@@ -453,6 +463,9 @@ private fun MediaViewerTopBar(
                         .fillMaxWidth()
                 ) {
                     Text(
+                        modifier = Modifier.semantics {
+                            heading()
+                        },
                         text = senderName,
                         style = ElementTheme.typography.fontBodyMdMedium,
                         color = ElementTheme.colors.textPrimary,
@@ -554,8 +567,11 @@ private fun ThumbnailView(
                 source = thumbnailSource,
                 kind = MediaRequestData.Kind.File(mediaInfo.filename, mediaInfo.mimeType)
             )
+            val alpha = if (LocalInspectionMode.current) 0.1f else 1f
             AsyncImage(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(alpha),
                 model = mediaRequestData,
                 contentScale = ContentScale.Fit,
                 contentDescription = null,

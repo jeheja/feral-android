@@ -1,13 +1,15 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.x.di
 
-import com.squareup.anvil.annotations.ContributesTo
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesTo
 import io.element.android.features.api.MigrationEntryPoint
 import io.element.android.features.enterprise.api.EnterpriseService
 import io.element.android.features.lockscreen.api.LockScreenEntryPoint
@@ -15,7 +17,7 @@ import io.element.android.features.lockscreen.api.LockScreenService
 import io.element.android.features.rageshake.api.reporter.BugReporter
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatcher
-import io.element.android.libraries.di.AppScope
+import io.element.android.libraries.di.identifiers.SentrySdkDsn
 import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.matrix.api.platform.InitPlatformService
 import io.element.android.libraries.matrix.api.tracing.TracingService
@@ -47,4 +49,6 @@ interface AppBindings {
     fun featureFlagService(): FeatureFlagService
 
     fun buildMeta(): BuildMeta
+
+    fun sentrySdkDsn(): SentrySdkDsn?
 }

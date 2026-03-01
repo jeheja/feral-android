@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
@@ -27,6 +29,7 @@ import io.element.android.libraries.designsystem.theme.components.Text
  * will be smaller.
  */
 @Composable
+@ReadOnlyComposable
 fun Dp.applyScaleDown(): Dp = with(LocalDensity.current) {
     return this@applyScaleDown * fontScale.coerceAtMost(1f)
 }
@@ -37,6 +40,7 @@ fun Dp.applyScaleDown(): Dp = with(LocalDensity.current) {
  * will be bigger.
  */
 @Composable
+@ReadOnlyComposable
 fun Dp.applyScaleUp(): Dp = with(LocalDensity.current) {
     return this@applyScaleUp * fontScale.coerceAtLeast(1f)
 }

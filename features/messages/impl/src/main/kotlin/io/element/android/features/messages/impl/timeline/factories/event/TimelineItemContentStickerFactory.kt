@@ -1,21 +1,23 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.messages.impl.timeline.factories.event
 
+import dev.zacsweers.metro.Inject
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemEventContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStickerContent
 import io.element.android.libraries.androidutils.filesize.FileSizeFormatter
 import io.element.android.libraries.core.mimetype.MimeTypes
 import io.element.android.libraries.matrix.api.timeline.item.event.StickerContent
 import io.element.android.libraries.mediaviewer.api.util.FileExtensionExtractor
-import javax.inject.Inject
 
-class TimelineItemContentStickerFactory @Inject constructor(
+@Inject
+class TimelineItemContentStickerFactory(
     private val fileSizeFormatter: FileSizeFormatter,
     private val fileExtensionExtractor: FileExtensionExtractor
 ) {
@@ -34,6 +36,7 @@ class TimelineItemContentStickerFactory @Inject constructor(
 
         return TimelineItemStickerContent(
             filename = content.filename,
+            fileSize = content.info.size ?: 0L,
             caption = content.body,
             formattedCaption = null,
             isEdited = false,

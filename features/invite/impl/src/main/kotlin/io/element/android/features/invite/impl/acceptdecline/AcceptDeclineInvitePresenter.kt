@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -12,6 +13,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import dev.zacsweers.metro.Inject
 import io.element.android.features.invite.api.InviteData
 import io.element.android.features.invite.api.acceptdecline.AcceptDeclineInviteEvents
 import io.element.android.features.invite.api.acceptdecline.AcceptDeclineInviteState
@@ -24,9 +26,9 @@ import io.element.android.libraries.architecture.runUpdatingState
 import io.element.android.libraries.matrix.api.core.RoomId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-class AcceptDeclineInvitePresenter @Inject constructor(
+@Inject
+class AcceptDeclineInvitePresenter(
     private val acceptInvite: AcceptInvite,
     private val declineInvite: DeclineInvite,
 ) : Presenter<AcceptDeclineInviteState> {
@@ -38,7 +40,7 @@ class AcceptDeclineInvitePresenter @Inject constructor(
         val declinedAction: MutableState<AsyncAction<RoomId>> =
             remember { mutableStateOf(AsyncAction.Uninitialized) }
 
-        fun handleEvents(event: AcceptDeclineInviteEvents) {
+        fun handleEvent(event: AcceptDeclineInviteEvents) {
             when (event) {
                 is AcceptDeclineInviteEvents.AcceptInvite -> {
                     localCoroutineScope.acceptInvite(event.invite.roomId, acceptedAction)
@@ -56,15 +58,11 @@ class AcceptDeclineInvitePresenter @Inject constructor(
                         )
                     }
                 }
-                is InternalAcceptDeclineInviteEvents.CancelDeclineInvite -> {
-                    declinedAction.value = AsyncAction.Uninitialized
-                }
-
-                is InternalAcceptDeclineInviteEvents.DismissAcceptError -> {
+                is InternalAcceptDeclineInviteEvents.ClearAcceptActionState -> {
                     acceptedAction.value = AsyncAction.Uninitialized
                 }
 
-                is InternalAcceptDeclineInviteEvents.DismissDeclineError -> {
+                is InternalAcceptDeclineInviteEvents.ClearDeclineActionState -> {
                     declinedAction.value = AsyncAction.Uninitialized
                 }
             }
@@ -73,7 +71,7 @@ class AcceptDeclineInvitePresenter @Inject constructor(
         return AcceptDeclineInviteState(
             acceptAction = acceptedAction.value,
             declineAction = declinedAction.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 

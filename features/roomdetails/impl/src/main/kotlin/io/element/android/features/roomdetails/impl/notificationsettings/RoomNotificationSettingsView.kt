@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -30,9 +31,7 @@ import io.element.android.libraries.designsystem.components.preferences.Preferen
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.text.buildAnnotatedStringWithStyledPart
-import io.element.android.libraries.designsystem.theme.aliasScreenTitle
 import io.element.android.libraries.designsystem.theme.components.Scaffold
-import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
 import io.element.android.libraries.ui.strings.CommonStrings
@@ -86,7 +85,7 @@ private fun RoomSpecificNotificationSettingsView(
             PreferenceSwitch(
                 isChecked = !state.displayIsDefault.orTrue(),
                 onCheckedChange = {
-                    state.eventSink(RoomNotificationSettingsEvents.SetNotificationMode(!it))
+                    state.eventSink(RoomNotificationSettingsEvent.SetNotificationMode(!it))
                 },
                 title = stringResource(id = R.string.screen_room_notification_settings_allow_custom),
                 subtitle = stringResource(id = R.string.screen_room_notification_settings_allow_custom_footnote),
@@ -139,7 +138,7 @@ private fun RoomSpecificNotificationSettingsView(
                         enabled = !state.displayIsDefault.orTrue(),
                         displayMentionsOnlyDisclaimer = state.displayMentionsOnlyDisclaimer,
                         onSelectOption = {
-                            state.eventSink(RoomNotificationSettingsEvents.ChangeRoomNotificationMode(it.mode))
+                            state.eventSink(RoomNotificationSettingsEvent.ChangeRoomNotificationMode(it.mode))
                         },
                     )
                 }
@@ -149,14 +148,14 @@ private fun RoomSpecificNotificationSettingsView(
                 async = state.setNotificationSettingAction,
                 onSuccess = {},
                 errorMessage = { stringResource(R.string.screen_notification_settings_edit_failed_updating_default_mode) },
-                onErrorDismiss = { state.eventSink(RoomNotificationSettingsEvents.ClearSetNotificationError) },
+                onErrorDismiss = { state.eventSink(RoomNotificationSettingsEvent.ClearSetNotificationError) },
             )
 
             AsyncActionView(
                 async = state.restoreDefaultAction,
                 onSuccess = {},
                 errorMessage = { stringResource(R.string.screen_notification_settings_edit_failed_updating_default_mode) },
-                onErrorDismiss = { state.eventSink(RoomNotificationSettingsEvents.ClearRestoreDefaultError) },
+                onErrorDismiss = { state.eventSink(RoomNotificationSettingsEvent.ClearRestoreDefaultError) },
             )
         }
     }
@@ -168,12 +167,7 @@ private fun RoomNotificationSettingsTopBar(
     onBackClick: () -> Unit,
 ) {
     TopAppBar(
-        title = {
-            Text(
-                text = stringResource(R.string.screen_room_details_notification_title),
-                style = ElementTheme.typography.aliasScreenTitle,
-            )
-        },
+        titleStr = stringResource(R.string.screen_room_details_notification_title),
         navigationIcon = { BackButton(onClick = onBackClick) },
     )
 }

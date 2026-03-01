@@ -24,6 +24,7 @@
     * [Logging](#logging)
     * [Translations](#translations)
     * [Rageshake](#rageshake)
+    * [Developer options](#developer-options)
   * [Tips](#tips)
 * [Happy coding!](#happy-coding)
 
@@ -33,7 +34,7 @@
 
 This doc is a quick introduction about the project and its architecture.
 
-It's aim is to help new developers to understand the overall project and where to start developing.
+Its aim is to help new developers to understand the overall project and where to start developing.
 
 Other useful documentation:
 
@@ -157,6 +158,8 @@ Troubleshooting:
  - If you get the error `Unsupported class file major version <n>`, try changing your JVM version by setting
    `JAVA_HOME` and, if building via Android Studio, "File | Settings | Build, Execution, Deployment | Build Tools | Gradle | Gradle JDK".
 
+You can switch back to using the published version of the SDK by deleting `libraries/rustsdk/matrix-rust-sdk.aar`.
+
 ### The Android project
 
 The project should compile out of the box.
@@ -247,8 +250,7 @@ Main libraries and frameworks used in this application:
 
 - Navigation state with [Appyx](https://bumble-tech.github.io/appyx/). Please
   watch [this video](https://www.droidcon.com/2022/11/15/model-driven-navigation-with-appyx-from-zero-to-hero/) to learn more about Appyx!
-- DI: [Dagger](https://dagger.dev/) and [Anvil](https://github.com/square/anvil). Please
-  watch [this video](https://www.droidcon.com/2022/06/28/dagger-anvil-learning-to-love-dependency-injection/) to learn more about Anvil!
+- Dependency injection: [Metro](https://zacsweers.github.io/metro/latest/)
 - Reactive State management with Compose runtime and [Molecule](https://github.com/cashapp/molecule)
 
 Some patterns are inspired by [Circuit](https://slackhq.github.io/circuit/)
@@ -259,7 +261,7 @@ Here are the main points:
 2. Views are compose first
 3. Presenters are also compose first, and have a single `present(): State` method. It's using the power of compose-runtime/compiler.
 4. The point of connection between a `View` and a `Presenter` is a `Node`.
-5. A `Node` is also responsible for managing Dagger components if any.
+5. A `Node` is also responsible for managing DI graph if any, see for instance `LoggedInAppScopeFlowNode`.
 6. A `ParentNode` has some children `Node` and only know about them.
 7. This is a single activity full compose application. The `MainActivity` is responsible for holding and configuring the `RootNode`.
 8. There is no more needs for Android Architecture Component ViewModel as configuration change should be handled by Composable if needed.
@@ -275,7 +277,7 @@ Follow these steps to install and configure the plugin and templates:
 
 1. Install the AS plugin for generating modules :
    [Generate Module from Template](https://plugins.jetbrains.com/plugin/13586-generate-module-from-template)
-2. Run the script `tools/templates/generate_templates.sh` to generate the template zip file
+2. From repository root, run `./tools/templates/generate_templates.sh` to generate the template zip file
 3. Import file templates in AS :
    - Navigate to File/Manage IDE Settings/Import Settings
    - Pick the `tmp/file_templates.zip` files
@@ -408,20 +410,37 @@ The data will be sent to an internal server, which is not publicly accessible. A
 
 Rageshake can be very useful to get logs from a release version of the application.
 
+
+#### Developer options
+
+> [!WARNING]
+> Developer options can result in unexpected application behavior or destructive
+> actions. Use with caution and only if you are instructed by someone at Element or are
+> already familiar.
+
+These options provide advanced controls for testing and debugging. They are visible by
+default in debug and nightly builds but are hidden in release versions.
+
+**Enabling in release builds:** Navigate to application settings and tap the version
+number at the bottom 7 times. After tapping, a new "Developer options" entry will appear
+at the bottom of the list.
+
+The developer options include feature flags, notification/push history, Element call
+customization, Rust SDK log levels, per-feature tracing toggles, Showkase to debug UI
+components, rageshake controls, app crash controls, cache details/controls, persistent
+storage maintenance tasks.
+
+Keywords: Developer settings, developer mode
+
+
 ### Tips
 
-- Element Android has a `developer mode` in the `Settings/Advanced settings`. Other useful options are available here; (TODO Not supported yet!)
-- Show hidden Events can also help to debug feature. When developer mode is enabled, it is possible to view the source (= the Json content) of any Events; (TODO
-  Not supported yet!)
-- Type `/devtools` in a Room composer to access a developer menu. There are some other entry points. Developer mode has to be enabled; (TODO Not supported yet!)
-- Hidden debug menu: when developer mode is enabled and on debug build, there are some extra screens that can be accessible using the green wheel. In those
-  screens, it will be possible to toggle some feature flags; (TODO Not supported yet!)
 - Using logcat, filtering with `Compositions` can help you to understand what screen are currently displayed on your device. Searching for string displayed on
   the screen can also help to find the running code in the codebase.
 - When this is possible, prefer using `sealed interface` instead of `sealed class`;
 - When writing temporary code, using the string "DO NOT COMMIT" in a comment can help to avoid committing things by mistake. If committed and pushed, the CI
   will detect this String and will warn the user about it. (TODO Not supported yet!)
-- Very occasionally the gradle cache misbehaves and causes problems with Dagger. Try building with `--no-build-cache` if Dagger isn't behaving how you expect.
+- Very occasionally the gradle cache misbehaves and causes problems with code generation. Adding `--no-build-cache` to the `gradlew` command line can help to fix compilation issue.
 
 ## Happy coding!
 

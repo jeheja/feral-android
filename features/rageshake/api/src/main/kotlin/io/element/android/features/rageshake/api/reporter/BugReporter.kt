@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -18,6 +19,7 @@ interface BugReporter {
      * @param withScreenshot true to include the screenshot
      * @param problemDescription the bug description
      * @param canContact true if the user opt in to be contacted directly
+     * @param sendPushRules true to include the push rules
      * @param listener the listener
      */
     suspend fun sendBugReport(
@@ -26,6 +28,7 @@ interface BugReporter {
         withScreenshot: Boolean,
         problemDescription: String,
         canContact: Boolean = false,
+        sendPushRules: Boolean = false,
         listener: BugReporterListener
     )
 
@@ -42,5 +45,5 @@ interface BugReporter {
     /**
      * Save the logcat.
      */
-    fun saveLogCat()
+    fun saveLogCat(): File?
 }

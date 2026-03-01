@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -21,12 +22,19 @@ import io.element.android.libraries.matrix.api.room.join.JoinRule
 enum class MediaPreviewValue {
     On,
     Off,
-    Private
+    Private;
+
+    companion object {
+        /**
+         * The default value if unknown (no local nor server config).
+         */
+        val DEFAULT = On
+    }
 }
 
-fun MediaPreviewValue.isPreviewEnabled(joinRule: JoinRule?): Boolean {
+fun MediaPreviewValue?.isPreviewEnabled(joinRule: JoinRule?): Boolean {
     return when (this) {
-        On -> true
+        null, On -> true
         Off -> false
         Private -> when (joinRule) {
             is JoinRule.Knock,

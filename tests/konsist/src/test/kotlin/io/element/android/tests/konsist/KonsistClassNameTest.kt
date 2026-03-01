@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,10 +16,12 @@ import com.lemonappdev.konsist.api.ext.list.withAllParentsOf
 import com.lemonappdev.konsist.api.ext.list.withAnnotationNamed
 import com.lemonappdev.konsist.api.ext.list.withNameContaining
 import com.lemonappdev.konsist.api.ext.list.withNameEndingWith
+import com.lemonappdev.konsist.api.ext.list.withPackage
 import com.lemonappdev.konsist.api.ext.list.withoutName
 import com.lemonappdev.konsist.api.ext.list.withoutNameStartingWith
 import com.lemonappdev.konsist.api.verify.assertEmpty
 import com.lemonappdev.konsist.api.verify.assertTrue
+import io.element.android.libraries.architecture.BaseFlowNode
 import io.element.android.libraries.architecture.Presenter
 import org.junit.Test
 
@@ -44,12 +47,24 @@ class KonsistClassNameTest {
     }
 
     @Test
+    fun `Classes extending 'BaseFlowNode' should have 'FlowNode' suffix`() {
+        Konsist.scopeFromProject()
+            .classes()
+            .withAllParentsOf(BaseFlowNode::class)
+            .assertTrue {
+                it.name.endsWith("FlowNode")
+            }
+    }
+
+    @Test
     fun `Classes extending 'PreviewParameterProvider' name MUST end with 'Provider' and MUST contain provided class name`() {
         Konsist.scopeFromProduction()
             .classes()
             .withAllParentsOf(PreviewParameterProvider::class)
             .withoutName(
                 "AspectRatioProvider",
+                "EditableAvatarViewUriProvider",
+                "LoginModeViewErrorProvider",
                 "OverlapRatioProvider",
                 "TextFileContentProvider",
             )
@@ -84,14 +99,17 @@ class KonsistClassNameTest {
             .classes()
             .withNameContaining("Fake")
             .withoutName(
+                "FakeAesKeyGenerator",
                 "FakeFileSystem",
                 "FakeImageLoader",
+                "FakeKeyStore",
+                "FakeListenableFuture",
             )
             .assertTrue {
                 val interfaceName = it.name
-                    .replace("FakeRust", "")
+                    .replace("FakeFfi", "")
                     .replace("Fake", "")
-                val result = (it.name.startsWith("Fake") || it.name.startsWith("FakeRust")) &&
+                val result = it.name.startsWith("Fake") &&
                     it.parents().any { parent ->
                         val parentName = parent.name.replace(".", "")
                         parentName == interfaceName
@@ -104,6 +122,17 @@ class KonsistClassNameTest {
                 }
             }
         assertThat(failingCases).isEqualTo(failingCasesList.size)
+    }
+
+    @Test
+    fun `All Classes that override a class from the Ffi layer must have 'FakeFfi' prefix`() {
+        Konsist.scopeFromTest()
+            .classes()
+            .withPackage("io.element.android.libraries.matrix.impl.fixtures.fakes")
+            .assertTrue { klass ->
+                val parentName = klass.parents().firstOrNull()?.name.orEmpty()
+                klass.name == "FakeFfi$parentName"
+            }
     }
 
     @Test
@@ -124,6 +153,7 @@ class KonsistClassNameTest {
                 "Factory",
                 "TimelineController",
                 "TimelineMediaGalleryDataSource",
+                "MetroWorkerFactory",
             )
             .withoutNameStartingWith(
                 "Accompanist",
@@ -137,6 +167,7 @@ class KonsistClassNameTest {
                 "Enterprise",
                 "Fdroid",
                 "FileExtensionExtractor",
+                "Internal",
                 "LiveMediaTimeline",
                 "KeyStore",
                 "Matrix",

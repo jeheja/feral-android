@@ -1,8 +1,9 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  * Copyright 2021 Google LLC
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -31,9 +32,8 @@ import org.maplibre.android.maps.Projection
  */
 @Composable
 public inline fun rememberCameraPositionState(
-    key: String? = null,
     crossinline init: CameraPositionState.() -> Unit = {}
-): CameraPositionState = rememberSaveable(key = key, saver = CameraPositionState.Saver) {
+): CameraPositionState = rememberSaveable(saver = CameraPositionState.Saver) {
     CameraPositionState().apply(init)
 }
 
@@ -157,8 +157,8 @@ public class CameraPositionState(
         /**
          * The default saver implementation for [CameraPositionState].
          */
-        public val Saver: Saver<CameraPositionState, SaveableCameraPositionState> = Saver(
-            save = { SaveableCameraPositionState(it.position, it.cameraMode.toInternal()) },
+        public val Saver: Saver<CameraPositionState, SaveableCameraPositionData> = Saver(
+            save = { SaveableCameraPositionData(it.position, it.cameraMode.toInternal()) },
             restore = { CameraPositionState(it.position, CameraMode.fromInternal(it.cameraMode)) }
         )
     }
@@ -173,7 +173,7 @@ public val currentCameraPositionState: CameraPositionState
     get() = LocalCameraPositionState.current
 
 @Parcelize
-public data class SaveableCameraPositionState(
+public data class SaveableCameraPositionData(
     val position: CameraPosition,
     val cameraMode: Int
 ) : Parcelable

@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,9 +17,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import im.vector.app.features.analytics.plan.Composer
 import im.vector.app.features.analytics.plan.PollCreation
 import io.element.android.features.messages.api.MessageComposerContext
@@ -29,24 +30,32 @@ import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.matrix.api.poll.PollAnswer
 import io.element.android.libraries.matrix.api.poll.PollKind
 import io.element.android.libraries.matrix.api.poll.isDisclosed
+import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.services.analytics.api.AnalyticsService
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-class CreatePollPresenter @AssistedInject constructor(
-    private val repository: PollRepository,
+@AssistedInject
+class CreatePollPresenter(
+    repositoryFactory: PollRepository.Factory,
     private val analyticsService: AnalyticsService,
     private val messageComposerContext: MessageComposerContext,
     @Assisted private val navigateUp: () -> Unit,
     @Assisted private val mode: CreatePollMode,
+    @Assisted private val timelineMode: Timeline.Mode,
 ) : Presenter<CreatePollState> {
     @AssistedFactory
-    interface Factory {
-        fun create(backNavigator: () -> Unit, mode: CreatePollMode): CreatePollPresenter
+    fun interface Factory {
+        fun create(
+            timelineMode: Timeline.Mode,
+            navigateUp: () -> Unit,
+            mode: CreatePollMode
+        ): CreatePollPresenter
     }
+
+    private val repository = repositoryFactory.create(timelineMode)
 
     @Composable
     override fun present(): CreatePollState {
@@ -70,7 +79,7 @@ class CreatePollPresenter @AssistedInject constructor(
                 repository.getPoll(mode.eventId).onSuccess {
                     val loadedPoll = PollFormState(
                         question = it.question,
-                        answers = it.answers.map(PollAnswer::text).toPersistentList(),
+                        answers = it.answers.map(PollAnswer::text).toImmutableList(),
                         isDisclosed = it.kind.isDisclosed,
                     )
                     initialPoll = loadedPoll
@@ -88,9 +97,9 @@ class CreatePollPresenter @AssistedInject constructor(
 
         val scope = rememberCoroutineScope()
 
-        fun handleEvents(event: CreatePollEvents) {
+        fun handleEvent(event: CreatePollEvent) {
             when (event) {
-                is CreatePollEvents.Save -> scope.launch {
+                is CreatePollEvent.Save -> scope.launch {
                     if (canSave) {
                         repository.savePoll(
                             existingPollId = when (mode) {
@@ -114,7 +123,7 @@ class CreatePollPresenter @AssistedInject constructor(
                         Timber.d("Cannot create poll")
                     }
                 }
-                is CreatePollEvents.Delete -> {
+                is CreatePollEvent.Delete -> {
                     if (mode !is CreatePollMode.EditPoll) {
                         return
                     }
@@ -130,25 +139,25 @@ class CreatePollPresenter @AssistedInject constructor(
                         navigateUp()
                     }
                 }
-                is CreatePollEvents.AddAnswer -> {
+                is CreatePollEvent.AddAnswer -> {
                     poll = poll.withNewAnswer()
                 }
-                is CreatePollEvents.RemoveAnswer -> {
+                is CreatePollEvent.RemoveAnswer -> {
                     poll = poll.withAnswerRemoved(event.index)
                 }
-                is CreatePollEvents.SetAnswer -> {
+                is CreatePollEvent.SetAnswer -> {
                     poll = poll.withAnswerChanged(event.index, event.text)
                 }
-                is CreatePollEvents.SetPollKind -> {
+                is CreatePollEvent.SetPollKind -> {
                     poll = poll.copy(isDisclosed = event.pollKind.isDisclosed)
                 }
-                is CreatePollEvents.SetQuestion -> {
+                is CreatePollEvent.SetQuestion -> {
                     poll = poll.copy(question = event.question)
                 }
-                is CreatePollEvents.NavBack -> {
+                is CreatePollEvent.NavBack -> {
                     navigateUp()
                 }
-                CreatePollEvents.ConfirmNavBack -> {
+                CreatePollEvent.ConfirmNavBack -> {
                     val shouldConfirm = isDirty
                     if (shouldConfirm) {
                         showBackConfirmation = true
@@ -156,7 +165,7 @@ class CreatePollPresenter @AssistedInject constructor(
                         navigateUp()
                     }
                 }
-                is CreatePollEvents.HideConfirmation -> {
+                is CreatePollEvent.HideConfirmation -> {
                     showBackConfirmation = false
                     showDeleteConfirmation = false
                 }
@@ -175,7 +184,7 @@ class CreatePollPresenter @AssistedInject constructor(
             pollKind = poll.pollKind,
             showBackConfirmation = showBackConfirmation,
             showDeleteConfirmation = showDeleteConfirmation,
-            eventSink = ::handleEvents,
+            eventSink = ::handleEvent,
         )
     }
 

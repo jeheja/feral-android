@@ -1,14 +1,14 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.messages.impl.timeline.components.event
 
 import android.text.SpannedString
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -36,7 +36,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.invisibleToUser
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
@@ -55,6 +55,7 @@ import io.element.android.features.messages.impl.timeline.model.event.aTimelineI
 import io.element.android.features.messages.impl.timeline.protection.ProtectedView
 import io.element.android.features.messages.impl.timeline.protection.coerceRatioWhenHidingContent
 import io.element.android.libraries.designsystem.components.blurhash.blurHashBackground
+import io.element.android.libraries.designsystem.modifiers.onKeyboardContextMenuAction
 import io.element.android.libraries.designsystem.modifiers.roundedBackground
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -67,7 +68,6 @@ import io.element.android.libraries.ui.utils.time.isTalkbackActive
 import io.element.android.wysiwyg.compose.EditorStyledText
 import io.element.android.wysiwyg.link.Link
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TimelineItemVideoView(
     content: TimelineItemVideoContent,
@@ -107,10 +107,12 @@ fun TimelineItemVideoView(
                         .then(if (isLoaded) Modifier.background(Color.White) else Modifier)
                         .then(
                             if (!isTalkbackActive && onContentClick != null) {
-                                Modifier.combinedClickable(
-                                    onClick = onContentClick,
-                                    onLongClick = onLongClick
-                                )
+                                Modifier
+                                    .combinedClickable(
+                                        onClick = onContentClick,
+                                        onLongClick = onLongClick,
+                                    )
+                                    .onKeyboardContextMenuAction(onLongClick)
                             } else {
                                 Modifier
                             }
@@ -122,7 +124,7 @@ fun TimelineItemVideoView(
                             height = content.thumbnailHeight?.toLong() ?: MAX_THUMBNAIL_HEIGHT,
                         )
                     ),
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.Crop,
                     alignment = Alignment.Center,
                     contentDescription = description,
                     onState = { isLoaded = it is AsyncImagePainter.State.Success },
@@ -136,7 +138,7 @@ fun TimelineItemVideoView(
                         imageVector = CompoundIcons.PlaySolid(),
                         contentDescription = stringResource(id = CommonStrings.a11y_play),
                         colorFilter = ColorFilter.tint(Color.White),
-                        modifier = Modifier.semantics { invisibleToUser() }
+                        modifier = Modifier.semantics { hideFromAccessibility() }
                     )
                 }
             }

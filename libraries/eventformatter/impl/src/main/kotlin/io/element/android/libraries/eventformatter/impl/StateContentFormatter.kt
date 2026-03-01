@@ -1,21 +1,23 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.eventformatter.impl
 
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.eventformatter.impl.mode.RenderingMode
 import io.element.android.libraries.matrix.api.timeline.item.event.OtherState
 import io.element.android.libraries.matrix.api.timeline.item.event.StateContent
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.services.toolbox.api.strings.StringProvider
 import timber.log.Timber
-import javax.inject.Inject
 
-class StateContentFormatter @Inject constructor(
+@Inject
+class StateContentFormatter(
     private val sp: StringProvider,
 ) {
     fun format(
@@ -152,7 +154,7 @@ class StateContentFormatter @Inject constructor(
                     "RoomHistoryVisibility"
                 }
             }
-            OtherState.RoomJoinRules -> when (renderingMode) {
+            is OtherState.RoomJoinRules -> when (renderingMode) {
                 RenderingMode.RoomList -> {
                     Timber.v("Filtering timeline item for room state change: $content")
                     null

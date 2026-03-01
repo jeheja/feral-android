@@ -23,6 +23,12 @@
       ]
     },
     {
+      "name" : ":features:announcement:impl",
+      "includeRegex" : [
+        "screen\\.space_announcement\\..*"
+      ]
+    },
+    {
       "name" : ":features:logout:impl",
       "includeRegex" : [
         "screen_signout_.*"
@@ -59,10 +65,16 @@
       "name" : ":features:createroom:impl",
       "includeRegex" : [
         "screen_create_room_.*",
-        "screen\\.create_room\\..*",
+        "screen\\.create_room\\..*"
+      ]
+    },
+    {
+      "name" : ":features:startchat:impl",
+      "includeRegex" : [
         "screen_start_chat_.*",
         "screen\\.start_chat\\..*",
-        "screen_room_directory_search_title*"
+        "screen_room_directory_search_title",
+        "screen_create_room_action_create_room"
       ]
     },
     {
@@ -77,7 +89,8 @@
       "name" : ":libraries:textcomposer:impl",
       "includeRegex" : [
         "rich_text_editor.*",
-        ".*voice_message_tooltip"
+        ".*voice_message_tooltip",
+        "screen\\.media_upload_preview.caption_warning"
       ]
     },
     {
@@ -116,6 +129,8 @@
       "includeRegex" : [
         "push_.*",
         "notification_.*",
+        "notification\\..*",
+        "troubleshoot_notifications\\.test_blocked_users\\..*",
         "troubleshoot_notifications_test_current_push_provider.*",
         "troubleshoot_notifications_test_detect_push_provider.*",
         "troubleshoot_notifications_test_display_notification_.*",
@@ -141,6 +156,17 @@
       ]
     },
     {
+      "name" : ":features:linknewdevice:impl",
+      "includeRegex" : [
+        "screen\\.link_new_device\\..*",
+        "screen_qr_code_login_error_.*",
+        "screen_qr_code_login_connection_note_secure_state.*",
+        "screen_qr_code_login_unknown_error_description",
+        "screen_qr_code_login_invalid_scan_state_.*",
+        "screen_qr_code_login_no_camera_permission_state_.*"
+      ]
+    },
+    {
       "name" : ":features:login:impl",
       "includeRegex" : [
         "screen_onboarding_.*",
@@ -162,24 +188,29 @@
       ]
     },
     {
-      "name" : ":features:roomlist:impl",
+      "name" : ":features:home:impl",
       "includeRegex" : [
+        "screen\\.home\\..*",
         "screen_roomlist_.*",
+        "screen\\.roomlist\\..*",
         "session_verification_banner_.*",
         "confirm_recovery_key_banner_.*",
         "banner\\.set_up_recovery\\..*",
+        "banner\\.battery_optimization\\..*",
+        "banner\\.new_sound\\..*",
         "full_screen_intent_banner_.*",
         "screen_migration_.*",
-        "screen_invites_.*",
-        "screen\\.join_room\\.knock_sent_title"
+        "screen_invites_.*"
       ]
     },
     {
       "name" : ":features:roomdetails:impl",
       "includeRegex" : [
+        "crypto\\.history_sharing\\.room_info_.*",
         "screen_room_details_.*",
         "screen\\.room_details\\..*",
         "screen_room_member_list_.*",
+        "screen\\.room_member_list\\..*",
         "screen_room_notification_settings_.*",
         "screen_notification_settings_edit_failed_updating_default_mode",
         "screen_polls_history_title",
@@ -191,11 +222,35 @@
       ]
     },
     {
+      "name" : ":features:roomdetailsedit:impl",
+      "includeRegex" : [
+        "screen_room_details_edit_room_title",
+        "screen_room_details_edition_error",
+        "screen_room_details_edition_error_title",
+        "screen_room_details_updating_room"
+      ]
+    },
+    {
+      "name" : ":features:space:impl",
+      "includeRegex" : [
+        "screen\\.leave_space\\..*",
+        "screen\\.space_settings\\..*",
+        "screen\\.space\\..*",
+        "screen\\.space_add_rooms\\..*"
+      ]
+    },
+    {
       "name" : ":features:userprofile:shared",
       "includeRegex" : [
         "screen_start_chat_error_starting_chat",
         "screen_dm_details_.*",
         "screen_room_member_details_.*"
+      ]
+    },
+    {
+      "name" : ":features:invitepeople:impl",
+      "includeRegex" : [
+        "screen\\.invite_users\\..*"
       ]
     },
     {
@@ -207,10 +262,13 @@
         "screen_room_encrypted.*",
         "screen_room_invite.*",
         "screen\\.room\\.mention.*",
+        "crypto\\.event_authenticity\\..*",
         "screen_room_message.*",
         "screen_room_retry.*",
         "screen_room_timeline.*",
-        "screen_room_typing.*"
+        "screen\\.room_timeline.*",
+        "screen_room_typing.*",
+        "screen\\.media_upload.*"
       ]
     },
     {
@@ -243,6 +301,12 @@
       ]
     },
     {
+      "name" : ":features:poll:api",
+      "includeRegex" : [
+        "a11y\\.polls\\..*"
+      ]
+    },
+    {
       "name" : ":features:securebackup:impl",
       "includeRegex" : [
         "screen_chat_backup_.*",
@@ -263,7 +327,8 @@
         "screen_notification_settings_.*",
         "screen_blocked_users_.*",
         "full_screen_intent_banner_.*",
-        "troubleshoot_notifications_entry_point_.*"
+        "troubleshoot_notifications_entry_point_.*",
+        "screen\\.labs\\..*"
       ]
     },
     {
@@ -319,6 +384,31 @@
       "name" : ":features:reportroom:impl",
       "includeRegex" : [
         "screen\\.report_room\\..*"
+      ]
+    },
+    {
+      "name" : ":features:roommembermoderation:impl",
+      "includeRegex" : [
+        "screen\\.bottom_sheet\\.manage_room_member\\..*"
+      ]
+    },
+    {
+      "name" : ":features:rolesandpermissions:impl",
+      "includeRegex" : [
+        "screen_room_change_.*",
+        "screen\\.room_change_permissions\\..*",
+        "screen_room_roles_.*",
+        "screen\\.room_roles_and_permissions\\..*",
+        "screen_room_member_list.*",
+        "screen\\.room_member_list\\..*"
+      ]
+    },
+    {
+      "name" : ":features:securityandprivacy:impl",
+      "includeRegex" : [
+        "screen\\.edit_room_address\\..*",
+        "screen\\.security_and_privacy\\..*",
+        "screen\\.manage_authorized_spaces\\..*"
       ]
     }
   ]

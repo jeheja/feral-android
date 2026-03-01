@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,7 +10,9 @@ package io.element.android.libraries.androidutils.text
 
 import android.telephony.TelephonyManager
 import android.text.style.URLSpan
+import androidx.core.text.buildSpannedString
 import androidx.core.text.getSpans
+import androidx.core.text.inSpans
 import androidx.core.text.toSpannable
 import com.google.common.truth.Truth.assertThat
 import io.element.android.tests.testutils.WarmUpRule
@@ -120,5 +123,46 @@ class LinkifierHelperTest {
         val urlSpans = result.toSpannable().getSpans<URLSpan>()
         assertThat(urlSpans.size).isEqualTo(1)
         assertThat(urlSpans.first().url).isEqualTo("https://github.com/element-hq/element-android/READ(ME)")
+    }
+
+    @Test
+    fun `linkification handles mismatched opening parenthesis in URL`() {
+        val text = "A url: (https://github.com/element-hq/element-android/READ((((((ME))"
+        val result = LinkifyHelper.linkify(text)
+        val urlSpans = result.toSpannable().getSpans<URLSpan>()
+        assertThat(urlSpans.size).isEqualTo(1)
+        assertThat(urlSpans.first().url).isEqualTo("https://github.com/element-hq/element-android/READ((((((ME))")
+    }
+
+    @Test
+    fun `linkification handles mismatched closing parenthesis in URL`() {
+        val text = "A url: (https://github.com/element-hq/element-android/READ(ME)))))"
+        val result = LinkifyHelper.linkify(text)
+        val urlSpans = result.toSpannable().getSpans<URLSpan>()
+        assertThat(urlSpans.size).isEqualTo(1)
+        assertThat(urlSpans.first().url).isEqualTo("https://github.com/element-hq/element-android/READ(ME)")
+    }
+
+    @Test
+    fun `linkification handles trailing question marks`() {
+        val text = "A url: https://github.com/element-hq/element-android?"
+        val result = LinkifyHelper.linkify(text)
+        val urlSpans = result.toSpannable().getSpans<URLSpan>()
+        assertThat(urlSpans.size).isEqualTo(1)
+        assertThat(urlSpans.first().url).isEqualTo("https://github.com/element-hq/element-android")
+    }
+
+    @Test
+    fun `linkification doesn't modify existing URLSpan`() {
+        val text = buildSpannedString {
+            append("A url: ")
+            inSpans(URLSpan("https://github.com/element-hq/element-android?")) {
+                append("here")
+            }
+        }
+        val result = LinkifyHelper.linkify(text)
+        val urlSpans = result.toSpannable().getSpans<URLSpan>()
+        assertThat(urlSpans.size).isEqualTo(1)
+        assertThat(urlSpans.first().url).isEqualTo("https://github.com/element-hq/element-android?")
     }
 }

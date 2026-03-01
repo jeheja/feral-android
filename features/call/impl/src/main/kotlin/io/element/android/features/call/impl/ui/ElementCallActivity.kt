@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -23,13 +24,17 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.core.app.PictureInPictureModeChangedInfo
 import androidx.core.content.IntentCompat
 import androidx.core.util.Consumer
 import androidx.lifecycle.Lifecycle
+import dev.zacsweers.metro.Inject
+import io.element.android.compound.colors.SemanticColorsLightDark
 import io.element.android.features.call.api.CallType
 import io.element.android.features.call.api.CallType.ExternalUrl
 import io.element.android.features.call.impl.DefaultElementCallEntryPoint
@@ -41,6 +46,7 @@ import io.element.android.features.call.impl.pip.PipView
 import io.element.android.features.call.impl.services.CallForegroundService
 import io.element.android.features.call.impl.utils.CallIntentDataParser
 import io.element.android.features.enterprise.api.EnterpriseService
+import io.element.android.libraries.androidutils.browser.ConsoleMessageLogger
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.bindings
 import io.element.android.libraries.audio.api.AudioFocus
@@ -50,7 +56,6 @@ import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.designsystem.theme.ElementThemeApp
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import timber.log.Timber
-import javax.inject.Inject
 
 private val loggerTag = LoggerTag("ElementCallActivity")
 
@@ -65,6 +70,7 @@ class ElementCallActivity :
     @Inject lateinit var pictureInPicturePresenter: PictureInPicturePresenter
     @Inject lateinit var buildMeta: BuildMeta
     @Inject lateinit var audioFocus: AudioFocus
+    @Inject lateinit var consoleMessageLogger: ConsoleMessageLogger
 
     private lateinit var presenter: Presenter<CallScreenState>
 
@@ -79,15 +85,16 @@ class ElementCallActivity :
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        applicationContext.bindings<CallBindings>().inject(this)
+        bindings<CallBindings>().inject(this)
 
-        @Suppress("DEPRECATION")
-        window.addFlags(
-            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON or
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-        )
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
+        }
 
         setCallType(intent)
         // If presenter is not created at this point, it means we have no call to display, the Activity is finishing, so return early
@@ -97,12 +104,18 @@ class ElementCallActivity :
 
         pictureInPicturePresenter.setPipView(this)
 
+        Timber.d("Created ElementCallActivity with call type: ${webViewTarget.value}")
+
         setContent {
             val pipState = pictureInPicturePresenter.present()
             ListenToAndroidEvents(pipState)
+            val colors by remember(webViewTarget.value?.getSessionId()) {
+                enterpriseService.semanticColorsFlow(sessionId = webViewTarget.value?.getSessionId())
+            }.collectAsState(SemanticColorsLightDark.default)
             ElementThemeApp(
                 appPreferencesStore = appPreferencesStore,
-                enterpriseService = enterpriseService,
+                compoundLight = colors.light,
+                compoundDark = colors.dark,
                 buildMeta = buildMeta,
             ) {
                 val state = presenter.present()
@@ -116,6 +129,9 @@ class ElementCallActivity :
                 CallScreenView(
                     state = state,
                     pipState = pipState,
+                    onConsoleMessage = {
+                        consoleMessageLogger.log("ElementCall", it)
+                    },
                     requestPermissions = { permissions, callback ->
                         requestPermissionCallback = callback
                         requestPermissionsLauncher.launch(permissions)

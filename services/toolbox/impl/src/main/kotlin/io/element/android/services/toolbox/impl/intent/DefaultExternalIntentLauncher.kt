@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,14 +10,13 @@ package io.element.android.services.toolbox.impl.intent
 
 import android.content.Context
 import android.content.Intent
-import com.squareup.anvil.annotations.ContributesBinding
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import io.element.android.libraries.di.annotations.ApplicationContext
 import io.element.android.services.toolbox.api.intent.ExternalIntentLauncher
-import javax.inject.Inject
 
 @ContributesBinding(AppScope::class)
-class DefaultExternalIntentLauncher @Inject constructor(
+class DefaultExternalIntentLauncher(
     @ApplicationContext private val context: Context,
 ) : ExternalIntentLauncher {
     override fun launch(intent: Intent) {

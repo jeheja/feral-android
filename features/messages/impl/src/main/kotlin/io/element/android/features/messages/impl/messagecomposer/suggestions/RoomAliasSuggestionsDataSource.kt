@@ -1,20 +1,20 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.messages.impl.messagecomposer.suggestions
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.matrix.api.core.RoomAlias
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.roomlist.RoomListService
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
 
 data class RoomAliasSuggestion(
     val roomAlias: RoomAlias,
@@ -28,7 +28,7 @@ interface RoomAliasSuggestionsDataSource {
 }
 
 @ContributesBinding(SessionScope::class)
-class DefaultRoomAliasSuggestionsDataSource @Inject constructor(
+class DefaultRoomAliasSuggestionsDataSource(
     private val roomListService: RoomListService,
 ) : RoomAliasSuggestionsDataSource {
     override fun getAllRoomAliasSuggestions(): Flow<List<RoomAliasSuggestion>> {

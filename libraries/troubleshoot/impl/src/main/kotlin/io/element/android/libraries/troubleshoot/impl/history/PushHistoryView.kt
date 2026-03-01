@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -30,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
@@ -38,10 +38,10 @@ import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.libraries.designsystem.components.async.AsyncActionView
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.components.dialogs.ConfirmationDialog
+import io.element.android.libraries.designsystem.components.dialogs.ErrorDialog
 import io.element.android.libraries.designsystem.components.list.ListItemContent
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.aliasScreenTitle
 import io.element.android.libraries.designsystem.theme.components.DropdownMenu
 import io.element.android.libraries.designsystem.theme.components.DropdownMenuItem
 import io.element.android.libraries.designsystem.theme.components.Icon
@@ -50,9 +50,6 @@ import io.element.android.libraries.designsystem.theme.components.ListItem
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
-import io.element.android.libraries.matrix.api.core.EventId
-import io.element.android.libraries.matrix.api.core.RoomId
-import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.push.api.history.PushHistoryItem
 import io.element.android.libraries.troubleshoot.impl.R
 import io.element.android.libraries.ui.strings.CommonStrings
@@ -62,7 +59,6 @@ import io.element.android.libraries.ui.strings.CommonStrings
 fun PushHistoryView(
     state: PushHistoryState,
     onBackClick: () -> Unit,
-    onItemClick: (SessionId, RoomId, EventId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -78,14 +74,7 @@ fun PushHistoryView(
                 navigationIcon = {
                     BackButton(onClick = onBackClick)
                 },
-                title = {
-                    Text(
-                        text = stringResource(R.string.screen_push_history_title),
-                        style = ElementTheme.typography.aliasScreenTitle,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
+                titleStr = stringResource(R.string.screen_push_history_title),
                 actions = {
                     IconButton(onClick = { showMenu = !showMenu }) {
                         Icon(
@@ -132,7 +121,6 @@ fun PushHistoryView(
                 .padding(padding)
                 .consumeWindowInsets(padding),
             state = state,
-            onItemClick = onItemClick,
         )
     }
 
@@ -151,12 +139,18 @@ fun PushHistoryView(
         },
         onErrorDismiss = {},
     )
+
+    if (state.showNotSameAccountError) {
+        ErrorDialog(
+            content = "Please switch account first to navigate to the event.",
+            onSubmit = { state.eventSink(PushHistoryEvents.ClearDialog) }
+        )
+    }
 }
 
 @Composable
 private fun PushHistoryContent(
     state: PushHistoryState,
-    onItemClick: (SessionId, RoomId, EventId) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -182,7 +176,7 @@ private fun PushHistoryContent(
                         val roomId = pushHistory.roomId
                         val eventId = pushHistory.eventId
                         if (sessionId != null && roomId != null && eventId != null) {
-                            onItemClick(sessionId, roomId, eventId)
+                            state.eventSink(PushHistoryEvents.NavigateTo(sessionId, roomId, eventId))
                         }
                     }
                 )
@@ -280,6 +274,5 @@ internal fun PushHistoryViewPreview(
     PushHistoryView(
         state = state,
         onBackClick = {},
-        onItemClick = { _, _, _ -> },
     )
 }

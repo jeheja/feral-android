@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,11 +12,11 @@ import android.content.Context
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import com.squareup.anvil.annotations.ContributesTo
-import dagger.Module
-import dagger.Provides
-import io.element.android.libraries.di.ApplicationContext
+import dev.zacsweers.metro.BindingContainer
+import dev.zacsweers.metro.ContributesTo
+import dev.zacsweers.metro.Provides
 import io.element.android.libraries.di.RoomScope
+import io.element.android.libraries.di.annotations.ApplicationContext
 
 /**
  * A subset of media3 [Player] that only exposes the few methods we need making it easier to mock.
@@ -33,6 +34,7 @@ interface SimplePlayer {
     fun isPlaying(): Boolean
     fun pause()
     fun seekTo(positionMs: Long)
+    fun setPlaybackSpeed(speed: Float)
     fun release()
     interface Listener {
         fun onIsPlayingChanged(isPlaying: Boolean)
@@ -42,7 +44,7 @@ interface SimplePlayer {
 }
 
 @ContributesTo(RoomScope::class)
-@Module
+@BindingContainer
 object SimplePlayerModule {
     @Provides
     fun simplePlayerProvider(
@@ -86,6 +88,10 @@ class DefaultSimplePlayer(
     override fun pause() = p.pause()
 
     override fun seekTo(positionMs: Long) = p.seekTo(positionMs)
+
+    override fun setPlaybackSpeed(speed: Float) {
+        p.setPlaybackParameters(p.playbackParameters.withSpeed(speed))
+    }
 
     override fun release() = p.release()
 }

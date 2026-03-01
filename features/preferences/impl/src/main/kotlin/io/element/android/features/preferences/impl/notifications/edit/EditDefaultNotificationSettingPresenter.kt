@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,13 +16,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runUpdatingStateNoSuccess
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.notificationsettings.NotificationSettingsService
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
 import io.element.android.libraries.matrix.api.roomlist.RoomListService
@@ -37,14 +39,19 @@ import kotlinx.coroutines.launch
 import java.text.Collator
 import kotlin.time.Duration.Companion.seconds
 
-class EditDefaultNotificationSettingPresenter @AssistedInject constructor(
+@AssistedInject
+class EditDefaultNotificationSettingPresenter(
     private val notificationSettingsService: NotificationSettingsService,
     @Assisted private val isOneToOne: Boolean,
     private val roomListService: RoomListService,
 ) : Presenter<EditDefaultNotificationSettingState> {
     @AssistedFactory
     interface Factory {
-        fun create(oneToOne: Boolean): EditDefaultNotificationSettingPresenter
+        fun create(isOneToOne: Boolean): EditDefaultNotificationSettingPresenter
+    }
+
+    private val collator = Collator.getInstance().apply {
+        decomposition = Collator.CANONICAL_DECOMPOSITION
     }
 
     @Composable
@@ -69,7 +76,7 @@ class EditDefaultNotificationSettingPresenter @AssistedInject constructor(
             displayMentionsOnlyDisclaimer = !notificationSettingsService.canHomeServerPushEncryptedEventsToDevice().getOrDefault(true)
         }
 
-        fun handleEvents(event: EditDefaultNotificationSettingStateEvents) {
+        fun handleEvent(event: EditDefaultNotificationSettingStateEvents) {
             when (event) {
                 is EditDefaultNotificationSettingStateEvents.SetNotificationMode -> {
                     localCoroutineScope.setDefaultNotificationMode(event.mode, changeNotificationSettingAction)
@@ -84,7 +91,7 @@ class EditDefaultNotificationSettingPresenter @AssistedInject constructor(
             roomsWithUserDefinedMode = roomsWithUserDefinedMode.value.toImmutableList(),
             changeNotificationSettingAction = changeNotificationSettingAction.value,
             displayMentionsOnlyDisclaimer = displayMentionsOnlyDisclaimer,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 
@@ -119,10 +126,10 @@ class EditDefaultNotificationSettingPresenter @AssistedInject constructor(
         summaries: List<RoomSummary>,
         roomsWithUserDefinedMode: MutableState<List<EditNotificationSettingRoomInfo>>
     ) {
-        val roomWithUserDefinedRules: Set<String> = notificationSettingsService.getRoomsWithUserDefinedRules().getOrDefault(emptyList()).toSet()
+        val roomWithUserDefinedRules: Set<RoomId> = notificationSettingsService.getRoomsWithUserDefinedRules().getOrDefault(emptyList()).toSet()
         roomsWithUserDefinedMode.value = summaries
             .filter { roomSummary ->
-                roomWithUserDefinedRules.contains(roomSummary.roomId.value) && roomSummary.isOneToOne == isOneToOne
+                roomWithUserDefinedRules.contains(roomSummary.roomId) && roomSummary.isOneToOne == isOneToOne
             }
             .map { roomSummary ->
                 EditNotificationSettingRoomInfo(
@@ -136,7 +143,12 @@ class EditDefaultNotificationSettingPresenter @AssistedInject constructor(
                 )
             }
             // locale sensitive sorting
-            .sortedWith(compareBy(Collator.getInstance()) { roomSummary -> roomSummary.name })
+            .sortedWith(
+                compareBy(collator) { roomSummary ->
+                    // Collator does not handle null values, so we provide a fallback
+                    roomSummary.name ?: roomSummary.roomId.value
+                }
+            )
     }
 
     private fun CoroutineScope.setDefaultNotificationMode(mode: RoomNotificationMode, action: MutableState<AsyncAction<Unit>>) = launch {

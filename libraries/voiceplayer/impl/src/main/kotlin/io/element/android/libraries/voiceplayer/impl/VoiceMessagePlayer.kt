@@ -1,13 +1,15 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.voiceplayer.impl
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.ContributesBinding
+import io.element.android.libraries.core.extensions.mapCatchingExceptions
 import io.element.android.libraries.core.mimetype.MimeTypes
 import io.element.android.libraries.di.RoomScope
 import io.element.android.libraries.matrix.api.core.EventId
@@ -19,7 +21,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import java.io.File
-import javax.inject.Inject
 
 /**
  * A media player specialized in playing a single voice message.
@@ -78,6 +79,13 @@ interface VoiceMessagePlayer {
      */
     fun seekTo(positionMs: Long)
 
+    /**
+     * Set the playback speed.
+     *
+     * @param speed The playback speed (e.g., 0.5f for half speed, 1.0f for normal, 2.0f for double speed)
+     */
+    fun setPlaybackSpeed(speed: Float)
+
     data class State(
         /**
          * Whether the player is ready to play.
@@ -115,8 +123,8 @@ class DefaultVoiceMessagePlayer(
     mimeType: String?,
     filename: String?,
 ) : VoiceMessagePlayer {
-    @ContributesBinding(RoomScope::class) // Scoped types can't use @AssistedInject.
-    class Factory @Inject constructor(
+    @ContributesBinding(RoomScope::class) // Scoped types can't use @Inject.
+    class Factory(
         private val mediaPlayer: MediaPlayer,
         private val voiceMessageMediaRepoFactory: VoiceMessageMediaRepo.Factory,
     ) : VoiceMessagePlayer.Factory {
@@ -180,7 +188,7 @@ class DefaultVoiceMessagePlayer(
     }.distinctUntilChanged()
 
     override suspend fun prepare(): Result<Unit> = if (eventId != null) {
-        repo.getMediaFile().mapCatching<Unit, File> { mediaFile ->
+        repo.getMediaFile().mapCatchingExceptions<Unit, File> { mediaFile ->
             val state = internalState.value
             mediaPlayer.setMedia(
                 uri = mediaFile.path,
@@ -214,6 +222,10 @@ class DefaultVoiceMessagePlayer(
                 it.copy(currentPosition = positionMs)
             }
         }
+    }
+
+    override fun setPlaybackSpeed(speed: Float) {
+        mediaPlayer.setPlaybackSpeed(speed)
     }
 
     private val MediaPlayer.State.isMyTrack: Boolean

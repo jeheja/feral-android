@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -21,12 +22,12 @@ import com.bumble.appyx.navmodel.backstack.operation.newRoot
 import com.bumble.appyx.navmodel.backstack.operation.pop
 import com.bumble.appyx.navmodel.backstack.operation.push
 import com.bumble.appyx.navmodel.backstack.operation.replace
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
-import io.element.android.anvilannotations.ContributesNode
-import io.element.android.features.login.impl.DefaultLoginUserStory
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
+import io.element.android.annotations.ContributesNode
 import io.element.android.features.login.impl.di.QrCodeLoginBindings
-import io.element.android.features.login.impl.di.QrCodeLoginComponent
+import io.element.android.features.login.impl.di.QrCodeLoginGraph
 import io.element.android.features.login.impl.screens.qrcode.confirmation.QrCodeConfirmationNode
 import io.element.android.features.login.impl.screens.qrcode.confirmation.QrCodeConfirmationStep
 import io.element.android.features.login.impl.screens.qrcode.error.QrCodeErrorNode
@@ -36,10 +37,10 @@ import io.element.android.libraries.architecture.BackstackView
 import io.element.android.libraries.architecture.BaseFlowNode
 import io.element.android.libraries.architecture.NodeInputs
 import io.element.android.libraries.architecture.bindings
+import io.element.android.libraries.architecture.callback
 import io.element.android.libraries.architecture.createNode
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.DaggerComponentOwner
+import io.element.android.libraries.di.DependencyInjectionGraphOwner
 import io.element.android.libraries.matrix.api.auth.qrlogin.MatrixQrCodeLoginData
 import io.element.android.libraries.matrix.api.auth.qrlogin.QrCodeLoginStep
 import io.element.android.libraries.matrix.api.auth.qrlogin.QrLoginException
@@ -50,11 +51,11 @@ import kotlinx.parcelize.Parcelize
 import timber.log.Timber
 
 @ContributesNode(AppScope::class)
-class QrCodeLoginFlowNode @AssistedInject constructor(
+@AssistedInject
+class QrCodeLoginFlowNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
-    qrCodeLoginComponentBuilder: QrCodeLoginComponent.Builder,
-    private val defaultLoginUserStory: DefaultLoginUserStory,
+    qrCodeLoginGraphFactory: QrCodeLoginGraph.Factory,
     private val coroutineDispatchers: CoroutineDispatchers,
 ) : BaseFlowNode<QrCodeLoginFlowNode.NavTarget>(
     backstack = BackStack(
@@ -63,10 +64,16 @@ class QrCodeLoginFlowNode @AssistedInject constructor(
     ),
     buildContext = buildContext,
     plugins = plugins,
-), DaggerComponentOwner {
+), DependencyInjectionGraphOwner {
+    interface Callback : Plugin {
+        fun navigateBack()
+    }
+
+    private val callback: Callback = callback()
+
     private var authenticationJob: Job? = null
 
-    override val daggerComponent = qrCodeLoginComponentBuilder.build()
+    override val graph = qrCodeLoginGraphFactory.create()
     private val qrCodeLoginManager by lazy { bindings<QrCodeLoginBindings>().qrCodeLoginManager() }
 
     sealed interface NavTarget : Parcelable {
@@ -85,7 +92,6 @@ class QrCodeLoginFlowNode @AssistedInject constructor(
 
     override fun onBuilt() {
         super.onBuilt()
-
         observeLoginStep()
     }
 
@@ -113,7 +119,8 @@ class QrCodeLoginFlowNode @AssistedInject constructor(
                                 is QrLoginException.Cancelled -> {
                                     backstack.replace(NavTarget.Error(QrCodeErrorScreenType.Cancelled))
                                 }
-                                is QrLoginException.Expired -> {
+                                is QrLoginException.Expired,
+                                is QrLoginException.NotFound -> {
                                     backstack.replace(NavTarget.Error(QrCodeErrorScreenType.Expired))
                                 }
                                 is QrLoginException.Declined -> {
@@ -132,7 +139,9 @@ class QrCodeLoginFlowNode @AssistedInject constructor(
                                     Timber.e(error, "OIDC metadata is invalid")
                                     backstack.replace(NavTarget.Error(QrCodeErrorScreenType.UnknownError))
                                 }
-                                else -> {
+                                QrLoginException.CheckCodeAlreadySent,
+                                QrLoginException.CheckCodeCannotBeSent,
+                                QrLoginException.Unknown -> {
                                     Timber.e(error, "Unknown error found")
                                     backstack.replace(NavTarget.Error(QrCodeErrorScreenType.UnknownError))
                                 }
@@ -148,11 +157,11 @@ class QrCodeLoginFlowNode @AssistedInject constructor(
         return when (navTarget) {
             is NavTarget.Initial -> {
                 val callback = object : QrCodeIntroNode.Callback {
-                    override fun onCancelClicked() {
+                    override fun cancel() {
                         navigateUp()
                     }
 
-                    override fun onContinue() {
+                    override fun navigateToQrCodeScan() {
                         backstack.push(NavTarget.QrCodeScan)
                     }
                 }
@@ -160,11 +169,11 @@ class QrCodeLoginFlowNode @AssistedInject constructor(
             }
             is NavTarget.QrCodeScan -> {
                 val callback = object : QrCodeScanNode.Callback {
-                    override fun onScannedCode(qrCodeLoginData: MatrixQrCodeLoginData) {
+                    override fun handleScannedCode(qrCodeLoginData: MatrixQrCodeLoginData) {
                         lifecycleScope.startAuthentication(qrCodeLoginData)
                     }
 
-                    override fun onCancelClicked() {
+                    override fun cancel() {
                         backstack.pop()
                     }
                 }
@@ -178,7 +187,13 @@ class QrCodeLoginFlowNode @AssistedInject constructor(
             }
             is NavTarget.Error -> {
                 val callback = object : QrCodeErrorNode.Callback {
-                    override fun onRetry() = reset()
+                    override fun onRetry() {
+                        reset()
+                    }
+
+                    override fun onCancel() {
+                        callback.navigateBack()
+                    }
                 }
                 createNode<QrCodeErrorNode>(buildContext, plugins = listOf(navTarget.errorType, callback))
             }
@@ -198,7 +213,6 @@ class QrCodeLoginFlowNode @AssistedInject constructor(
         authenticationJob = launch(coroutineDispatchers.main) {
             qrCodeLoginManager.authenticate(qrCodeLoginData)
                 .onSuccess {
-                    defaultLoginUserStory.setLoginFlowIsDone(true)
                     authenticationJob = null
                 }
                 .onFailure { throwable ->

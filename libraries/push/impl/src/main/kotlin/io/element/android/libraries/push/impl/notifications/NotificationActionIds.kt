@@ -1,19 +1,20 @@
 /*
- * Copyright 2022-2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2022-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.push.impl.notifications
 
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.core.meta.BuildMeta
-import javax.inject.Inject
 
 /**
  * Util class for creating notifications action Ids, using the application id.
  */
-data class NotificationActionIds @Inject constructor(
+@Inject data class NotificationActionIds(
     private val buildMeta: BuildMeta,
 ) {
     val join = "${buildMeta.applicationId}.NotificationActions.JOIN_ACTION"

@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,9 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewParameter
-import io.element.android.features.rageshake.api.crash.CrashDetectionEvents
+import io.element.android.features.rageshake.api.crash.CrashDetectionEvent
 import io.element.android.features.rageshake.api.crash.CrashDetectionView
-import io.element.android.features.rageshake.api.detection.RageshakeDetectionEvents
+import io.element.android.features.rageshake.api.detection.RageshakeDetectionEvent
 import io.element.android.features.rageshake.api.detection.RageshakeDetectionView
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -38,8 +39,8 @@ fun RootView(
         children()
 
         fun onOpenBugReport() {
-            state.crashDetectionState.eventSink(CrashDetectionEvents.ResetAppHasCrashed)
-            state.rageshakeDetectionState.eventSink(RageshakeDetectionEvents.Dismiss)
+            state.crashDetectionState.eventSink(CrashDetectionEvent.ResetAppHasCrashed)
+            state.rageshakeDetectionState.eventSink(RageshakeDetectionEvent.Dismiss)
             onOpenBugReport.invoke()
         }
 

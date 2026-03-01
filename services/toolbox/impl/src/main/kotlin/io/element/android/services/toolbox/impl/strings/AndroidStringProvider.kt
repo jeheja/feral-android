@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -10,13 +11,12 @@ package io.element.android.services.toolbox.impl.strings
 import android.content.res.Resources
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
-import com.squareup.anvil.annotations.ContributesBinding
-import io.element.android.libraries.di.AppScope
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.services.toolbox.api.strings.StringProvider
-import javax.inject.Inject
 
 @ContributesBinding(AppScope::class)
-class AndroidStringProvider @Inject constructor(private val resources: Resources) : StringProvider {
+class AndroidStringProvider(private val resources: Resources) : StringProvider {
     override fun getString(@StringRes resId: Int): String {
         return resources.getString(resId)
     }

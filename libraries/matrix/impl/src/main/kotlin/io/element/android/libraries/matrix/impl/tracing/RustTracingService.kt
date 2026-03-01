@@ -1,27 +1,36 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.impl.tracing
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import io.element.android.libraries.core.data.ByteUnit
+import io.element.android.libraries.core.data.megaBytes
 import io.element.android.libraries.core.meta.BuildMeta
-import io.element.android.libraries.di.AppScope
 import io.element.android.libraries.matrix.api.tracing.LogLevel
 import io.element.android.libraries.matrix.api.tracing.TracingConfiguration
 import io.element.android.libraries.matrix.api.tracing.TracingService
 import io.element.android.libraries.matrix.api.tracing.WriteToFilesConfiguration
 import org.matrix.rustcomponents.sdk.TracingFileConfiguration
+import org.matrix.rustcomponents.sdk.reloadTracingFileWriter
 import timber.log.Timber
-import javax.inject.Inject
 
 @ContributesBinding(AppScope::class)
-class RustTracingService @Inject constructor(private val buildMeta: BuildMeta) : TracingService {
+class RustTracingService(private val buildMeta: BuildMeta) : TracingService {
     override fun createTimberTree(target: String): Timber.Tree {
         return RustTracingTree(target = target, retrieveFromStackTrace = buildMeta.isDebuggable)
+    }
+
+    override fun updateWriteToFilesConfiguration(config: WriteToFilesConfiguration) {
+        config.toTracingFileConfiguration()?.let {
+            reloadTracingFileWriter(it)
+        }
     }
 }
 
@@ -42,7 +51,10 @@ private fun WriteToFilesConfiguration.toTracingFileConfiguration(): TracingFileC
             path = directory,
             filePrefix = filenamePrefix,
             fileSuffix = filenameSuffix,
-            maxFiles = numberOfFiles?.toULong(),
+            // Have at max 100MB of logs in disk
+            maxTotalSizeBytes = 100.megaBytes.into(ByteUnit.BYTES).toULong(),
+            // Store up to 7 days of logs
+            maxAgeSeconds = (7 * 24 * 60 * 60).toULong(),
         )
     }
 }
@@ -53,5 +65,5 @@ fun TracingConfiguration.map(): org.matrix.rustcomponents.sdk.TracingConfigurati
     extraTargets = extraTargets,
     traceLogPacks = traceLogPacks.map(),
     writeToFiles = writesToFilesConfiguration.toTracingFileConfiguration(),
-    sentryDsn = null,
+    sentryDsn = sdkSentryDsn,
 )

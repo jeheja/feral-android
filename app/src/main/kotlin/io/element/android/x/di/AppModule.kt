@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,35 +12,37 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Resources
 import androidx.preference.PreferenceManager
-import com.squareup.anvil.annotations.ContributesTo
-import dagger.Module
-import dagger.Provides
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.BindingContainer
+import dev.zacsweers.metro.ContributesTo
+import dev.zacsweers.metro.Provides
+import dev.zacsweers.metro.SingleIn
 import io.element.android.appconfig.ApplicationConfig
 import io.element.android.features.enterprise.api.EnterpriseService
-import io.element.android.features.messages.impl.timeline.components.customreaction.DefaultEmojibaseProvider
-import io.element.android.features.messages.impl.timeline.components.customreaction.EmojibaseProvider
 import io.element.android.libraries.androidutils.system.getVersionCodeFromManifest
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.core.meta.BuildType
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatcher
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.ApplicationContext
+import io.element.android.libraries.di.BaseDirectory
 import io.element.android.libraries.di.CacheDirectory
-import io.element.android.libraries.di.SingleIn
+import io.element.android.libraries.di.annotations.AppCoroutineScope
+import io.element.android.libraries.di.annotations.ApplicationContext
+import io.element.android.libraries.recentemojis.api.EmojibaseProvider
+import io.element.android.libraries.recentemojis.impl.DefaultEmojibaseProvider
 import io.element.android.x.BuildConfig
 import io.element.android.x.R
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.plus
 import java.io.File
 
-@Module
+@BindingContainer
 @ContributesTo(AppScope::class)
 object AppModule {
     @Provides
+    @BaseDirectory
     fun providesBaseDirectory(@ApplicationContext context: Context): File {
         return File(context.filesDir, "sessions")
     }
@@ -56,6 +59,7 @@ object AppModule {
     }
 
     @Provides
+    @AppCoroutineScope
     @SingleIn(AppScope::class)
     fun providesAppCoroutineScope(): CoroutineScope {
         return MainScope() + CoroutineName("ElementX Scope")
@@ -103,11 +107,7 @@ object AppModule {
     @Provides
     @SingleIn(AppScope::class)
     fun providesCoroutineDispatchers(): CoroutineDispatchers {
-        return CoroutineDispatchers(
-            io = Dispatchers.IO,
-            computation = Dispatchers.Default,
-            main = Dispatchers.Main,
-        )
+        return CoroutineDispatchers.Default
     }
 
     @Provides

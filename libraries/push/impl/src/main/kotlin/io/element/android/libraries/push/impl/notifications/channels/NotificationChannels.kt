@@ -1,32 +1,39 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.push.impl.notifications.channels
 
+import android.content.ContentResolver
+import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioAttributes.USAGE_NOTIFICATION
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationManagerCompat
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.SingleIn
 import io.element.android.appconfig.NotificationConfig
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.SingleIn
+import io.element.android.features.enterprise.api.EnterpriseService
+import io.element.android.libraries.di.annotations.ApplicationContext
+import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.push.impl.R
 import io.element.android.services.toolbox.api.strings.StringProvider
-import javax.inject.Inject
 
 /* ==========================================================================================
  * IDs for channels
  * ========================================================================================== */
 internal const val SILENT_NOTIFICATION_CHANNEL_ID = "DEFAULT_SILENT_NOTIFICATION_CHANNEL_ID_V2"
-internal const val NOISY_NOTIFICATION_CHANNEL_ID = "DEFAULT_NOISY_NOTIFICATION_CHANNEL_ID"
+internal const val NOISY_NOTIFICATION_CHANNEL_ID = "DEFAULT_NOISY_NOTIFICATION_CHANNEL_ID_V2"
 internal const val CALL_NOTIFICATION_CHANNEL_ID = "CALL_NOTIFICATION_CHANNEL_ID_V3"
 internal const val RINGING_CALL_NOTIFICATION_CHANNEL_ID = "RINGING_CALL_NOTIFICATION_CHANNEL_ID"
 
@@ -42,9 +49,10 @@ interface NotificationChannels {
 
     /**
      * Get the channel for messages.
+     * @param sessionId the session the message belongs to.
      * @param noisy true if the notification should have sound and vibration.
      */
-    fun getChannelIdForMessage(noisy: Boolean): String
+    fun getChannelIdForMessage(sessionId: SessionId, noisy: Boolean): String
 
     /**
      * Get the channel for test notifications.
@@ -57,17 +65,16 @@ private fun supportNotificationChannels() = Build.VERSION.SDK_INT >= Build.VERSI
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
-class DefaultNotificationChannels @Inject constructor(
+class DefaultNotificationChannels(
     private val notificationManager: NotificationManagerCompat,
     private val stringProvider: StringProvider,
+    @ApplicationContext
+    private val context: Context,
+    private val enterpriseService: EnterpriseService,
 ) : NotificationChannels {
     init {
         createNotificationChannels()
     }
-
-    /* ==========================================================================================
-     * Channel names
-     * ========================================================================================== */
 
     /**
      * Create notification channels.
@@ -93,6 +100,7 @@ class DefaultNotificationChannels @Inject constructor(
         // Migration - Remove deprecated channels
         for (channelId in listOf(
             "DEFAULT_SILENT_NOTIFICATION_CHANNEL_ID",
+            "DEFAULT_NOISY_NOTIFICATION_CHANNEL_ID",
             "CALL_NOTIFICATION_CHANNEL_ID",
             "CALL_NOTIFICATION_CHANNEL_ID_V2",
             "LISTEN_FOR_EVENTS_NOTIFICATION_CHANNEL_ID",
@@ -102,15 +110,23 @@ class DefaultNotificationChannels @Inject constructor(
             }
         }
 
-        /**
-         * Default notification importance: shows everywhere, makes noise, but does not visually
-         * intrude.
-         */
+        // Default notification importance: shows everywhere, makes noise, but does not visually intrude.
         notificationManager.createNotificationChannel(
             NotificationChannelCompat.Builder(
                 NOISY_NOTIFICATION_CHANNEL_ID,
                 NotificationManagerCompat.IMPORTANCE_DEFAULT
             )
+                .setSound(
+                    Uri.Builder()
+                        .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
+                        // Strangely we have to provide a "//" before the package name
+                        .path("//" + context.packageName + "/" + R.raw.message)
+                        .build(),
+                    AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .setUsage(USAGE_NOTIFICATION)
+                        .build(),
+                )
                 .setName(stringProvider.getString(R.string.notification_channel_noisy).ifEmpty { "Noisy notifications" })
                 .setDescription(stringProvider.getString(R.string.notification_channel_noisy))
                 .setVibrationEnabled(true)
@@ -119,9 +135,7 @@ class DefaultNotificationChannels @Inject constructor(
                 .build()
         )
 
-        /**
-         * Low notification importance: shows everywhere, but is not intrusive.
-         */
+        // Low notification importance: shows everywhere, but is not intrusive.
         notificationManager.createNotificationChannel(
             NotificationChannelCompat.Builder(
                 SILENT_NOTIFICATION_CHANNEL_ID,
@@ -176,8 +190,13 @@ class DefaultNotificationChannels @Inject constructor(
         return if (ring) RINGING_CALL_NOTIFICATION_CHANNEL_ID else CALL_NOTIFICATION_CHANNEL_ID
     }
 
-    override fun getChannelIdForMessage(noisy: Boolean): String {
-        return if (noisy) NOISY_NOTIFICATION_CHANNEL_ID else SILENT_NOTIFICATION_CHANNEL_ID
+    override fun getChannelIdForMessage(sessionId: SessionId, noisy: Boolean): String {
+        return if (noisy) {
+            enterpriseService.getNoisyNotificationChannelId(sessionId)
+                ?: NOISY_NOTIFICATION_CHANNEL_ID
+        } else {
+            SILENT_NOTIFICATION_CHANNEL_ID
+        }
     }
 
     override fun getChannelIdForTest(): String = NOISY_NOTIFICATION_CHANNEL_ID

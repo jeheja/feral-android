@@ -1,25 +1,27 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.impl.room.join
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.ContributesBinding
 import im.vector.app.features.analytics.plan.JoinedRoom
+import io.element.android.libraries.core.extensions.mapFailure
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomIdOrAlias
+import io.element.android.libraries.matrix.api.exception.ClientException
+import io.element.android.libraries.matrix.api.exception.ErrorKind
 import io.element.android.libraries.matrix.api.room.join.JoinRoom
-import io.element.android.libraries.matrix.api.roomlist.RoomSummary
 import io.element.android.libraries.matrix.impl.analytics.toAnalyticsJoinedRoom
 import io.element.android.services.analytics.api.AnalyticsService
-import javax.inject.Inject
 
 @ContributesBinding(SessionScope::class)
-class DefaultJoinRoom @Inject constructor(
+class DefaultJoinRoom(
     private val client: MatrixClient,
     private val analyticsService: AnalyticsService,
 ) : JoinRoom {
@@ -39,15 +41,19 @@ class DefaultJoinRoom @Inject constructor(
             is RoomIdOrAlias.Alias -> {
                 client.joinRoomByIdOrAlias(roomIdOrAlias, serverNames = emptyList())
             }
-        }.onSuccess { roomSummary ->
-            client.captureJoinedRoomAnalytics(roomSummary, trigger)
+        }.onSuccess { roomInfo ->
+            if (roomInfo != null) {
+                analyticsService.capture(roomInfo.toAnalyticsJoinedRoom(trigger))
+            }
+        }.mapFailure {
+            if (it is ClientException.MatrixApi) {
+                when (it.kind) {
+                    ErrorKind.Forbidden -> JoinRoom.Failures.UnauthorizedJoin
+                    else -> it
+                }
+            } else {
+                it
+            }
         }.map { }
-    }
-
-    private suspend fun MatrixClient.captureJoinedRoomAnalytics(roomSummary: RoomSummary?, trigger: JoinedRoom.Trigger) {
-        if (roomSummary == null) return
-        getRoom(roomSummary.roomId)?.use { room ->
-            analyticsService.capture(room.toAnalyticsJoinedRoom(trigger))
-        }
     }
 }

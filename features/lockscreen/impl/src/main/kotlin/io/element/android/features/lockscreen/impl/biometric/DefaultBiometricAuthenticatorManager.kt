@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -22,31 +23,32 @@ import androidx.compose.ui.res.stringResource
 import androidx.core.content.getSystemService
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.SingleIn
 import io.element.android.features.lockscreen.impl.LockScreenConfig
 import io.element.android.features.lockscreen.impl.R
 import io.element.android.features.lockscreen.impl.storage.LockScreenStore
 import io.element.android.libraries.cryptography.api.EncryptionDecryptionService
 import io.element.android.libraries.cryptography.api.SecretKeyRepository
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.ApplicationContext
-import io.element.android.libraries.di.SingleIn
+import io.element.android.libraries.di.annotations.AppCoroutineScope
+import io.element.android.libraries.di.annotations.ApplicationContext
 import io.element.android.libraries.ui.strings.CommonStrings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.util.concurrent.CopyOnWriteArrayList
-import javax.inject.Inject
 
 private const val SECRET_KEY_ALIAS = "elementx.SECRET_KEY_ALIAS_BIOMETRIC"
 
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
-class DefaultBiometricAuthenticatorManager @Inject constructor(
+class DefaultBiometricAuthenticatorManager(
     @ApplicationContext private val context: Context,
     private val lockScreenStore: LockScreenStore,
     private val lockScreenConfig: LockScreenConfig,
     private val encryptionDecryptionService: EncryptionDecryptionService,
     private val secretKeyRepository: SecretKeyRepository,
+    @AppCoroutineScope
     private val coroutineScope: CoroutineScope,
 ) : BiometricAuthenticatorManager {
     private val callbacks = CopyOnWriteArrayList<BiometricAuthenticator.Callback>()

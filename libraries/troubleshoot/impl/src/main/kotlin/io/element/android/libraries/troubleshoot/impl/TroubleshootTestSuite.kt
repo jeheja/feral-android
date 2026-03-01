@@ -1,15 +1,19 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.troubleshoot.impl
 
+import dev.zacsweers.metro.Inject
 import im.vector.app.features.analytics.plan.NotificationTroubleshoot
 import io.element.android.libraries.architecture.AsyncAction
+import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.push.api.GetCurrentPushProvider
+import io.element.android.libraries.troubleshoot.api.test.NotificationTroubleshootNavigator
 import io.element.android.libraries.troubleshoot.api.test.NotificationTroubleshootTest
 import io.element.android.libraries.troubleshoot.api.test.NotificationTroubleshootTestState
 import io.element.android.libraries.troubleshoot.api.test.TestFilterData
@@ -20,9 +24,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import javax.inject.Inject
 
-class TroubleshootTestSuite @Inject constructor(
+@Inject
+class TroubleshootTestSuite(
+    private val sessionId: SessionId,
     private val notificationTroubleshootTests: Set<@JvmSuppressWildcards NotificationTroubleshootTest>,
     private val getCurrentPushProvider: GetCurrentPushProvider,
     private val analyticsService: AnalyticsService,
@@ -39,7 +44,7 @@ class TroubleshootTestSuite @Inject constructor(
 
     suspend fun start(coroutineScope: CoroutineScope) {
         val testFilterData = TestFilterData(
-            currentPushProviderName = getCurrentPushProvider.getCurrentPushProvider()
+            currentPushProviderName = getCurrentPushProvider.getCurrentPushProvider(sessionId)
         )
         tests = notificationTroubleshootTests
             .filter { it.isRelevant(testFilterData) }
@@ -89,8 +94,12 @@ class TroubleshootTestSuite @Inject constructor(
         )
     }
 
-    suspend fun quickFix(testIndex: Int, coroutineScope: CoroutineScope) {
-        tests[testIndex].quickFix(coroutineScope)
+    suspend fun quickFix(
+        testIndex: Int,
+        coroutineScope: CoroutineScope,
+        navigator: NotificationTroubleshootNavigator,
+    ) {
+        tests[testIndex].quickFix(coroutineScope, navigator)
     }
 }
 
@@ -103,7 +112,7 @@ fun List<NotificationTroubleshootTestState>.computeMainState(): AsyncAction<Unit
         else -> {
             if (any { it.status is NotificationTroubleshootTestState.Status.WaitingForUser }) {
                 AsyncAction.ConfirmingNoParams
-            } else if (any { it.status is NotificationTroubleshootTestState.Status.Failure }) {
+            } else if (any { it.status.let { status -> status is NotificationTroubleshootTestState.Status.Failure && status.isCritical } }) {
                 AsyncAction.Failure(Exception("Some tests failed"))
             } else {
                 AsyncAction.Success(Unit)

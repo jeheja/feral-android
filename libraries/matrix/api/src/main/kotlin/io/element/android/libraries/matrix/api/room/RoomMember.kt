@@ -1,12 +1,14 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.api.room
 
+import androidx.compose.runtime.Immutable
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.user.MatrixUser
 
@@ -17,7 +19,6 @@ data class RoomMember(
     val membership: RoomMembershipState,
     val isNameAmbiguous: Boolean,
     val powerLevel: Long,
-    val normalizedPowerLevel: Long,
     val isIgnored: Boolean,
     val role: Role,
     val membershipChangeReason: String?,
@@ -25,17 +26,35 @@ data class RoomMember(
     /**
      * Role of the RoomMember, based on its [powerLevel].
      */
-    enum class Role(val powerLevel: Long) {
-        ADMIN(100L),
-        MODERATOR(50L),
-        USER(0L);
+    @Immutable
+    sealed interface Role {
+        data class Owner(val isCreator: Boolean) : Role
+        data object Admin : Role
+        data object Moderator : Role
+        data object User : Role
+
+        val powerLevel: Long
+            get() = when (this) {
+                is Owner -> if (isCreator) CREATOR_POWERLEVEL else SUPERADMIN_POWERLEVEL
+                Admin -> ADMIN_POWERLEVEL
+                Moderator -> MODERATOR_POWERLEVEL
+                User -> USER_POWERLEVEL
+            }
 
         companion object {
+            private const val CREATOR_POWERLEVEL = Long.MAX_VALUE
+            private const val SUPERADMIN_POWERLEVEL = 150L
+            private const val ADMIN_POWERLEVEL = 100L
+            private const val MODERATOR_POWERLEVEL = 50L
+            private const val USER_POWERLEVEL = 0L
+
             fun forPowerLevel(powerLevel: Long): Role {
                 return when {
-                    powerLevel >= ADMIN.powerLevel -> ADMIN
-                    powerLevel >= MODERATOR.powerLevel -> MODERATOR
-                    else -> USER
+                    powerLevel == CREATOR_POWERLEVEL -> Owner(isCreator = true)
+                    powerLevel >= SUPERADMIN_POWERLEVEL -> Owner(isCreator = false)
+                    powerLevel >= ADMIN_POWERLEVEL -> Admin
+                    powerLevel >= MODERATOR_POWERLEVEL -> Moderator
+                    else -> User
                 }
             }
         }
@@ -80,6 +99,6 @@ fun RoomMember.getBestName(): String {
 
 fun RoomMember.toMatrixUser() = MatrixUser(
     userId = userId,
-    displayName = displayName,
-    avatarUrl = avatarUrl,
+    displayName = displayName.takeUnless { membership == RoomMembershipState.BAN },
+    avatarUrl = avatarUrl.takeUnless { membership == RoomMembershipState.BAN },
 )

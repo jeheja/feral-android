@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -62,22 +63,6 @@ class NotificationSettingsViewTest {
                 onTroubleshootNotificationsClick = it
             )
             rule.clickOn(R.string.troubleshoot_notifications_entry_point_title)
-        }
-        eventsRecorder.assertSingle(NotificationSettingsEvents.RefreshSystemNotificationsEnabled)
-    }
-
-    @Config(qualifiers = "h1024dp")
-    @Test
-    fun `clicking on push history notification invokes the expected callback`() {
-        val eventsRecorder = EventsRecorder<NotificationSettingsEvents>()
-        ensureCalledOnce {
-            rule.setNotificationSettingsView(
-                state = aValidNotificationSettingsState(
-                    eventSink = eventsRecorder
-                ),
-                onPushHistoryClick = it
-            )
-            rule.clickOn(R.string.troubleshoot_notifications_entry_point_push_history_title)
         }
         eventsRecorder.assertSingle(NotificationSettingsEvents.RefreshSystemNotificationsEnabled)
     }
@@ -300,7 +285,6 @@ private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setNotif
     state: NotificationSettingsState,
     onOpenEditDefault: (isOneToOne: Boolean) -> Unit = EnsureNeverCalledWithParam(),
     onTroubleshootNotificationsClick: () -> Unit = EnsureNeverCalled(),
-    onPushHistoryClick: () -> Unit = EnsureNeverCalled(),
     onBackClick: () -> Unit = EnsureNeverCalled(),
 ) {
     setContent {
@@ -308,7 +292,6 @@ private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setNotif
             state = state,
             onOpenEditDefault = onOpenEditDefault,
             onTroubleshootNotificationsClick = onTroubleshootNotificationsClick,
-            onPushHistoryClick = onPushHistoryClick,
             onBackClick = onBackClick,
         )
     }

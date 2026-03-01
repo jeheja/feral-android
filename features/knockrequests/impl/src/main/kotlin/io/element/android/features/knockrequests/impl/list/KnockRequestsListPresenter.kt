@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,15 +17,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.zacsweers.metro.Inject
 import io.element.android.features.knockrequests.impl.data.KnockRequestsService
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runUpdatingState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-class KnockRequestsListPresenter @Inject constructor(
+@Inject
+class KnockRequestsListPresenter(
     private val knockRequestsService: KnockRequestsService,
 ) : Presenter<KnockRequestsListState> {
     @Composable
@@ -37,7 +39,7 @@ class KnockRequestsListPresenter @Inject constructor(
 
         val coroutineScope = rememberCoroutineScope()
 
-        fun handleEvents(event: KnockRequestsListEvents) {
+        fun handleEvent(event: KnockRequestsListEvents) {
             when (event) {
                 KnockRequestsListEvents.AcceptAll -> {
                     currentAction = KnockRequestsAction.AcceptAll
@@ -72,7 +74,7 @@ class KnockRequestsListPresenter @Inject constructor(
             currentAction = currentAction,
             permissions = permissions,
             asyncAction = asyncAction.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 

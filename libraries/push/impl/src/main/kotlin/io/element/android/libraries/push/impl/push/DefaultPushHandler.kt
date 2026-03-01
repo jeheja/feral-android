@@ -1,29 +1,36 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.push.impl.push
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.SingleIn
 import io.element.android.features.call.api.CallType
 import io.element.android.features.call.api.ElementCallEntryPoint
 import io.element.android.libraries.core.log.logger.LoggerTag
 import io.element.android.libraries.core.meta.BuildMeta
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.SingleIn
-import io.element.android.libraries.matrix.api.auth.MatrixAuthenticationService
+import io.element.android.libraries.di.annotations.AppCoroutineScope
+import io.element.android.libraries.featureflag.api.FeatureFlagService
+import io.element.android.libraries.featureflag.api.FeatureFlags
+import io.element.android.libraries.matrix.api.exception.NotificationResolverException
+import io.element.android.libraries.push.api.push.NotificationEventRequest
+import io.element.android.libraries.push.api.push.SyncOnNotifiableEvent
 import io.element.android.libraries.push.impl.history.PushHistoryService
 import io.element.android.libraries.push.impl.history.onDiagnosticPush
 import io.element.android.libraries.push.impl.history.onInvalidPushReceived
 import io.element.android.libraries.push.impl.history.onSuccess
 import io.element.android.libraries.push.impl.history.onUnableToResolveEvent
 import io.element.android.libraries.push.impl.history.onUnableToRetrieveSession
-import io.element.android.libraries.push.impl.notifications.NotificationEventRequest
+import io.element.android.libraries.push.impl.notifications.FallbackNotificationFactory
 import io.element.android.libraries.push.impl.notifications.NotificationResolverQueue
 import io.element.android.libraries.push.impl.notifications.channels.NotificationChannels
+import io.element.android.libraries.push.impl.notifications.model.FallbackNotifiableEvent
 import io.element.android.libraries.push.impl.notifications.model.NotifiableEvent
 import io.element.android.libraries.push.impl.notifications.model.NotifiableRingingCallEvent
 import io.element.android.libraries.push.impl.notifications.model.ResolvedPushEvent
@@ -33,32 +40,38 @@ import io.element.android.libraries.pushproviders.api.PushData
 import io.element.android.libraries.pushproviders.api.PushHandler
 import io.element.android.libraries.pushstore.api.UserPushStoreFactory
 import io.element.android.libraries.pushstore.api.clientsecret.PushClientSecret
+import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction
+import io.element.android.services.analytics.api.AnalyticsService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
 
 private val loggerTag = LoggerTag("PushHandler", LoggerTag.PushLoggerTag)
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
-class DefaultPushHandler @Inject constructor(
+class DefaultPushHandler(
     private val onNotifiableEventReceived: OnNotifiableEventReceived,
     private val onRedactedEventReceived: OnRedactedEventReceived,
     private val incrementPushDataStore: IncrementPushDataStore,
+    private val mutableBatteryOptimizationStore: MutableBatteryOptimizationStore,
     private val userPushStoreFactory: UserPushStoreFactory,
     private val pushClientSecret: PushClientSecret,
     private val buildMeta: BuildMeta,
-    private val matrixAuthenticationService: MatrixAuthenticationService,
     private val diagnosticPushHandler: DiagnosticPushHandler,
     private val elementCallEntryPoint: ElementCallEntryPoint,
     private val notificationChannels: NotificationChannels,
     private val pushHistoryService: PushHistoryService,
     private val resolverQueue: NotificationResolverQueue,
+    @AppCoroutineScope
     private val appCoroutineScope: CoroutineScope,
+    private val fallbackNotificationFactory: FallbackNotificationFactory,
+    private val syncOnNotifiableEvent: SyncOnNotifiableEvent,
+    private val featureFlagService: FeatureFlagService,
+    private val analyticsService: AnalyticsService,
 ) : PushHandler {
     init {
         processPushEventResults()
@@ -73,21 +86,59 @@ class DefaultPushHandler @Inject constructor(
                 for (request in requests) {
                     // Log the result of the push notification event
                     val result = resolvedEvents[request]
-                    if (result?.isSuccess == true) {
-                        pushHistoryService.onSuccess(
-                            providerInfo = request.providerInfo,
-                            eventId = request.eventId,
-                            roomId = request.roomId,
-                            sessionId = request.sessionId,
-                            comment = "Push handled successfully",
-                        )
-                    } else {
+                    if (result == null) {
                         pushHistoryService.onUnableToResolveEvent(
                             providerInfo = request.providerInfo,
                             eventId = request.eventId,
                             roomId = request.roomId,
                             sessionId = request.sessionId,
-                            reason = "Push not handled",
+                            reason = "Push not handled: no result found for request",
+                        )
+                    } else {
+                        result.fold(
+                            onSuccess = {
+                                if (it is ResolvedPushEvent.Event && it.notifiableEvent is FallbackNotifiableEvent) {
+                                    pushHistoryService.onUnableToResolveEvent(
+                                        providerInfo = request.providerInfo,
+                                        eventId = request.eventId,
+                                        roomId = request.roomId,
+                                        sessionId = request.sessionId,
+                                        reason = it.notifiableEvent.cause.orEmpty(),
+                                    )
+                                } else {
+                                    pushHistoryService.onSuccess(
+                                        providerInfo = request.providerInfo,
+                                        eventId = request.eventId,
+                                        roomId = request.roomId,
+                                        sessionId = request.sessionId,
+                                        comment = "Push handled successfully",
+                                    )
+                                }
+                            },
+                            onFailure = { exception ->
+                                if (exception is NotificationResolverException.EventFilteredOut) {
+                                    pushHistoryService.onSuccess(
+                                        providerInfo = request.providerInfo,
+                                        eventId = request.eventId,
+                                        roomId = request.roomId,
+                                        sessionId = request.sessionId,
+                                        comment = "Push handled successfully but notification was filtered out",
+                                    )
+                                } else {
+                                    val reason = when (exception) {
+                                        is NotificationResolverException.EventNotFound -> "Event not found"
+                                        else -> "Unknown error: ${exception.message}"
+                                    }
+                                    pushHistoryService.onUnableToResolveEvent(
+                                        providerInfo = request.providerInfo,
+                                        eventId = request.eventId,
+                                        roomId = request.roomId,
+                                        sessionId = request.sessionId,
+                                        reason = "$reason - Showing fallback notification",
+                                    )
+                                    mutableBatteryOptimizationStore.showBatteryOptimizationBanner()
+                                }
+                            }
                         )
                     }
                 }
@@ -96,8 +147,28 @@ class DefaultPushHandler @Inject constructor(
                 val redactions = mutableListOf<ResolvedPushEvent.Redaction>()
 
                 @Suppress("LoopWithTooManyJumpStatements")
-                for (result in resolvedEvents.values) {
-                    val event = result.getOrNull() ?: continue
+                for ((request, result) in resolvedEvents) {
+                    val event = result.recover { exception ->
+                        // If the event could not be resolved, we create a fallback notification
+                        when (exception) {
+                            is NotificationResolverException.EventFilteredOut -> {
+                                // Do nothing, we don't want to show a notification for filtered out events
+                                null
+                            }
+                            else -> {
+                                Timber.tag(loggerTag.value).e(exception, "Failed to resolve push event")
+                                ResolvedPushEvent.Event(
+                                    fallbackNotificationFactory.create(
+                                        sessionId = request.sessionId,
+                                        roomId = request.roomId,
+                                        eventId = request.eventId,
+                                        cause = exception.message,
+                                    )
+                                )
+                            }
+                        }
+                    }.getOrNull() ?: continue
+
                     val userPushStore = userPushStoreFactory.getOrCreate(event.sessionId)
                     val areNotificationsEnabled = userPushStore.getNotificationEnabledForDevice().first()
                     // If notifications are disabled for this session and device, we don't want to show the notification
@@ -116,9 +187,9 @@ class DefaultPushHandler @Inject constructor(
                     }
                 }
 
-                // Process redactions of messages
+                // Process redactions of messages in background to not block operations with higher priority
                 if (redactions.isNotEmpty()) {
-                    onRedactedEventReceived.onRedactedEventsReceived(redactions)
+                    appCoroutineScope.launch { onRedactedEventReceived.onRedactedEventsReceived(redactions) }
                 }
 
                 // Find and process ringing call notifications separately
@@ -132,6 +203,10 @@ class DefaultPushHandler @Inject constructor(
                 if (nonRingingCallEvents.isNotEmpty()) {
                     onNotifiableEventReceived.onNotifiableEventsReceived(nonRingingCallEvents)
                 }
+
+                if (!featureFlagService.isFeatureEnabled(FeatureFlags.SyncNotificationsWithWorkManager)) {
+                    syncOnNotifiableEvent(requests)
+                }
             }
             .launchIn(appCoroutineScope)
     }
@@ -143,6 +218,13 @@ class DefaultPushHandler @Inject constructor(
      * @param providerInfo the provider info.
      */
     override suspend fun handle(pushData: PushData, providerInfo: String) {
+        // Start measuring how long it takes to display a notification from when the push is received
+        Timber.d("Calculating push-to-notification for event ${pushData.eventId}")
+        val parent = analyticsService.startLongRunningTransaction(AnalyticsLongRunningTransaction.PushToNotification(pushData.eventId.value))
+        if (featureFlagService.isFeatureEnabled(FeatureFlags.SyncNotificationsWithWorkManager)) {
+            analyticsService.startLongRunningTransaction(AnalyticsLongRunningTransaction.PushToWorkManager(pushData.eventId.value), parent)
+        }
+
         Timber.tag(loggerTag.value).d("## handling pushData: ${pushData.roomId}/${pushData.eventId}")
         if (buildMeta.lowPrivacyLoggingEnabled) {
             Timber.tag(loggerTag.value).d("## pushData: $pushData")
@@ -175,32 +257,15 @@ class DefaultPushHandler @Inject constructor(
             } else {
                 Timber.tag(loggerTag.value).d("## handleInternal()")
             }
-            val clientSecret = pushData.clientSecret
-            // clientSecret should not be null. If this happens, restore default session
-            var reason = if (clientSecret == null) "No client secret" else ""
-            val userId = clientSecret?.let {
-                // Get userId from client secret
-                pushClientSecret.getUserIdFromSecret(clientSecret).also {
-                    if (it == null) {
-                        reason = "Unable to get userId from client secret"
-                    }
-                }
-            }
-                ?: run {
-                    matrixAuthenticationService.getLatestSessionId().also {
-                        if (it == null) {
-                            if (reason.isNotEmpty()) reason += " - "
-                            reason += "Unable to get latest sessionId"
-                        }
-                    }
-                }
+            // Get userId from client secret
+            val userId = pushClientSecret.getUserIdFromSecret(pushData.clientSecret)
             if (userId == null) {
-                Timber.w("Unable to get a session")
+                Timber.w("Unable to get userId from client secret")
                 pushHistoryService.onUnableToRetrieveSession(
                     providerInfo = providerInfo,
                     eventId = pushData.eventId,
                     roomId = pushData.roomId,
-                    reason = reason,
+                    reason = "Unable to get userId from client secret",
                 )
                 return
             }
@@ -230,6 +295,7 @@ class DefaultPushHandler @Inject constructor(
             senderName = notifiableEvent.senderDisambiguatedDisplayName,
             avatarUrl = notifiableEvent.roomAvatarUrl,
             timestamp = notifiableEvent.timestamp,
+            expirationTimestamp = notifiableEvent.expirationTimestamp,
             notificationChannelId = notificationChannels.getChannelForIncomingCall(ring = true),
             textContent = notifiableEvent.description,
         )

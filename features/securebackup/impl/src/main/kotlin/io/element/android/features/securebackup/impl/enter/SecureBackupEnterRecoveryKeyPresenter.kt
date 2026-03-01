@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import dev.zacsweers.metro.Inject
 import io.element.android.features.securebackup.impl.setup.views.RecoveryKeyUserStory
 import io.element.android.features.securebackup.impl.setup.views.RecoveryKeyViewState
 import io.element.android.features.securebackup.impl.tools.RecoveryKeyTools
@@ -24,15 +26,18 @@ import io.element.android.libraries.architecture.runCatchingUpdatingState
 import io.element.android.libraries.matrix.api.encryption.EncryptionService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-class SecureBackupEnterRecoveryKeyPresenter @Inject constructor(
+@Inject
+class SecureBackupEnterRecoveryKeyPresenter(
     private val encryptionService: EncryptionService,
     private val recoveryKeyTools: RecoveryKeyTools,
 ) : Presenter<SecureBackupEnterRecoveryKeyState> {
     @Composable
     override fun present(): SecureBackupEnterRecoveryKeyState {
         val coroutineScope = rememberCoroutineScope()
+        var displayRecoveryKeyFieldContents by rememberSaveable {
+            mutableStateOf(false)
+        }
         var recoveryKey by rememberSaveable {
             mutableStateOf("")
         }
@@ -40,7 +45,7 @@ class SecureBackupEnterRecoveryKeyPresenter @Inject constructor(
             mutableStateOf(AsyncAction.Uninitialized)
         }
 
-        fun handleEvents(event: SecureBackupEnterRecoveryKeyEvents) {
+        fun handleEvent(event: SecureBackupEnterRecoveryKeyEvents) {
             when (event) {
                 SecureBackupEnterRecoveryKeyEvents.ClearDialog -> {
                     submitAction.value = AsyncAction.Uninitialized
@@ -59,6 +64,9 @@ class SecureBackupEnterRecoveryKeyPresenter @Inject constructor(
                     // No need to remove the spaces, the SDK will do it.
                     coroutineScope.submitRecoveryKey(recoveryKey, submitAction)
                 }
+                is SecureBackupEnterRecoveryKeyEvents.ChangeRecoveryKeyFieldContentsVisibility -> {
+                    displayRecoveryKeyFieldContents = event.visible
+                }
             }
         }
 
@@ -66,11 +74,12 @@ class SecureBackupEnterRecoveryKeyPresenter @Inject constructor(
             recoveryKeyViewState = RecoveryKeyViewState(
                 recoveryKeyUserStory = RecoveryKeyUserStory.Enter,
                 formattedRecoveryKey = recoveryKey,
+                displayTextFieldContents = displayRecoveryKeyFieldContents,
                 inProgress = submitAction.value.isLoading(),
             ),
             isSubmitEnabled = recoveryKey.isNotEmpty() && submitAction.value.isUninitialized(),
             submitAction = submitAction.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 

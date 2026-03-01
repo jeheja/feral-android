@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,7 +12,7 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.matrix.api.roomdirectory.RoomDirectoryList
 import io.element.android.libraries.matrix.impl.fixtures.factories.aRustRoomDescription
-import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeRustRoomDirectorySearch
+import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeFfiRoomDirectorySearch
 import io.element.android.libraries.matrix.test.A_ROOM_ID_2
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -26,7 +27,7 @@ import org.matrix.rustcomponents.sdk.RoomDirectorySearchEntryUpdate
 class RustBaseRoomDirectoryListTest {
     @Test
     fun `check that the state emits the expected values`() = runTest {
-        val roomDirectorySearch = FakeRustRoomDirectorySearch()
+        val roomDirectorySearch = FakeFfiRoomDirectorySearch()
         val mapper = RoomDescriptionMapper()
         val sut = createRustRoomDirectoryList(
             roomDirectorySearch = roomDirectorySearch,
@@ -42,7 +43,7 @@ class RustBaseRoomDirectoryListTest {
             )
             val initialItem = awaitItem()
             assertThat(initialItem).isEqualTo(
-                RoomDirectoryList.State(
+                RoomDirectoryList.SearchResult(
                     hasMoreToLoad = true,
                     items = listOf(mapper.map(aRustRoomDescription()))
                 )
@@ -57,7 +58,7 @@ class RustBaseRoomDirectoryListTest {
             )
             val nextItem = awaitItem()
             assertThat(nextItem).isEqualTo(
-                RoomDirectoryList.State(
+                RoomDirectoryList.SearchResult(
                     hasMoreToLoad = false,
                     items = listOf(
                         mapper.map(aRustRoomDescription()),
@@ -66,7 +67,7 @@ class RustBaseRoomDirectoryListTest {
             )
             val finalItem = awaitItem()
             assertThat(finalItem).isEqualTo(
-                RoomDirectoryList.State(
+                RoomDirectoryList.SearchResult(
                     hasMoreToLoad = false,
                     items = listOf(
                         mapper.map(aRustRoomDescription()),
@@ -78,7 +79,7 @@ class RustBaseRoomDirectoryListTest {
     }
 
     private fun TestScope.createRustRoomDirectoryList(
-        roomDirectorySearch: RoomDirectorySearch = FakeRustRoomDirectorySearch(),
+        roomDirectorySearch: RoomDirectorySearch = FakeFfiRoomDirectorySearch(),
     ) = RustRoomDirectoryList(
         inner = roomDirectorySearch,
         coroutineScope = backgroundScope,

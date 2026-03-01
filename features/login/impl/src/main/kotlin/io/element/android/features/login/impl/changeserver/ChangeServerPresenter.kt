@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -12,7 +13,8 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import io.element.android.features.enterprise.api.EnterpriseService
+import dev.zacsweers.metro.Inject
+import io.element.android.features.login.impl.accesscontrol.DefaultAccountProviderAccessControl
 import io.element.android.features.login.impl.accountprovider.AccountProvider
 import io.element.android.features.login.impl.accountprovider.AccountProviderDataSource
 import io.element.android.features.login.impl.error.ChangeServerError
@@ -22,12 +24,12 @@ import io.element.android.libraries.architecture.runCatchingUpdatingState
 import io.element.android.libraries.matrix.api.auth.MatrixAuthenticationService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-class ChangeServerPresenter @Inject constructor(
+@Inject
+class ChangeServerPresenter(
     private val authenticationService: MatrixAuthenticationService,
     private val accountProviderDataSource: AccountProviderDataSource,
-    private val enterpriseService: EnterpriseService,
+    private val defaultAccountProviderAccessControl: DefaultAccountProviderAccessControl,
 ) : Presenter<ChangeServerState> {
     @Composable
     override fun present(): ChangeServerState {
@@ -37,7 +39,7 @@ class ChangeServerPresenter @Inject constructor(
             mutableStateOf(AsyncData.Uninitialized)
         }
 
-        fun handleEvents(event: ChangeServerEvents) {
+        fun handleEvent(event: ChangeServerEvents) {
             when (event) {
                 is ChangeServerEvents.ChangeServer -> localCoroutineScope.changeServer(event.accountProvider, changeServerAction)
                 ChangeServerEvents.ClearError -> changeServerAction.value = AsyncData.Uninitialized
@@ -46,7 +48,7 @@ class ChangeServerPresenter @Inject constructor(
 
         return ChangeServerState(
             changeServerAction = changeServerAction.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 
@@ -55,17 +57,16 @@ class ChangeServerPresenter @Inject constructor(
         changeServerAction: MutableState<AsyncData<Unit>>,
     ) = launch {
         suspend {
-            if (enterpriseService.isAllowedToConnectToHomeserver(data.url).not()) {
-                throw UnauthorizedAccountProviderException(
-                    unauthorisedAccountProviderTitle = data.title,
-                    authorisedAccountProviderTitles = enterpriseService.defaultHomeserverList(),
-                )
+            defaultAccountProviderAccessControl.assertIsAllowedToConnectToAccountProvider(
+                title = data.title,
+                accountProviderUrl = data.url,
+            )
+            val details = authenticationService.setHomeserver(data.url).getOrThrow()
+            if (!details.isSupported) {
+                throw ChangeServerError.UnsupportedServer
             }
-            authenticationService.setHomeserver(data.url).map {
-                authenticationService.getHomeserverDetails().value!!
-                // Valid, remember user choice
-                accountProviderDataSource.userSelection(data)
-            }.getOrThrow()
+            // Homeserver is valid, remember user choice
+            accountProviderDataSource.setAccountProvider(data)
         }.runCatchingUpdatingState(changeServerAction, errorTransform = ChangeServerError::from)
     }
 }

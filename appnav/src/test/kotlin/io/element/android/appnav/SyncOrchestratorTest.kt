@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,8 +12,8 @@ import io.element.android.appnav.di.SyncOrchestrator
 import io.element.android.features.networkmonitor.api.NetworkStatus
 import io.element.android.features.networkmonitor.test.FakeNetworkMonitor
 import io.element.android.libraries.matrix.api.sync.SyncState
-import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.sync.FakeSyncService
+import io.element.android.services.analytics.test.FakeAnalyticsService
 import io.element.android.services.appnavstate.test.FakeAppForegroundStateService
 import io.element.android.tests.testutils.WarmUpRule
 import io.element.android.tests.testutils.lambda.lambdaRecorder
@@ -385,9 +386,11 @@ class SyncOrchestratorTest {
         networkMonitor: FakeNetworkMonitor = FakeNetworkMonitor(),
         appForegroundStateService: FakeAppForegroundStateService = FakeAppForegroundStateService(),
     ) = SyncOrchestrator(
-        matrixClient = FakeMatrixClient(syncService = syncService, sessionCoroutineScope = backgroundScope),
+        syncService = syncService,
+        sessionCoroutineScope = backgroundScope,
         networkMonitor = networkMonitor,
         appForegroundStateService = appForegroundStateService,
         dispatchers = testCoroutineDispatchers(),
+        analyticsService = FakeAnalyticsService(),
     )
 }

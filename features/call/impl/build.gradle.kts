@@ -1,11 +1,13 @@
 import extension.buildConfigFieldStr
 import extension.readLocalProperty
-import extension.setupAnvil
+import extension.setupDependencyInjection
+import extension.testCommonDependencies
 
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2024 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -60,7 +62,7 @@ android {
     }
 }
 
-setupAnvil()
+setupDependencyInjection()
 
 dependencies {
     implementation(projects.appconfig)
@@ -72,7 +74,7 @@ dependencies {
     implementation(projects.libraries.designsystem)
     implementation(projects.libraries.featureflag.api)
     implementation(projects.libraries.matrix.impl)
-    implementation(projects.libraries.matrixui)
+    implementation(projects.libraries.matrixmedia.api)
     implementation(projects.libraries.network)
     implementation(projects.libraries.preferences.api)
     implementation(projects.libraries.push.api)
@@ -87,20 +89,15 @@ dependencies {
     implementation(libs.element.call.embedded)
     api(projects.features.call.api)
 
-    testImplementation(libs.coroutines.test)
-    testImplementation(libs.molecule.runtime)
-    testImplementation(libs.test.truth)
-    testImplementation(libs.test.turbine)
-    testImplementation(libs.test.robolectric)
-    testImplementation(libs.test.mockk)
+    testCommonDependencies(libs, true)
     testImplementation(projects.features.call.test)
     testImplementation(projects.libraries.featureflag.test)
     testImplementation(projects.libraries.preferences.test)
     testImplementation(projects.libraries.matrix.test)
+    testImplementation(projects.libraries.matrixmedia.test)
     testImplementation(projects.libraries.push.test)
     testImplementation(projects.services.analytics.test)
+    testImplementation(projects.services.appnavstate.impl)
     testImplementation(projects.services.appnavstate.test)
-    testImplementation(projects.tests.testutils)
-    testImplementation(libs.androidx.compose.ui.test.junit)
-    testReleaseImplementation(libs.androidx.compose.ui.test.manifest)
+    testImplementation(projects.services.toolbox.test)
 }

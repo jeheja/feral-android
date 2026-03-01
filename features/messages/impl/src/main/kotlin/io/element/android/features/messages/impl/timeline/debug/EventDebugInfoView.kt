@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -44,7 +45,6 @@ import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.aliasScreenTitle
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.Text
@@ -72,12 +72,7 @@ fun EventDebugInfoView(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Debug event info",
-                        style = ElementTheme.typography.aliasScreenTitle,
-                    )
-                },
+                titleStr = "Debug event info",
                 navigationIcon = { BackButton(onClick = onBackClick) }
             )
         },
@@ -117,7 +112,7 @@ fun EventDebugInfoView(
 private fun prettyJSON(maybeJSON: String): String {
     return try {
         JSONObject(maybeJSON).toString(2)
-    } catch (e: JSONException) {
+    } catch (_: JSONException) {
         // Prefer not pretty-printing over crashing if the data is not actually JSON
         maybeJSON
     }

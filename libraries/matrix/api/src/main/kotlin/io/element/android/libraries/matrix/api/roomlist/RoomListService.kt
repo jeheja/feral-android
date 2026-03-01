@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,6 +10,7 @@ package io.element.android.libraries.matrix.api.roomlist
 
 import androidx.compose.runtime.Immutable
 import io.element.android.libraries.matrix.api.core.RoomId
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterIsInstance
@@ -36,13 +38,13 @@ interface RoomListService {
     /**
      * Creates a room list that can be used to load more rooms and filter them dynamically.
      * @param pageSize the number of rooms to load at once.
-     * @param initialFilter the initial filter to apply to the rooms.
      * @param source the source of the rooms, either all rooms or invites.
+     * @param coroutineScope the coroutine scope to use for the room list operations.
      */
     fun createRoomList(
         pageSize: Int,
-        initialFilter: RoomListFilter,
         source: RoomList.Source,
+        coroutineScope: CoroutineScope,
     ): DynamicRoomList
 
     /**
@@ -52,10 +54,10 @@ interface RoomListService {
     suspend fun subscribeToVisibleRooms(roomIds: List<RoomId>)
 
     /**
-     * Returns a [DynamicRoomList] object of all rooms we want to display.
+     * Returns a [RoomList] object with all rooms locally known.
      * If you want to get a filtered room list, consider using [createRoomList].
      */
-    val allRooms: DynamicRoomList
+    val allRooms: RoomList
 
     /**
      * The sync indicator as a flow.

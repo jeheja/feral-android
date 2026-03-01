@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -19,6 +20,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.Density
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
+import app.cash.paparazzi.RenderExtension
 import app.cash.paparazzi.TestName
 import com.android.resources.NightMode
 import io.element.android.compound.theme.ElementTheme
@@ -81,7 +83,7 @@ private fun Paparazzi.fixScreenshotName(preview: ComposablePreview<AndroidPrevie
         .joinToString(".")
     val testName = TestName(
         packageName = packageName,
-        className = preview.methodName.replace("Preview", ""),
+        className = preview.methodName.removeSuffix("Preview"),
         methodName = id
     )
     testNameField.set(this, testName)
@@ -112,7 +114,12 @@ fun createScreenshotIdFor(preview: ComposablePreview<AndroidPreviewInfo>) = buil
 }.joinToString("_")
 
 object PaparazziPreviewRule {
-    fun createFor(preview: ComposablePreview<AndroidPreviewInfo>, locale: String, deviceConfig: DeviceConfig = ScreenshotTest.defaultDeviceConfig): Paparazzi {
+    fun createFor(
+        preview: ComposablePreview<AndroidPreviewInfo>,
+        locale: String,
+        deviceConfig: DeviceConfig = ScreenshotTest.defaultDeviceConfig,
+        renderExtensions: Set<RenderExtension> = setOf(),
+    ): Paparazzi {
         val densityScale = deviceConfig.density.dpiValue / 160f
         val customScreenHeight = preview.previewInfo.heightDp.takeIf { it >= 0 }?.let { it * densityScale }?.toInt()
         return Paparazzi(
@@ -125,7 +132,8 @@ object PaparazziPreviewRule {
                 softButtons = false,
                 screenHeight = customScreenHeight ?: deviceConfig.screenHeight,
             ),
-            maxPercentDifference = 0.01
+            maxPercentDifference = 0.01,
+            renderExtensions = renderExtensions,
         )
     }
 }

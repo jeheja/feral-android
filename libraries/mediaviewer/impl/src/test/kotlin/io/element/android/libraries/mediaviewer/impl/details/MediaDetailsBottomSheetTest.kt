@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -18,6 +19,7 @@ import io.element.android.tests.testutils.EnsureNeverCalled
 import io.element.android.tests.testutils.EnsureNeverCalledWithParam
 import io.element.android.tests.testutils.clickOn
 import io.element.android.tests.testutils.ensureCalledOnceWithParam
+import io.element.android.tests.testutils.setSafeContent
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestRule
@@ -30,6 +32,7 @@ class MediaDetailsBottomSheetTest {
     val rule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
+    @Config(qualifiers = "h1024dp")
     fun `clicking on View in timeline invokes expected callback`() {
         val state = aMediaDetailsBottomSheetState()
         ensureCalledOnceWithParam(state.eventId) { callback ->
@@ -42,6 +45,7 @@ class MediaDetailsBottomSheetTest {
     }
 
     @Test
+    @Config(qualifiers = "h1024dp")
     fun `clicking on Share invokes expected callback`() {
         val state = aMediaDetailsBottomSheetState()
         ensureCalledOnceWithParam(state.eventId) { callback ->
@@ -54,6 +58,20 @@ class MediaDetailsBottomSheetTest {
     }
 
     @Test
+    @Config(qualifiers = "h1024dp")
+    fun `clicking on Forward invokes expected callback`() {
+        val state = aMediaDetailsBottomSheetState()
+        ensureCalledOnceWithParam(state.eventId) { callback ->
+            rule.setMediaDetailsBottomSheet(
+                state = state,
+                onForward = callback,
+            )
+            rule.clickOn(CommonStrings.action_forward)
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "h1024dp")
     fun `clicking on Save invokes expected callback`() {
         val state = aMediaDetailsBottomSheetState()
         ensureCalledOnceWithParam(state.eventId) { callback ->
@@ -96,15 +114,17 @@ private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setMedia
     state: MediaBottomSheetState.MediaDetailsBottomSheetState,
     onViewInTimeline: (EventId) -> Unit = EnsureNeverCalledWithParam(),
     onShare: (EventId) -> Unit = EnsureNeverCalledWithParam(),
+    onForward: (EventId) -> Unit = EnsureNeverCalledWithParam(),
     onDownload: (EventId) -> Unit = EnsureNeverCalledWithParam(),
     onDelete: (EventId) -> Unit = EnsureNeverCalledWithParam(),
     onDismiss: () -> Unit = EnsureNeverCalled(),
 ) {
-    setContent {
+    setSafeContent {
         MediaDetailsBottomSheet(
             state = state,
             onViewInTimeline = onViewInTimeline,
             onShare = onShare,
+            onForward = onForward,
             onDownload = onDownload,
             onDelete = onDelete,
             onDismiss = onDismiss,

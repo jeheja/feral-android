@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,6 +15,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.matrix.api.room.BaseRoom
 import io.element.android.libraries.matrix.api.room.RoomMember
@@ -21,9 +23,9 @@ import io.element.android.libraries.matrix.api.room.roomMembers
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
-import javax.inject.Inject
 
-class ReactionSummaryPresenter @Inject constructor(
+@Inject
+class ReactionSummaryPresenter(
     private val room: BaseRoom,
 ) : Presenter<ReactionSummaryState> {
     @Composable
@@ -35,19 +37,19 @@ class ReactionSummaryPresenter @Inject constructor(
         }
         val targetWithAvatars = populateSenderAvatars(members = membersState.roomMembers().orEmpty().toImmutableList(), summary = target.value)
 
-        fun handleEvents(event: ReactionSummaryEvents) {
+        fun handleEvent(event: ReactionSummaryEvent) {
             when (event) {
-                is ReactionSummaryEvents.ShowReactionSummary -> target.value = ReactionSummaryState.Summary(
+                is ReactionSummaryEvent.ShowReactionSummary -> target.value = ReactionSummaryState.Summary(
                     reactions = event.reactions.toImmutableList(),
                     selectedKey = event.selectedKey,
                     selectedEventId = event.eventId
                 )
-                ReactionSummaryEvents.Clear -> target.value = null
+                ReactionSummaryEvent.Clear -> target.value = null
             }
         }
         return ReactionSummaryState(
             target = targetWithAvatars.value,
-            eventSink = { handleEvents(it) }
+            eventSink = ::handleEvent,
         )
     }
 

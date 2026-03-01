@@ -1,29 +1,30 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.services.analyticsproviders.posthog
 
 import com.posthog.PostHogInterface
-import com.squareup.anvil.annotations.ContributesMultibinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoSet
 import im.vector.app.features.analytics.itf.VectorAnalyticsEvent
 import im.vector.app.features.analytics.itf.VectorAnalyticsScreen
 import im.vector.app.features.analytics.plan.SuperProperties
 import im.vector.app.features.analytics.plan.UserProperties
-import io.element.android.libraries.di.AppScope
 import io.element.android.services.analyticsproviders.api.AnalyticsProvider
+import io.element.android.services.analyticsproviders.api.AnalyticsTransaction
 import io.element.android.services.analyticsproviders.posthog.log.analyticsTag
 import timber.log.Timber
-import javax.inject.Inject
 
 // private val REUSE_EXISTING_ID: String? = null
 // private val IGNORED_OPTIONS: Options? = null
 
-@ContributesMultibinding(AppScope::class)
-class PosthogAnalyticsProvider @Inject constructor(
+@ContributesIntoSet(AppScope::class)
+class PosthogAnalyticsProvider(
     private val postHogFactory: PostHogFactory,
 ) : AnalyticsProvider {
     override val name = "Posthog"
@@ -120,6 +121,8 @@ class PosthogAnalyticsProvider @Inject constructor(
         }
         return withSuperProperties.takeIf { it.isEmpty().not() }
     }
+
+    override fun startTransaction(name: String, operation: String?, description: String?): AnalyticsTransaction? = null
 }
 
 private fun Map<String, Any?>.keepOnlyNonNullValues(): Map<String, Any> {

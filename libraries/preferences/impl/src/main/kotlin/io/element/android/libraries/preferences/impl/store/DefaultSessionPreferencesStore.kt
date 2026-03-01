@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -12,12 +13,15 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
 import io.element.android.libraries.androidutils.file.safeDelete
 import io.element.android.libraries.androidutils.hash.hash
+import io.element.android.libraries.core.data.tryOrNull
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
+import io.element.android.libraries.preferences.api.store.VideoCompressionPreset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -41,7 +45,8 @@ class DefaultSessionPreferencesStore(
     private val sendTypingNotificationsKey = booleanPreferencesKey("sendTypingNotifications")
     private val renderTypingNotificationsKey = booleanPreferencesKey("renderTypingNotifications")
     private val skipSessionVerification = booleanPreferencesKey("skipSessionVerification")
-    private val compressMedia = booleanPreferencesKey("compressMedia")
+    private val compressImages = booleanPreferencesKey("compressMedia")
+    private val compressMediaPreset = stringPreferencesKey("compressMediaPreset")
 
     private val dataStoreFile = storeFile(context, sessionId)
     private val store = PreferenceDataStoreFactory.create(
@@ -82,8 +87,12 @@ class DefaultSessionPreferencesStore(
     override suspend fun setSkipSessionVerification(skip: Boolean) = update(skipSessionVerification, skip)
     override fun isSessionVerificationSkipped(): Flow<Boolean> = get(skipSessionVerification) { false }
 
-    override suspend fun setCompressMedia(compress: Boolean) = update(compressMedia, compress)
-    override fun doesCompressMedia(): Flow<Boolean> = get(compressMedia) { true }
+    override suspend fun setOptimizeImages(compress: Boolean) = update(compressImages, compress)
+    override fun doesOptimizeImages(): Flow<Boolean> = get(compressImages) { true }
+
+    override suspend fun setVideoCompressionPreset(preset: VideoCompressionPreset) = update(compressMediaPreset, preset.name)
+    override fun getVideoCompressionPreset(): Flow<VideoCompressionPreset> = get(compressMediaPreset) { VideoCompressionPreset.STANDARD.name }
+        .map { tryOrNull { VideoCompressionPreset.valueOf(it) } ?: VideoCompressionPreset.STANDARD }
 
     override suspend fun clear() {
         dataStoreFile.safeDelete()

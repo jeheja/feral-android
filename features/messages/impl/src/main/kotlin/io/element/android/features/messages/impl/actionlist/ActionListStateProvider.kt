@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -23,9 +24,12 @@ import io.element.android.features.messages.impl.timeline.model.event.aTimelineI
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemVoiceContent
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageShield
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 
 open class ActionListStateProvider : PreviewParameterProvider<ActionListState> {
+    private val suggestedEmojis = persistentListOf("👍️", "👎️", "🔥", "❤️", "👏")
+
     override val values: Sequence<ActionListState>
         get() {
             val reactionsState = aTimelineItemReactions(1, isHighlighted = true)
@@ -41,6 +45,7 @@ open class ActionListStateProvider : PreviewParameterProvider<ActionListState> {
                         displayEmojiReactions = true,
                         verifiedUserSendFailure = VerifiedUserSendFailure.None,
                         actions = aTimelineItemActionList(),
+                        recentEmojis = suggestedEmojis,
                     )
                 ),
                 anActionListState(
@@ -56,6 +61,7 @@ open class ActionListStateProvider : PreviewParameterProvider<ActionListState> {
                         actions = aTimelineItemActionList(
                             copyAction = TimelineItemAction.CopyCaption,
                         ),
+                        recentEmojis = suggestedEmojis,
                     )
                 ),
                 anActionListState(
@@ -70,6 +76,7 @@ open class ActionListStateProvider : PreviewParameterProvider<ActionListState> {
                         actions = aTimelineItemActionList(
                             copyAction = TimelineItemAction.CopyCaption,
                         ),
+                        recentEmojis = suggestedEmojis,
                     )
                 ),
                 anActionListState(
@@ -84,6 +91,7 @@ open class ActionListStateProvider : PreviewParameterProvider<ActionListState> {
                         actions = aTimelineItemActionList(
                             copyAction = null,
                         ),
+                        recentEmojis = suggestedEmojis,
                     )
                 ),
                 anActionListState(
@@ -98,6 +106,7 @@ open class ActionListStateProvider : PreviewParameterProvider<ActionListState> {
                         actions = aTimelineItemActionList(
                             copyAction = TimelineItemAction.CopyCaption,
                         ),
+                        recentEmojis = suggestedEmojis,
                     )
                 ),
                 anActionListState(
@@ -112,6 +121,7 @@ open class ActionListStateProvider : PreviewParameterProvider<ActionListState> {
                         actions = aTimelineItemActionList(
                             copyAction = null,
                         ),
+                        recentEmojis = suggestedEmojis,
                     )
                 ),
                 anActionListState(
@@ -124,6 +134,7 @@ open class ActionListStateProvider : PreviewParameterProvider<ActionListState> {
                         displayEmojiReactions = true,
                         verifiedUserSendFailure = VerifiedUserSendFailure.None,
                         actions = aTimelineItemActionList(),
+                        recentEmojis = suggestedEmojis,
                     )
                 ),
                 anActionListState(
@@ -136,6 +147,7 @@ open class ActionListStateProvider : PreviewParameterProvider<ActionListState> {
                         displayEmojiReactions = false,
                         verifiedUserSendFailure = VerifiedUserSendFailure.None,
                         actions = aTimelineItemActionList(),
+                        recentEmojis = suggestedEmojis,
                     ),
                 ),
                 anActionListState(
@@ -148,6 +160,7 @@ open class ActionListStateProvider : PreviewParameterProvider<ActionListState> {
                         displayEmojiReactions = false,
                         verifiedUserSendFailure = VerifiedUserSendFailure.None,
                         actions = aTimelineItemPollActionList(),
+                        recentEmojis = suggestedEmojis,
                     ),
                 ),
                 anActionListState(
@@ -160,6 +173,7 @@ open class ActionListStateProvider : PreviewParameterProvider<ActionListState> {
                         displayEmojiReactions = true,
                         verifiedUserSendFailure = VerifiedUserSendFailure.None,
                         actions = aTimelineItemActionList(),
+                        recentEmojis = suggestedEmojis,
                     )
                 ),
                 anActionListState(
@@ -169,6 +183,7 @@ open class ActionListStateProvider : PreviewParameterProvider<ActionListState> {
                         displayEmojiReactions = true,
                         verifiedUserSendFailure = anUnsignedDeviceSendFailure(),
                         actions = aTimelineItemActionList(),
+                        recentEmojis = suggestedEmojis,
                     )
                 ),
             )
@@ -177,7 +192,7 @@ open class ActionListStateProvider : PreviewParameterProvider<ActionListState> {
 
 fun anActionListState(
     target: ActionListState.Target = ActionListState.Target.None,
-    eventSink: (ActionListEvents) -> Unit = {},
+    eventSink: (ActionListEvent) -> Unit = {},
 ) = ActionListState(
     target = target,
     eventSink = eventSink
@@ -197,7 +212,7 @@ fun aTimelineItemActionList(
         TimelineItemAction.ViewSource,
     )
         .sortedWith(TimelineItemActionComparator())
-        .toPersistentList()
+        .toImmutableList()
 }
 
 fun aTimelineItemPollActionList(): ImmutableList<TimelineItemAction> {
@@ -210,5 +225,5 @@ fun aTimelineItemPollActionList(): ImmutableList<TimelineItemAction> {
         TimelineItemAction.Redact,
     )
         .sortedWith(TimelineItemActionComparator())
-        .toPersistentList()
+        .toImmutableList()
 }

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,6 +15,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.tests.testutils.EventsRecorder
 import io.element.android.tests.testutils.clickOn
+import io.element.android.tests.testutils.setSafeContent
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestRule
@@ -25,7 +27,7 @@ class ResolveVerifiedUserSendFailureViewTest {
 
     @Test
     fun `clicking on resolve and resend emit the expected event`() {
-        val eventsRecorder = EventsRecorder<ResolveVerifiedUserSendFailureEvents>()
+        val eventsRecorder = EventsRecorder<ResolveVerifiedUserSendFailureEvent>()
         rule.setResolveVerifiedUserSendFailureView(
             state = aResolveVerifiedUserSendFailureState(
                 verifiedUserSendFailure = aChangedIdentitySendFailure(),
@@ -34,12 +36,12 @@ class ResolveVerifiedUserSendFailureViewTest {
         )
 
         rule.clickOn(res = CommonStrings.screen_resolve_send_failure_changed_identity_primary_button_title)
-        eventsRecorder.assertSingle(ResolveVerifiedUserSendFailureEvents.ResolveAndResend)
+        eventsRecorder.assertSingle(ResolveVerifiedUserSendFailureEvent.ResolveAndResend)
     }
 
     @Test
     fun `clicking on retry emit the expected event`() {
-        val eventsRecorder = EventsRecorder<ResolveVerifiedUserSendFailureEvents>()
+        val eventsRecorder = EventsRecorder<ResolveVerifiedUserSendFailureEvent>()
         rule.setResolveVerifiedUserSendFailureView(
             state = aResolveVerifiedUserSendFailureState(
                 verifiedUserSendFailure = aChangedIdentitySendFailure(),
@@ -48,13 +50,13 @@ class ResolveVerifiedUserSendFailureViewTest {
         )
 
         rule.clickOn(res = CommonStrings.action_retry)
-        eventsRecorder.assertSingle(ResolveVerifiedUserSendFailureEvents.Retry)
+        eventsRecorder.assertSingle(ResolveVerifiedUserSendFailureEvent.Retry)
     }
 
     private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setResolveVerifiedUserSendFailureView(
         state: ResolveVerifiedUserSendFailureState,
     ) {
-        setContent {
+        setSafeContent {
             ResolveVerifiedUserSendFailureView(state = state)
         }
     }

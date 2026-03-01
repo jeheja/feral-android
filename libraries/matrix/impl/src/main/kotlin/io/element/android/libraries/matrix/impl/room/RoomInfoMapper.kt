@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,26 +15,28 @@ import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.room.CurrentUserMembership
 import io.element.android.libraries.matrix.api.room.RoomInfo
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
-import io.element.android.libraries.matrix.api.room.RoomTombstone
+import io.element.android.libraries.matrix.api.room.powerlevels.RoomPowerLevels
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.impl.room.history.map
 import io.element.android.libraries.matrix.impl.room.join.map
 import io.element.android.libraries.matrix.impl.room.member.RoomMemberMapper
-import kotlinx.collections.immutable.ImmutableMap
+import io.element.android.libraries.matrix.impl.room.powerlevels.RoomPowerLevelsValuesMapper
+import io.element.android.libraries.matrix.impl.room.tombstone.map
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.collections.immutable.toPersistentMap
+import kotlinx.collections.immutable.toImmutableMap
 import org.matrix.rustcomponents.sdk.Membership
 import org.matrix.rustcomponents.sdk.RoomHero
 import uniffi.matrix_sdk_base.EncryptionState
 import org.matrix.rustcomponents.sdk.Membership as RustMembership
 import org.matrix.rustcomponents.sdk.RoomInfo as RustRoomInfo
 import org.matrix.rustcomponents.sdk.RoomNotificationMode as RustRoomNotificationMode
+import org.matrix.rustcomponents.sdk.RoomPowerLevels as RustRoomPowerLevels
 
 class RoomInfoMapper {
     fun map(rustRoomInfo: RustRoomInfo): RoomInfo = rustRoomInfo.let {
         return RoomInfo(
             id = RoomId(it.id),
-            creator = it.creator?.let(::UserId),
+            creators = it.creators.orEmpty().map(::UserId).toImmutableList(),
             name = it.displayName,
             rawName = it.rawName,
             topic = it.topic,
@@ -47,9 +50,6 @@ class RoomInfoMapper {
             },
             joinRule = it.joinRule?.map(),
             isSpace = it.isSpace,
-            tombstone = it.tombstone?.let {
-                RoomTombstone(it.body, RoomId(it.replacementRoomId))
-            },
             isFavorite = it.isFavourite,
             canonicalAlias = it.canonicalAlias?.let(::RoomAlias),
             alternativeAliases = it.alternativeAliases.map(::RoomAlias).toImmutableList(),
@@ -58,7 +58,7 @@ class RoomInfoMapper {
             activeMembersCount = it.activeMembersCount.toLong(),
             invitedMembersCount = it.invitedMembersCount.toLong(),
             joinedMembersCount = it.joinedMembersCount.toLong(),
-            userPowerLevels = mapPowerLevels(it.userPowerLevels),
+            roomPowerLevels = it.powerLevels?.let(::mapPowerLevels),
             highlightCount = it.highlightCount.toLong(),
             notificationCount = it.notificationCount.toLong(),
             userDefinedNotificationMode = it.cachedUserDefinedNotificationMode?.map(),
@@ -71,6 +71,10 @@ class RoomInfoMapper {
             numUnreadMentions = it.numUnreadMentions.toLong(),
             numUnreadNotifications = it.numUnreadNotifications.toLong(),
             historyVisibility = it.historyVisibility.map(),
+            successorRoom = it.successorRoom?.map(),
+            roomVersion = it.roomVersion,
+            privilegedCreatorRole = it.privilegedCreatorsRole,
+            isLowPriority = it.isLowPriority,
         )
     }
 }
@@ -98,6 +102,9 @@ fun RoomHero.map(): MatrixUser = MatrixUser(
     avatarUrl = avatarUrl
 )
 
-fun mapPowerLevels(powerLevels: Map<String, Long>): ImmutableMap<UserId, Long> {
-    return powerLevels.mapKeys { (key, _) -> UserId(key) }.toPersistentMap()
+fun mapPowerLevels(roomPowerLevels: RustRoomPowerLevels): RoomPowerLevels {
+    return RoomPowerLevels(
+        values = RoomPowerLevelsValuesMapper.map(roomPowerLevels.values()),
+        users = roomPowerLevels.userPowerLevels().mapKeys { (key, _) -> UserId(key) }.toImmutableMap()
+    )
 }

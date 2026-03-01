@@ -1,33 +1,27 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.preferences.impl.store
 
-import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.core.meta.BuildType
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.ApplicationContext
 import io.element.android.libraries.matrix.api.media.MediaPreviewValue
 import io.element.android.libraries.matrix.api.tracing.LogLevel
 import io.element.android.libraries.matrix.api.tracing.TraceLogPack
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
+import io.element.android.libraries.preferences.api.store.PreferenceDataStoreFactory
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "elementx_preferences")
 
 private val developerModeKey = booleanPreferencesKey("developerMode")
 private val customElementCallBaseUrlKey = stringPreferencesKey("elementCallBaseUrl")
@@ -38,11 +32,11 @@ private val logLevelKey = stringPreferencesKey("logLevel")
 private val traceLogPacksKey = stringPreferencesKey("traceLogPacks")
 
 @ContributesBinding(AppScope::class)
-class DefaultAppPreferencesStore @Inject constructor(
-    @ApplicationContext context: Context,
+class DefaultAppPreferencesStore(
     private val buildMeta: BuildMeta,
+    preferenceDataStoreFactory: PreferenceDataStoreFactory,
 ) : AppPreferencesStore {
-    private val store = context.dataStore
+    private val store = preferenceDataStoreFactory.create("elementx_preferences")
 
     override suspend fun setDeveloperModeEnabled(enabled: Boolean) {
         store.edit { prefs ->
@@ -85,27 +79,39 @@ class DefaultAppPreferencesStore @Inject constructor(
         }
     }
 
-    override suspend fun setHideInviteAvatars(value: Boolean) {
-        store.edit { prefs ->
-            prefs[hideInviteAvatarsKey] = value
-        }
-    }
-
-    override fun getHideInviteAvatarsFlow(): Flow<Boolean> {
+    @Deprecated("Use MediaPreviewService instead. Kept only for migration.")
+    override fun getHideInviteAvatarsFlow(): Flow<Boolean?> {
         return store.data.map { prefs ->
-            prefs[hideInviteAvatarsKey] == true
+            prefs[hideInviteAvatarsKey]
         }
     }
 
-    override suspend fun setTimelineMediaPreviewValue(value: MediaPreviewValue) {
+    @Deprecated("Use MediaPreviewService instead. Kept only for migration.")
+    override suspend fun setHideInviteAvatars(hide: Boolean?) {
         store.edit { prefs ->
-            prefs[timelineMediaPreviewValueKey] = value.name
+            if (hide != null) {
+                prefs[hideInviteAvatarsKey] = hide
+            } else {
+                prefs.remove(hideInviteAvatarsKey)
+            }
         }
     }
 
-    override fun getTimelineMediaPreviewValueFlow(): Flow<MediaPreviewValue> {
+    @Deprecated("Use MediaPreviewService instead. Kept only for migration.")
+    override suspend fun setTimelineMediaPreviewValue(mediaPreviewValue: MediaPreviewValue?) {
+        store.edit { prefs ->
+            if (mediaPreviewValue != null) {
+                prefs[timelineMediaPreviewValueKey] = mediaPreviewValue.name
+            } else {
+                prefs.remove(timelineMediaPreviewValueKey)
+            }
+        }
+    }
+
+    @Deprecated("Use MediaPreviewService instead. Kept only for migration.")
+    override fun getTimelineMediaPreviewValueFlow(): Flow<MediaPreviewValue?> {
         return store.data.map { prefs ->
-            prefs[timelineMediaPreviewValueKey]?.let { MediaPreviewValue.valueOf(it) } ?: MediaPreviewValue.On
+            prefs[timelineMediaPreviewValueKey]?.let { MediaPreviewValue.valueOf(it) }
         }
     }
 

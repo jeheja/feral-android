@@ -1,25 +1,25 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.voicerecorder.impl.audio
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Provider
 import io.element.android.libraries.di.RoomScope
 import io.element.android.opusencoder.OggOpusEncoder
 import timber.log.Timber
 import java.io.File
-import javax.inject.Inject
-import javax.inject.Provider
 
 /**
  * Safe wrapper for OggOpusEncoder.
  */
 @ContributesBinding(RoomScope::class)
-class DefaultEncoder @Inject constructor(
+class DefaultEncoder(
     private val encoderProvider: Provider<OggOpusEncoder>,
     config: AudioConfig,
 ) : Encoder {
@@ -31,7 +31,7 @@ class DefaultEncoder @Inject constructor(
         file: File,
     ) {
         encoder?.release()
-        encoder = encoderProvider.get().apply {
+        encoder = encoderProvider().apply {
             init(file.absolutePath, sampleRate)
             setBitrate(bitRate)
             // TODO check encoder application: 2048 (voice, default is typically 2049 as audio)
@@ -48,7 +48,6 @@ class DefaultEncoder @Inject constructor(
 
     override fun release() {
         encoder?.release()
-            ?: Timber.w("Can't release encoder that is not initialized")
         encoder = null
     }
 }

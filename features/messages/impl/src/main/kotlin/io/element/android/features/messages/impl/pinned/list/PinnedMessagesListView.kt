@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -23,12 +24,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import im.vector.app.features.analytics.plan.Interaction
-import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
-import io.element.android.features.messages.impl.actionlist.ActionListEvents
+import io.element.android.features.messages.impl.actionlist.ActionListEvent
 import io.element.android.features.messages.impl.actionlist.ActionListView
 import io.element.android.features.messages.impl.actionlist.model.TimelineItemAction
-import io.element.android.features.messages.impl.link.LinkEvents
+import io.element.android.features.messages.impl.link.LinkEvent
 import io.element.android.features.messages.impl.link.LinkView
 import io.element.android.features.messages.impl.timeline.components.TimelineItemRow
 import io.element.android.features.messages.impl.timeline.components.event.TimelineItemEventContentView
@@ -46,9 +46,9 @@ import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.CircularProgressIndicator
 import io.element.android.libraries.designsystem.theme.components.Scaffold
-import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
-import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.timeline.Timeline
+import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.services.analytics.compose.LocalAnalyticsService
 import io.element.android.services.analyticsproviders.api.trackers.captureInteraction
@@ -59,7 +59,7 @@ fun PinnedMessagesListView(
     state: PinnedMessagesListState,
     onBackClick: () -> Unit,
     onEventClick: (event: TimelineItem.Event) -> Unit,
-    onUserDataClick: (UserId) -> Unit,
+    onUserDataClick: (MatrixUser) -> Unit,
     onLinkClick: (Link) -> Unit,
     onLinkLongClick: (Link) -> Unit,
     modifier: Modifier = Modifier,
@@ -100,12 +100,7 @@ private fun PinnedMessagesListTopBar(
     modifier: Modifier = Modifier,
 ) {
     TopAppBar(
-        title = {
-            Text(
-                text = state.title(),
-                style = ElementTheme.typography.fontBodyLgMedium
-            )
-        },
+        titleStr = state.title(),
         navigationIcon = { BackButton(onClick = onBackClick) },
         modifier = modifier,
     )
@@ -115,7 +110,7 @@ private fun PinnedMessagesListTopBar(
 private fun PinnedMessagesListContent(
     state: PinnedMessagesListState,
     onEventClick: (event: TimelineItem.Event) -> Unit,
-    onUserDataClick: (UserId) -> Unit,
+    onUserDataClick: (MatrixUser) -> Unit,
     onLinkClick: (Link) -> Unit,
     onLinkLongClick: (Link) -> Unit,
     onErrorDismiss: () -> Unit,
@@ -133,6 +128,7 @@ private fun PinnedMessagesListContent(
             PinnedMessagesListState.Empty -> PinnedMessagesListEmpty()
             is PinnedMessagesListState.Filled -> PinnedMessagesListLoaded(
                 state = state,
+                displayThreadSummaries = state.displayThreadSummaries,
                 onEventClick = onEventClick,
                 onUserDataClick = onUserDataClick,
                 onLinkClick = onLinkClick,
@@ -170,18 +166,19 @@ private fun PinnedMessagesListEmpty(
 @Composable
 private fun PinnedMessagesListLoaded(
     state: PinnedMessagesListState.Filled,
+    displayThreadSummaries: Boolean,
     onEventClick: (event: TimelineItem.Event) -> Unit,
-    onUserDataClick: (UserId) -> Unit,
+    onUserDataClick: (MatrixUser) -> Unit,
     onLinkClick: (Link) -> Unit,
     onLinkLongClick: (Link) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     fun onActionSelected(timelineItemAction: TimelineItemAction, event: TimelineItem.Event) {
         state.actionListState.eventSink(
-            ActionListEvents.Clear
+            ActionListEvent.Clear
         )
         state.eventSink(
-            PinnedMessagesListEvents.HandleAction(
+            PinnedMessagesListEvent.HandleAction(
                 action = timelineItemAction,
                 event = event,
             )
@@ -190,7 +187,7 @@ private fun PinnedMessagesListLoaded(
 
     fun onMessageLongClick(event: TimelineItem.Event) {
         state.actionListState.eventSink(
-            ActionListEvents.ComputeForMessage(
+            ActionListEvent.ComputeForMessage(
                 event = event,
                 userEventPermissions = state.userEventPermissions,
             )
@@ -217,6 +214,7 @@ private fun PinnedMessagesListLoaded(
         ) { timelineItem ->
             TimelineItemRow(
                 timelineItem = timelineItem,
+                timelineMode = Timeline.Mode.PinnedEvents,
                 timelineRoomInfo = state.timelineRoomInfo,
                 renderReadReceipts = false,
                 timelineProtectionState = state.timelineProtectionState,
@@ -224,11 +222,12 @@ private fun PinnedMessagesListLoaded(
                 focusedEventId = null,
                 onUserDataClick = onUserDataClick,
                 onLinkClick = { link ->
-                    state.linkState.eventSink(LinkEvents.OnLinkClick(link))
+                    state.linkState.eventSink(LinkEvent.OnLinkClick(link))
                 },
                 onLinkLongClick = onLinkLongClick,
                 onContentClick = onEventClick,
                 onLongClick = ::onMessageLongClick,
+                displayThreadSummaries = displayThreadSummaries,
                 inReplyToClick = {},
                 onReactionClick = { _, _ -> },
                 onReactionLongClick = { _, _ -> },
@@ -244,7 +243,7 @@ private fun PinnedMessagesListLoaded(
                         onContentClick = { onEventClick(event) },
                         onLongClick = { onMessageLongClick(event) },
                         onLinkClick = { link ->
-                            state.linkState.eventSink(LinkEvents.OnLinkClick(link))
+                            state.linkState.eventSink(LinkEvent.OnLinkClick(link))
                         },
                         onLinkLongClick = onLinkLongClick,
                         modifier = contentModifier,

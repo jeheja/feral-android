@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,12 +17,12 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import io.element.android.features.messages.impl.actionlist.ActionListEvents
+import io.element.android.features.messages.impl.actionlist.ActionListEvent
 import io.element.android.features.messages.impl.actionlist.anActionListState
 import io.element.android.features.messages.impl.timeline.aTimelineItemList
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemFileContent
-import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.tests.testutils.EnsureNeverCalled
 import io.element.android.tests.testutils.EnsureNeverCalledWithParam
 import io.element.android.tests.testutils.EventsRecorder
@@ -42,7 +43,7 @@ class PinnedMessagesListViewTest {
 
     @Test
     fun `clicking on back calls the expected callback`() {
-        val eventsRecorder = EventsRecorder<PinnedMessagesListEvents>(expectEvents = false)
+        val eventsRecorder = EventsRecorder<PinnedMessagesListEvent>(expectEvents = false)
         val state = aLoadedPinnedMessagesListState(
             eventSink = eventsRecorder
         )
@@ -57,7 +58,7 @@ class PinnedMessagesListViewTest {
 
     @Test
     fun `click on an event calls the expected callback`() {
-        val eventsRecorder = EventsRecorder<PinnedMessagesListEvents>(expectEvents = false)
+        val eventsRecorder = EventsRecorder<PinnedMessagesListEvent>(expectEvents = false)
         val content = aTimelineItemFileContent()
         val state = aLoadedPinnedMessagesListState(
             timelineItems = aTimelineItemList(content),
@@ -76,7 +77,7 @@ class PinnedMessagesListViewTest {
 
     @Test
     fun `long click on an event emits the expected event`() {
-        val eventsRecorder = EventsRecorder<ActionListEvents>(expectEvents = true)
+        val eventsRecorder = EventsRecorder<ActionListEvent>(expectEvents = true)
         val content = aTimelineItemFileContent()
         val state = aLoadedPinnedMessagesListState(
             timelineItems = aTimelineItemList(content),
@@ -91,7 +92,7 @@ class PinnedMessagesListViewTest {
                 longClick()
             }
         val event = state.timelineItems.first() as TimelineItem.Event
-        eventsRecorder.assertSingle(ActionListEvents.ComputeForMessage(event, state.userEventPermissions))
+        eventsRecorder.assertSingle(ActionListEvent.ComputeForMessage(event, state.userEventPermissions))
     }
 }
 
@@ -99,11 +100,11 @@ private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setPinne
     state: PinnedMessagesListState,
     onBackClick: () -> Unit = EnsureNeverCalled(),
     onEventClick: (event: TimelineItem.Event) -> Unit = EnsureNeverCalledWithParam(),
-    onUserDataClick: (UserId) -> Unit = EnsureNeverCalledWithParam(),
+    onUserDataClick: (MatrixUser) -> Unit = EnsureNeverCalledWithParam(),
     onLinkClick: (Link) -> Unit = EnsureNeverCalledWithParam(),
     onLinkLongClick: (Link) -> Unit = EnsureNeverCalledWithParam(),
 ) {
-    setSafeContent {
+    setSafeContent(clearAndroidUiDispatcher = true) {
         PinnedMessagesListView(
             state = state,
             onBackClick = onBackClick,

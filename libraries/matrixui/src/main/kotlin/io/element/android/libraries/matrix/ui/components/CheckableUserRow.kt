@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -10,8 +11,9 @@ package io.element.android.libraries.matrix.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
@@ -50,6 +52,7 @@ fun CheckableUserRow(
                     avatarData = data.avatarData,
                     name = data.name,
                     subtext = data.subtext,
+                    enabled = enabled,
                 )
             }
             is CheckableUserRowData.Unresolved -> {
@@ -57,16 +60,16 @@ fun CheckableUserRow(
                     modifier = rowModifier,
                     avatarData = data.avatarData,
                     id = data.id,
+                    enabled = enabled,
                 )
             }
         }
-
         Checkbox(
-            modifier = Modifier.padding(end = 4.dp),
+            onCheckedChange = onCheckedChange,
             checked = checked,
-            onCheckedChange = null,
             enabled = enabled,
         )
+        Spacer(modifier = Modifier.width(4.dp))
     }
 }
 

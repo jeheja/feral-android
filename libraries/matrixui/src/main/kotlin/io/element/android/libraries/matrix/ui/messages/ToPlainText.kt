@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -54,13 +55,26 @@ private class PlainTextNodeVisitor : NodeVisitor {
     private val builder = StringBuilder()
 
     override fun head(node: Node, depth: Int) {
-        if (node is TextNode && node.text().isNotBlank()) {
-            builder.append(node.text())
+        if (node is TextNode) {
+            // If the text node is blank, only add a single whitespace char if there wasn't already one
+            if (node.text().isBlank()) {
+                if (builder.lastOrNull()?.isWhitespace() == false) {
+                    builder.append(" ")
+                }
+            } else {
+                builder.append(node.text())
+            }
         } else if (node is Element && node.tagName() == "li") {
-            val index = node.elementSiblingIndex()
+            val index = node.elementSiblingIndex() + 1
             val isOrdered = node.parent()?.nodeName()?.lowercase() == "ol"
             if (isOrdered) {
-                builder.append("${index + 1}. ")
+                val startIndex = node.parent()?.attr("start")?.toIntOrNull()
+                val actualIndex = if (startIndex != null) {
+                    startIndex + index - 1
+                } else {
+                    index
+                }
+                builder.append("$actualIndex. ")
             } else {
                 builder.append("• ")
             }

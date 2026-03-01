@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -10,16 +11,15 @@ package io.element.android.features.login.impl.screens.loginpassword
 import com.google.common.truth.Truth.assertThat
 import io.element.android.appconfig.AuthenticationConfig
 import io.element.android.features.enterprise.test.FakeEnterpriseService
-import io.element.android.features.login.impl.DefaultLoginUserStory
 import io.element.android.features.login.impl.accountprovider.AccountProviderDataSource
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.matrix.api.core.SessionId
-import io.element.android.libraries.matrix.test.A_HOMESERVER
+import io.element.android.libraries.matrix.test.AN_EXCEPTION
 import io.element.android.libraries.matrix.test.A_PASSWORD
 import io.element.android.libraries.matrix.test.A_SESSION_ID
-import io.element.android.libraries.matrix.test.A_THROWABLE
 import io.element.android.libraries.matrix.test.A_USER_NAME
 import io.element.android.libraries.matrix.test.auth.FakeMatrixAuthenticationService
+import io.element.android.libraries.matrix.test.auth.aMatrixHomeServerDetails
 import io.element.android.tests.testutils.WarmUpRule
 import io.element.android.tests.testutils.test
 import kotlinx.coroutines.test.runTest
@@ -43,8 +43,11 @@ class LoginPasswordPresenterTest {
 
     @Test
     fun `present - enter login and password`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
-        authenticationService.givenHomeserver(A_HOMESERVER)
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails())
+            },
+        )
         createLoginPasswordPresenter(
             authenticationService = authenticationService,
         ).test {
@@ -62,14 +65,14 @@ class LoginPasswordPresenterTest {
 
     @Test
     fun `present - submit`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
-        authenticationService.givenHomeserver(A_HOMESERVER)
-        val loginUserStory = DefaultLoginUserStory().apply { setLoginFlowIsDone(false) }
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails())
+            },
+        )
         createLoginPasswordPresenter(
             authenticationService = authenticationService,
-            defaultLoginUserStory = loginUserStory,
         ).test {
-            assertThat(loginUserStory.loginFlowIsDone.value).isFalse()
             val initialState = awaitItem()
             initialState.eventSink.invoke(LoginPasswordEvents.SetLogin(A_USER_NAME))
             initialState.eventSink.invoke(LoginPasswordEvents.SetPassword(A_PASSWORD))
@@ -80,14 +83,16 @@ class LoginPasswordPresenterTest {
             assertThat(submitState.loginAction).isInstanceOf(AsyncData.Loading::class.java)
             val loggedInState = awaitItem()
             assertThat(loggedInState.loginAction).isEqualTo(AsyncData.Success(A_SESSION_ID))
-            assertThat(loginUserStory.loginFlowIsDone.value).isTrue()
         }
     }
 
     @Test
     fun `present - submit with error`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
-        authenticationService.givenHomeserver(A_HOMESERVER)
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails())
+            },
+        )
         createLoginPasswordPresenter(
             authenticationService = authenticationService,
         ).test {
@@ -96,19 +101,22 @@ class LoginPasswordPresenterTest {
             initialState.eventSink.invoke(LoginPasswordEvents.SetPassword(A_PASSWORD))
             skipItems(1)
             val loginAndPasswordState = awaitItem()
-            authenticationService.givenLoginError(A_THROWABLE)
+            authenticationService.givenLoginError(AN_EXCEPTION)
             loginAndPasswordState.eventSink.invoke(LoginPasswordEvents.Submit)
             val submitState = awaitItem()
             assertThat(submitState.loginAction).isInstanceOf(AsyncData.Loading::class.java)
             val loggedInState = awaitItem()
-            assertThat(loggedInState.loginAction).isEqualTo(AsyncData.Failure<SessionId>(A_THROWABLE))
+            assertThat(loggedInState.loginAction).isEqualTo(AsyncData.Failure<SessionId>(AN_EXCEPTION))
         }
     }
 
     @Test
     fun `present - clear error`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
-        authenticationService.givenHomeserver(A_HOMESERVER)
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails())
+            },
+        )
         createLoginPasswordPresenter(
             authenticationService = authenticationService,
         ).test {
@@ -117,13 +125,13 @@ class LoginPasswordPresenterTest {
             initialState.eventSink.invoke(LoginPasswordEvents.SetPassword(A_PASSWORD))
             skipItems(1)
             val loginAndPasswordState = awaitItem()
-            authenticationService.givenLoginError(A_THROWABLE)
+            authenticationService.givenLoginError(AN_EXCEPTION)
             loginAndPasswordState.eventSink.invoke(LoginPasswordEvents.Submit)
             val submitState = awaitItem()
             assertThat(submitState.loginAction).isInstanceOf(AsyncData.Loading::class.java)
             val loggedInState = awaitItem()
             // Check an error was returned
-            assertThat(loggedInState.loginAction).isEqualTo(AsyncData.Failure<SessionId>(A_THROWABLE))
+            assertThat(loggedInState.loginAction).isEqualTo(AsyncData.Failure<SessionId>(AN_EXCEPTION))
             // Assert the error is then cleared
             loggedInState.eventSink(LoginPasswordEvents.ClearError)
             val clearedState = awaitItem()
@@ -134,10 +142,8 @@ class LoginPasswordPresenterTest {
     private fun createLoginPasswordPresenter(
         authenticationService: FakeMatrixAuthenticationService = FakeMatrixAuthenticationService(),
         accountProviderDataSource: AccountProviderDataSource = AccountProviderDataSource(FakeEnterpriseService()),
-        defaultLoginUserStory: DefaultLoginUserStory = DefaultLoginUserStory()
     ): LoginPasswordPresenter = LoginPasswordPresenter(
         authenticationService = authenticationService,
         accountProviderDataSource = accountProviderDataSource,
-        defaultLoginUserStory = defaultLoginUserStory,
     )
 }

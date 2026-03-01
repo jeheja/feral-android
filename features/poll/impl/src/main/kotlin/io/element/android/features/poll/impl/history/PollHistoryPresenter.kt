@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,21 +18,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import dev.zacsweers.metro.Inject
 import io.element.android.features.poll.api.actions.EndPollAction
 import io.element.android.features.poll.api.actions.SendPollResponseAction
 import io.element.android.features.poll.impl.history.model.PollHistoryFilter
 import io.element.android.features.poll.impl.history.model.PollHistoryItems
 import io.element.android.features.poll.impl.history.model.PollHistoryItemsFactory
 import io.element.android.libraries.architecture.Presenter
+import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.timeline.Timeline
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-class PollHistoryPresenter @Inject constructor(
-    private val appCoroutineScope: CoroutineScope,
+@Inject
+class PollHistoryPresenter(
+    @SessionCoroutineScope
+    private val sessionCoroutineScope: CoroutineScope,
     private val sendPollResponseAction: SendPollResponseAction,
     private val endPollAction: EndPollAction,
     private val pollHistoryItemFactory: PollHistoryItemsFactory,
@@ -59,16 +63,20 @@ class PollHistoryPresenter @Inject constructor(
             }
         }
         val coroutineScope = rememberCoroutineScope()
-        fun handleEvents(event: PollHistoryEvents) {
+        fun handleEvent(event: PollHistoryEvents) {
             when (event) {
                 is PollHistoryEvents.LoadMore -> {
                     coroutineScope.loadMore(timeline)
                 }
-                is PollHistoryEvents.SelectPollAnswer -> appCoroutineScope.launch {
-                    sendPollResponseAction.execute(pollStartId = event.pollStartId, answerId = event.answerId)
+                is PollHistoryEvents.SelectPollAnswer -> sessionCoroutineScope.launch {
+                    sendPollResponseAction.execute(
+                        timeline = timeline,
+                        pollStartId = event.pollStartId,
+                        answerId = event.answerId
+                    )
                 }
-                is PollHistoryEvents.EndPoll -> appCoroutineScope.launch {
-                    endPollAction.execute(pollStartId = event.pollStartId)
+                is PollHistoryEvents.EndPoll -> sessionCoroutineScope.launch {
+                    endPollAction.execute(timeline = timeline, pollStartId = event.pollStartId)
                 }
                 is PollHistoryEvents.SelectFilter -> {
                     activeFilter = event.filter
@@ -81,7 +89,7 @@ class PollHistoryPresenter @Inject constructor(
             hasMoreToLoad = paginationState.hasMoreToLoad,
             pollHistoryItems = pollHistoryItems,
             activeFilter = activeFilter,
-            eventSink = ::handleEvents,
+            eventSink = ::handleEvent,
         )
     }
 

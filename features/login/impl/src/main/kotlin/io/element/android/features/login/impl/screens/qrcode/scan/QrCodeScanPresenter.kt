@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,8 +16,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import io.element.android.features.enterprise.api.EnterpriseService
-import io.element.android.features.login.impl.changeserver.UnauthorizedAccountProviderException
+import dev.zacsweers.metro.Inject
+import io.element.android.features.login.impl.accesscontrol.DefaultAccountProviderAccessControl
 import io.element.android.features.login.impl.qrcode.QrCodeLoginManager
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.Presenter
@@ -32,13 +33,13 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
-import javax.inject.Inject
 
-class QrCodeScanPresenter @Inject constructor(
+@Inject
+class QrCodeScanPresenter(
     private val qrCodeLoginDataFactory: MatrixQrCodeLoginDataFactory,
     private val qrCodeLoginManager: QrCodeLoginManager,
     private val coroutineDispatchers: CoroutineDispatchers,
-    private val enterpriseService: EnterpriseService,
+    private val defaultAccountProviderAccessControl: DefaultAccountProviderAccessControl,
 ) : Presenter<QrCodeScanState> {
     private var isScanning by mutableStateOf(true)
 
@@ -53,7 +54,7 @@ class QrCodeScanPresenter @Inject constructor(
             authenticationAction.value = AsyncAction.Failure(it)
         }
 
-        fun handleEvents(event: QrCodeScanEvents) {
+        fun handleEvent(event: QrCodeScanEvents) {
             when (event) {
                 QrCodeScanEvents.TryAgain -> {
                     isScanning = true
@@ -69,7 +70,7 @@ class QrCodeScanPresenter @Inject constructor(
         return QrCodeScanState(
             isScanning = isScanning,
             authenticationAction = authenticationAction.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 
@@ -97,10 +98,10 @@ class QrCodeScanPresenter @Inject constructor(
                     Timber.e(it, "Error parsing QR code data")
                 }.getOrThrow()
                 val serverName = data.serverName()
-                if (serverName != null && enterpriseService.isAllowedToConnectToHomeserver(serverName).not()) {
-                    throw UnauthorizedAccountProviderException(
-                        unauthorisedAccountProviderTitle = serverName,
-                        authorisedAccountProviderTitles = enterpriseService.defaultHomeserverList(),
+                if (serverName != null) {
+                    defaultAccountProviderAccessControl.assertIsAllowedToConnectToAccountProvider(
+                        title = serverName,
+                        accountProviderUrl = serverName,
                     )
                 }
                 data

@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,9 +18,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
@@ -37,7 +38,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
 
-class RoomNotificationSettingsPresenter @AssistedInject constructor(
+@AssistedInject
+class RoomNotificationSettingsPresenter(
     private val room: JoinedRoom,
     private val notificationSettingsService: NotificationSettingsService,
     @Assisted private val showUserDefinedSettingStyle: Boolean,
@@ -98,12 +100,12 @@ class RoomNotificationSettingsPresenter @AssistedInject constructor(
                 !notificationSettingsService.canHomeServerPushEncryptedEventsToDevice().getOrDefault(true)
         }
 
-        fun handleEvents(event: RoomNotificationSettingsEvents) {
+        fun handleEvent(event: RoomNotificationSettingsEvent) {
             when (event) {
-                is RoomNotificationSettingsEvents.ChangeRoomNotificationMode -> {
+                is RoomNotificationSettingsEvent.ChangeRoomNotificationMode -> {
                     localCoroutineScope.setRoomNotificationMode(event.mode, pendingRoomNotificationMode, pendingSetDefault, setNotificationSettingAction)
                 }
-                is RoomNotificationSettingsEvents.SetNotificationMode -> {
+                is RoomNotificationSettingsEvent.SetNotificationMode -> {
                     if (event.isDefault) {
                         localCoroutineScope.restoreDefaultRoomNotificationMode(restoreDefaultAction, pendingSetDefault)
                     } else {
@@ -112,13 +114,13 @@ class RoomNotificationSettingsPresenter @AssistedInject constructor(
                         }
                     }
                 }
-                is RoomNotificationSettingsEvents.DeleteCustomNotification -> {
+                is RoomNotificationSettingsEvent.DeleteCustomNotification -> {
                     localCoroutineScope.restoreDefaultRoomNotificationMode(restoreDefaultAction, pendingSetDefault)
                 }
-                RoomNotificationSettingsEvents.ClearSetNotificationError -> {
+                RoomNotificationSettingsEvent.ClearSetNotificationError -> {
                     setNotificationSettingAction.value = AsyncAction.Uninitialized
                 }
-                RoomNotificationSettingsEvents.ClearRestoreDefaultError -> {
+                RoomNotificationSettingsEvent.ClearRestoreDefaultError -> {
                     restoreDefaultAction.value = AsyncAction.Uninitialized
                 }
             }
@@ -134,7 +136,7 @@ class RoomNotificationSettingsPresenter @AssistedInject constructor(
             setNotificationSettingAction = setNotificationSettingAction.value,
             restoreDefaultAction = restoreDefaultAction.value,
             displayMentionsOnlyDisclaimer = shouldDisplayMentionsOnlyDisclaimer,
-            eventSink = { handleEvents(it) },
+            eventSink = ::handleEvent,
         )
     }
 

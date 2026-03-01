@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -22,10 +23,11 @@ import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.room.RoomInfo
 import io.element.android.libraries.matrix.api.room.RoomMembersState
 import io.element.android.libraries.matrix.api.room.RoomNotificationSettingsState
+import io.element.android.libraries.matrix.api.room.SendQueueUpdate
 import io.element.android.libraries.matrix.api.room.history.RoomHistoryVisibility
 import io.element.android.libraries.matrix.api.room.join.JoinRule
 import io.element.android.libraries.matrix.api.room.knock.KnockRequest
-import io.element.android.libraries.matrix.api.room.powerlevels.RoomPowerLevels
+import io.element.android.libraries.matrix.api.room.powerlevels.RoomPowerLevelsValues
 import io.element.android.libraries.matrix.api.room.powerlevels.UserRoleChange
 import io.element.android.libraries.matrix.api.roomdirectory.RoomVisibility
 import io.element.android.libraries.matrix.api.timeline.Timeline
@@ -38,6 +40,7 @@ import io.element.android.tests.testutils.simulateLongTask
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestScope
@@ -55,7 +58,6 @@ class FakeJoinedRoom(
     private val roomNotificationSettingsService: FakeNotificationSettingsService = FakeNotificationSettingsService(),
     private var createTimelineResult: (CreateTimelineParams) -> Result<Timeline> = { lambdaError() },
     private val editMessageLambda: (EventId, String, String?, List<IntentionalMention>) -> Result<Unit> = { _, _, _, _ -> lambdaError() },
-    private val sendCallNotificationIfNeededResult: () -> Result<Unit> = { lambdaError() },
     private val progressCallbackValues: List<Pair<Long, Long>> = emptyList(),
     private val generateWidgetWebViewUrlResult: (MatrixWidgetSettings, String, String?, String?) -> Result<String> = { _, _, _, _ -> lambdaError() },
     private val getWidgetDriverResult: (MatrixWidgetSettings) -> Result<MatrixWidgetDriver> = { lambdaError() },
@@ -66,8 +68,8 @@ class FakeJoinedRoom(
     private val updateAvatarResult: (String, ByteArray) -> Result<Unit> = { _, _ -> lambdaError() },
     private val removeAvatarResult: () -> Result<Unit> = { lambdaError() },
     private val updateUserRoleResult: (List<UserRoleChange>) -> Result<Unit> = { lambdaError() },
-    private val updatePowerLevelsResult: (RoomPowerLevels) -> Result<Unit> = { lambdaError() },
-    private val resetPowerLevelsResult: () -> Result<RoomPowerLevels> = { lambdaError() },
+    private val updatePowerLevelsResult: (RoomPowerLevelsValues) -> Result<Unit> = { lambdaError() },
+    private val resetPowerLevelsResult: () -> Result<Unit> = { lambdaError() },
     private val reportContentResult: (EventId, String, UserId?) -> Result<Unit> = { _, _, _ -> lambdaError() },
     private val kickUserResult: (UserId, String?) -> Result<Unit> = { _, _ -> lambdaError() },
     private val banUserResult: (UserId, String?) -> Result<Unit> = { _, _ -> lambdaError() },
@@ -83,6 +85,8 @@ class FakeJoinedRoom(
     private val updateJoinRuleResult: (JoinRule) -> Result<Unit> = { lambdaError() },
     private val setSendQueueEnabledResult: (Boolean) -> Unit = { _: Boolean -> },
 ) : JoinedRoom, BaseRoom by baseRoom {
+    private val sendQueueUpdates = MutableSharedFlow<SendQueueUpdate>(extraBufferCapacity = 10)
+
     fun givenRoomMembersState(state: RoomMembersState) {
         baseRoom.givenRoomMembersState(state)
     }
@@ -162,11 +166,11 @@ class FakeJoinedRoom(
         updateUserRoleResult(changes)
     }
 
-    override suspend fun updatePowerLevels(roomPowerLevels: RoomPowerLevels): Result<Unit> = simulateLongTask {
-        updatePowerLevelsResult(roomPowerLevels)
+    override suspend fun updatePowerLevels(roomPowerLevelsValues: RoomPowerLevelsValues): Result<Unit> = simulateLongTask {
+        updatePowerLevelsResult(roomPowerLevelsValues)
     }
 
-    override suspend fun resetPowerLevels(): Result<RoomPowerLevels> = simulateLongTask {
+    override suspend fun resetPowerLevels(): Result<Unit> = simulateLongTask {
         resetPowerLevelsResult()
     }
 
@@ -207,10 +211,6 @@ class FakeJoinedRoom(
         return getWidgetDriverResult(widgetSettings)
     }
 
-    override suspend fun sendCallNotificationIfNeeded(): Result<Unit> = simulateLongTask {
-        sendCallNotificationIfNeededResult()
-    }
-
     override suspend fun setSendQueueEnabled(enabled: Boolean) = simulateLongTask {
         setSendQueueEnabledResult(enabled)
     }
@@ -223,6 +223,10 @@ class FakeJoinedRoom(
         withdrawVerificationAndResendResult(userIds, sendHandle)
     }
 
+    override fun subscribeToSendQueueUpdates(): Flow<SendQueueUpdate> {
+        return sendQueueUpdates
+    }
+
     private suspend fun simulateSendMediaProgress(progressCallback: ProgressCallback?) {
         progressCallbackValues.forEach { (current, total) ->
             progressCallback?.onProgress(current, total)
@@ -232,5 +236,9 @@ class FakeJoinedRoom(
 
     fun emitSyncUpdate() {
         (syncUpdateFlow as MutableStateFlow).value = syncUpdateFlow.value + 1
+    }
+
+    suspend fun givenSendQueueUpdate(sendQueueUpdate: SendQueueUpdate) {
+        sendQueueUpdates.emit(sendQueueUpdate)
     }
 }

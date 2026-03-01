@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,7 +16,7 @@ import org.junit.Test
 class RoomBeginningPostProcessorTest {
     @Test
     fun `processor returns empty list when empty list is provided`() {
-        val processor = RoomBeginningPostProcessor(Timeline.Mode.LIVE)
+        val processor = RoomBeginningPostProcessor(Timeline.Mode.Live)
         val processedItems = processor.process(
             items = emptyList(),
             isDm = true,
@@ -27,7 +28,7 @@ class RoomBeginningPostProcessorTest {
 
     @Test
     fun `processor returns the provided list when it only contains a message`() {
-        val processor = RoomBeginningPostProcessor(Timeline.Mode.LIVE)
+        val processor = RoomBeginningPostProcessor(Timeline.Mode.Live)
         val processedItems = processor.process(
             items = listOf(messageEvent),
             isDm = true,
@@ -39,7 +40,7 @@ class RoomBeginningPostProcessorTest {
 
     @Test
     fun `processor returns the provided list when it only contains a message and the roomCreator is not provided`() {
-        val processor = RoomBeginningPostProcessor(Timeline.Mode.LIVE)
+        val processor = RoomBeginningPostProcessor(Timeline.Mode.Live)
         val processedItems = processor.process(
             items = listOf(messageEvent),
             isDm = true,
@@ -50,20 +51,20 @@ class RoomBeginningPostProcessorTest {
     }
 
     @Test
-    fun `processor removes timeline start, room creation event and self-join event from DM timeline`() {
+    fun `processor removes room creation event and self-join event from DM timeline`() {
         val timelineItems = listOf(
             timelineStartEvent,
             roomCreateEvent,
             roomCreatorJoinEvent,
         )
-        val processor = RoomBeginningPostProcessor(Timeline.Mode.LIVE)
+        val processor = RoomBeginningPostProcessor(Timeline.Mode.Live)
         val processedItems = processor.process(
             items = timelineItems,
             isDm = true,
             roomCreator = A_USER_ID,
             hasMoreToLoadBackwards = false,
         )
-        assertThat(processedItems).isEmpty()
+        assertThat(processedItems).containsExactly(timelineStartEvent)
     }
 
     @Test
@@ -72,7 +73,7 @@ class RoomBeginningPostProcessorTest {
             roomCreateEvent,
             roomCreatorJoinEvent,
         )
-        val processor = RoomBeginningPostProcessor(Timeline.Mode.PINNED_EVENTS)
+        val processor = RoomBeginningPostProcessor(Timeline.Mode.PinnedEvents)
         val processedItems = processor.process(
             items = timelineItems,
             isDm = true,
@@ -94,7 +95,7 @@ class RoomBeginningPostProcessorTest {
             otherMemberJoinEvent,
             messageEvent,
         )
-        val processor = RoomBeginningPostProcessor(Timeline.Mode.LIVE)
+        val processor = RoomBeginningPostProcessor(Timeline.Mode.Live)
         val processedItems = processor.process(timelineItems, isDm = true, roomCreator = A_USER_ID, hasMoreToLoadBackwards = false)
         assertThat(processedItems).isEqualTo(expected)
     }
@@ -105,7 +106,7 @@ class RoomBeginningPostProcessorTest {
             roomCreateEvent,
             roomCreatorJoinEvent,
         )
-        val processor = RoomBeginningPostProcessor(Timeline.Mode.LIVE)
+        val processor = RoomBeginningPostProcessor(Timeline.Mode.Live)
         val processedItems = processor.process(timelineItems, isDm = true, roomCreator = A_USER_ID, hasMoreToLoadBackwards = true)
         assertThat(processedItems).isEmpty()
     }
@@ -115,7 +116,7 @@ class RoomBeginningPostProcessorTest {
         val timelineItems = listOf(
             roomCreatorJoinEvent,
         )
-        val processor = RoomBeginningPostProcessor(Timeline.Mode.LIVE)
+        val processor = RoomBeginningPostProcessor(Timeline.Mode.Live)
         val processedItems = processor.process(timelineItems, isDm = true, roomCreator = A_USER_ID, hasMoreToLoadBackwards = true)
         assertThat(processedItems).isEmpty()
     }
@@ -126,7 +127,7 @@ class RoomBeginningPostProcessorTest {
             roomCreateEvent,
             otherMemberJoinEvent,
         )
-        val processor = RoomBeginningPostProcessor(Timeline.Mode.LIVE)
+        val processor = RoomBeginningPostProcessor(Timeline.Mode.Live)
         val processedItems = processor.process(timelineItems, isDm = true, roomCreator = A_USER_ID, hasMoreToLoadBackwards = true)
         assertThat(processedItems).isEqualTo(listOf(otherMemberJoinEvent))
     }

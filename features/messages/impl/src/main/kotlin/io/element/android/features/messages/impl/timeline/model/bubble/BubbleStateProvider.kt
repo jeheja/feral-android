@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -21,15 +22,11 @@ open class BubbleStateProvider : PreviewParameterProvider<BubbleState> {
             TimelineItemGroupPosition.None,
         ).map { groupPosition ->
             sequenceOf(false, true).map { isMine ->
-                sequenceOf(false, true).map { isHighlighted ->
-                    aBubbleState(
-                        groupPosition = groupPosition,
-                        isMine = isMine,
-                        isHighlighted = isHighlighted,
-                    )
-                }
+                aBubbleState(
+                    groupPosition = groupPosition,
+                    isMine = isMine,
+                )
             }
-                .flatten()
         }
             .flatten()
 }
@@ -37,11 +34,9 @@ open class BubbleStateProvider : PreviewParameterProvider<BubbleState> {
 internal fun aBubbleState(
     groupPosition: TimelineItemGroupPosition = TimelineItemGroupPosition.First,
     isMine: Boolean = false,
-    isHighlighted: Boolean = false,
     timelineRoomInfo: TimelineRoomInfo = aTimelineRoomInfo(),
 ) = BubbleState(
     groupPosition = groupPosition,
     isMine = isMine,
-    isHighlighted = isHighlighted,
     timelineRoomInfo = timelineRoomInfo,
 )

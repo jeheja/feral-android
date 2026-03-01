@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,11 +14,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.SingleIn
 import io.element.android.features.messages.api.timeline.HtmlConverterProvider
 import io.element.android.libraries.core.bool.orFalse
 import io.element.android.libraries.di.RoomScope
-import io.element.android.libraries.di.SingleIn
 import io.element.android.libraries.textcomposer.ElementRichTextEditorStyle
 import io.element.android.libraries.textcomposer.mentions.MentionSpanProvider
 import io.element.android.wysiwyg.compose.StyledHtmlConverter
@@ -25,11 +26,10 @@ import io.element.android.wysiwyg.display.MentionDisplayHandler
 import io.element.android.wysiwyg.display.TextDisplay
 import io.element.android.wysiwyg.utils.HtmlConverter
 import uniffi.wysiwyg_composer.newMentionDetector
-import javax.inject.Inject
 
 @ContributesBinding(RoomScope::class)
 @SingleIn(RoomScope::class)
-class DefaultHtmlConverterProvider @Inject constructor(
+class DefaultHtmlConverterProvider(
     private val mentionSpanProvider: MentionSpanProvider,
 ) : HtmlConverterProvider {
     private val htmlConverter: MutableState<HtmlConverter?> = mutableStateOf(null)

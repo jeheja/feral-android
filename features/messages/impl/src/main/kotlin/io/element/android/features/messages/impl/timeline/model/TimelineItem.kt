@@ -1,13 +1,15 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.messages.impl.timeline.model
 
 import androidx.compose.runtime.Immutable
+import io.element.android.features.messages.impl.timeline.components.MessageShieldData
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemEventContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemImageContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStickerContent
@@ -17,15 +19,17 @@ import io.element.android.features.messages.impl.timeline.model.virtual.Timeline
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.SendHandle
+import io.element.android.libraries.matrix.api.core.ThreadId
 import io.element.android.libraries.matrix.api.core.TransactionId
 import io.element.android.libraries.matrix.api.core.UniqueId
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.timeline.item.ThreadSummary
 import io.element.android.libraries.matrix.api.timeline.item.TimelineItemDebugInfo
 import io.element.android.libraries.matrix.api.timeline.item.event.EventOrTransactionId
 import io.element.android.libraries.matrix.api.timeline.item.event.LocalEventSendState
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageShield
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageShieldProvider
-import io.element.android.libraries.matrix.api.timeline.item.event.ProfileTimelineDetails
+import io.element.android.libraries.matrix.api.timeline.item.event.ProfileDetails
 import io.element.android.libraries.matrix.api.timeline.item.event.SendHandleProvider
 import io.element.android.libraries.matrix.api.timeline.item.event.TimelineItemDebugInfoProvider
 import io.element.android.libraries.matrix.api.timeline.item.event.TimelineItemEventOrigin
@@ -55,20 +59,18 @@ sealed interface TimelineItem {
         is GroupedEvents -> "groupedEvent"
     }
 
-    @Immutable
     data class Virtual(
         val id: UniqueId,
         val model: TimelineItemVirtualModel
     ) : TimelineItem
 
-    @Immutable
     data class Event(
         val id: UniqueId,
         // Note: eventId can be null when the event is a local echo
         val eventId: EventId? = null,
         val transactionId: TransactionId? = null,
         val senderId: UserId,
-        val senderProfile: ProfileTimelineDetails,
+        val senderProfile: ProfileDetails,
         val senderAvatar: AvatarData,
         val content: TimelineItemEventContent,
         val sentTimeMillis: Long = 0L,
@@ -81,11 +83,18 @@ sealed interface TimelineItem {
         val readReceiptState: TimelineItemReadReceipts,
         val localSendState: LocalEventSendState?,
         val inReplyTo: InReplyToDetails?,
-        val isThreaded: Boolean,
+        val threadInfo: TimelineItemThreadInfo?,
         val origin: TimelineItemEventOrigin?,
         val timelineItemDebugInfoProvider: TimelineItemDebugInfoProvider,
         val messageShieldProvider: MessageShieldProvider,
         val sendHandleProvider: SendHandleProvider,
+        /**
+         * If the keys to this message were forwarded by another user via history sharing (MSC4268), the ID of that user.
+         * If this is non-null, then [messageShieldProvider] will also return [MessageShield.AuthenticityNotGuaranteed].
+         */
+        val forwarder: UserId?,
+        /** If [forwarder] is set, the profile of the forwarding user, if it was cached at the time the `EventTimelineItem` was created. */
+        val forwarderProfile: ProfileDetails?,
     ) : TimelineItem {
         val showSenderInformation = groupPosition.isNew() && !isMine
 
@@ -114,7 +123,9 @@ sealed interface TimelineItem {
             get() = EventOrTransactionId.from(eventId = eventId, transactionId = transactionId)
 
         // No need to be lazy here?
-        val messageShield: MessageShield? = messageShieldProvider(strict = false)
+        val messageShield: MessageShieldData? = messageShieldProvider(strict = false)?.let {
+            MessageShieldData(it, forwarder, forwarderProfile)
+        }
 
         val debugInfo: TimelineItemDebugInfo
             get() = timelineItemDebugInfoProvider()
@@ -122,10 +133,14 @@ sealed interface TimelineItem {
         val sendhandle: SendHandle? get() = sendHandleProvider()
     }
 
-    @Immutable
     data class GroupedEvents(
         val id: UniqueId,
         val events: ImmutableList<Event>,
         val aggregatedReadReceipts: ImmutableList<ReadReceiptData>,
     ) : TimelineItem
+}
+
+sealed interface TimelineItemThreadInfo {
+    data class ThreadRoot(val summary: ThreadSummary, val latestEventText: String?) : TimelineItemThreadInfo
+    data class ThreadResponse(val threadRootId: ThreadId) : TimelineItemThreadInfo
 }

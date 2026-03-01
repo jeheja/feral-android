@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -30,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -37,18 +39,19 @@ import androidx.compose.ui.unit.dp
 import im.vector.app.features.analytics.plan.Interaction
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
-import io.element.android.features.leaveroom.api.LeaveRoomView
 import io.element.android.features.roomcall.api.hasPermissionToJoin
 import io.element.android.features.userprofile.api.UserProfileVerificationState
 import io.element.android.features.userprofile.shared.blockuser.BlockUserDialogs
 import io.element.android.features.userprofile.shared.blockuser.BlockUserSection
+import io.element.android.libraries.androidutils.system.copyToClipboard
 import io.element.android.libraries.architecture.coverage.ExcludeFromCoverage
 import io.element.android.libraries.designsystem.atomic.atoms.MatrixBadgeAtom
 import io.element.android.libraries.designsystem.atomic.molecules.MatrixBadgeRowMolecule
 import io.element.android.libraries.designsystem.components.ClickableLinkText
+import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
-import io.element.android.libraries.designsystem.components.avatar.CompositeAvatar
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.components.avatar.DmAvatars
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.components.button.MainActionButton
@@ -56,6 +59,7 @@ import io.element.android.libraries.designsystem.components.list.ListItemContent
 import io.element.android.libraries.designsystem.components.preferences.PreferenceCategory
 import io.element.android.libraries.designsystem.components.preferences.PreferenceSwitch
 import io.element.android.libraries.designsystem.modifiers.niceClickable
+import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.ElementPreviewDark
 import io.element.android.libraries.designsystem.preview.ElementPreviewLight
 import io.element.android.libraries.designsystem.preview.PreviewWithLargeHeight
@@ -87,7 +91,6 @@ import io.element.android.services.analytics.compose.LocalAnalyticsService
 import io.element.android.services.analyticsproviders.api.trackers.captureInteraction
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.collections.immutable.toPersistentList
 
 @Composable
 fun RoomDetailsView(
@@ -109,6 +112,7 @@ fun RoomDetailsView(
     onProfileClick: (UserId) -> Unit,
     onReportRoomClick: () -> Unit,
     modifier: Modifier = Modifier,
+    leaveRoomView: @Composable () -> Unit,
 ) {
     val snackbarHostState = rememberSnackbarHostState(snackbarMessage = state.snackbarMessage)
     Scaffold(
@@ -128,7 +132,7 @@ fun RoomDetailsView(
                 .verticalScroll(rememberScrollState())
                 .consumeWindowInsets(padding)
         ) {
-            LeaveRoomView(state = state.leaveRoomState)
+            leaveRoomView()
 
             when (state.roomType) {
                 RoomDetailsType.Room -> {
@@ -138,6 +142,7 @@ fun RoomDetailsView(
                         roomName = state.roomName,
                         roomAlias = state.roomAlias,
                         heroes = state.heroes,
+                        isTombstoned = state.isTombstoned,
                         openAvatarPreview = { avatarUrl ->
                             openAvatarPreview(state.roomName, avatarUrl)
                         },
@@ -181,7 +186,7 @@ fun RoomDetailsView(
             }
 
             PreferenceCategory {
-                if (state.canShowNotificationSettings && state.roomNotificationSettings != null) {
+                if (state.roomNotificationSettings != null) {
                     NotificationItem(
                         isDefaultMode = state.roomNotificationSettings.isDefault,
                         openRoomNotificationSettings = openRoomNotificationSettings
@@ -233,20 +238,16 @@ fun RoomDetailsView(
             }
 
             PreferenceCategory {
-                if (state.canShowPinnedMessages) {
-                    PinnedMessagesItem(
-                        pinnedMessagesCount = state.pinnedMessagesCount,
-                        onPinnedMessagesClick = onPinnedMessagesClick
-                    )
-                }
+                PinnedMessagesItem(
+                    pinnedMessagesCount = state.pinnedMessagesCount,
+                    onPinnedMessagesClick = onPinnedMessagesClick
+                )
                 PollsItem(
                     openPollHistory = openPollHistory
                 )
-                if (state.canShowMediaGallery) {
-                    MediaGalleryItem(
-                        onClick = openMediaGallery
-                    )
-                }
+                MediaGalleryItem(
+                    onClick = openMediaGallery
+                )
             }
 
             if (state.roomType is RoomDetailsType.Dm && state.roomMemberDetailsState != null) {
@@ -258,8 +259,15 @@ fun RoomDetailsView(
             OtherActionsSection(
                 canReportRoom = state.canReportRoom,
                 onReportRoomClick = onReportRoomClick,
-                onLeaveRoomClick = { state.eventSink(RoomDetailsEvent.LeaveRoom) }
+                onLeaveRoomClick = { state.eventSink(RoomDetailsEvent.LeaveRoom(needsConfirmation = true)) }
             )
+
+            if (state.showDebugInfo) {
+                DebugInfoSection(
+                    roomId = state.roomId,
+                    roomVersion = state.roomVersion,
+                )
+            }
         }
     }
 }
@@ -327,8 +335,7 @@ private fun MainActionsSection(
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
-        val roomNotificationSettings = state.roomNotificationSettings
-        if (state.canShowNotificationSettings && roomNotificationSettings != null) {
+        state.roomNotificationSettings?.let { roomNotificationSettings ->
             if (roomNotificationSettings.mode == RoomNotificationMode.MUTE) {
                 MainActionButton(
                     title = stringResource(CommonStrings.common_unmute),
@@ -380,6 +387,7 @@ private fun RoomHeaderSection(
     roomName: String,
     roomAlias: RoomAlias?,
     heroes: ImmutableList<MatrixUser>,
+    isTombstoned: Boolean,
     openAvatarPreview: (url: String) -> Unit,
     onSubtitleClick: (String) -> Unit,
 ) {
@@ -389,13 +397,22 @@ private fun RoomHeaderSection(
             .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        CompositeAvatar(
-            avatarData = AvatarData(roomId.value, roomName, avatarUrl, AvatarSize.RoomHeader),
-            heroes = heroes.map { user ->
-                user.getAvatarData(size = AvatarSize.RoomHeader)
-            }.toPersistentList(),
+        Avatar(
+            avatarData = AvatarData(roomId.value, roomName, avatarUrl, AvatarSize.RoomDetailsHeader),
+            avatarType = AvatarType.Room(
+                heroes = heroes.map { user ->
+                    user.getAvatarData(size = AvatarSize.RoomDetailsHeader)
+                }.toImmutableList(),
+                isTombstoned = isTombstoned,
+            ),
+            contentDescription = stringResource(CommonStrings.a11y_room_avatar),
             modifier = Modifier
-                .clickable(enabled = avatarUrl != null) { openAvatarPreview(avatarUrl!!) }
+                .clickable(
+                    enabled = avatarUrl != null,
+                    onClickLabel = stringResource(CommonStrings.action_view),
+                ) {
+                    openAvatarPreview(avatarUrl!!)
+                }
                 .testTag(TestTags.roomDetailAvatar)
         )
         TitleAndSubtitle(
@@ -501,6 +518,27 @@ private fun RoomBadge.toMatrixBadgeData(): MatrixBadgeAtom.MatrixBadgeData {
                 type = MatrixBadgeAtom.Type.Info,
             )
         }
+        RoomBadge.SHARED_HISTORY_HIDDEN -> {
+            MatrixBadgeAtom.MatrixBadgeData(
+                text = stringResource(R.string.crypto_history_sharing_room_info_hidden_badge_content),
+                icon = CompoundIcons.VisibilityOff(),
+                type = MatrixBadgeAtom.Type.Info
+            )
+        }
+        RoomBadge.SHARED_HISTORY_SHARED -> {
+            MatrixBadgeAtom.MatrixBadgeData(
+                text = stringResource(R.string.crypto_history_sharing_room_info_shared_badge_content),
+                icon = CompoundIcons.History(),
+                type = MatrixBadgeAtom.Type.Info
+            )
+        }
+        RoomBadge.SHARED_HISTORY_WORLD_READABLE -> {
+            MatrixBadgeAtom.MatrixBadgeData(
+                text = stringResource(R.string.crypto_history_sharing_room_info_world_readable_badge_content),
+                icon = CompoundIcons.UserProfileSolid(),
+                type = MatrixBadgeAtom.Type.Info
+            )
+        }
     }
 }
 
@@ -572,9 +610,14 @@ private fun FavoriteItem(
     isFavorite: Boolean,
     onFavoriteChanges: (Boolean) -> Unit,
 ) {
+    val (textResId, icon) = if (isFavorite) {
+        CommonStrings.common_favourited to CompoundIcons.FavouriteSolid()
+    } else {
+        CommonStrings.common_favourite to CompoundIcons.Favourite()
+    }
     PreferenceSwitch(
-        icon = CompoundIcons.Favourite(),
-        title = stringResource(id = CommonStrings.common_favourite),
+        icon = icon,
+        title = stringResource(id = textResId),
         isChecked = isFavorite,
         onCheckedChange = onFavoriteChanges
     )
@@ -698,6 +741,50 @@ private fun OtherActionsSection(
     }
 }
 
+@Composable
+private fun DebugInfoSection(
+    roomId: RoomId,
+    roomVersion: String?,
+) {
+    val context = LocalContext.current
+    PreferenceCategory(showTopDivider = true) {
+        val toastMessage = stringResource(CommonStrings.common_copied_to_clipboard)
+        ListItem(
+            headlineContent = {
+                Text("Internal room ID")
+            },
+            supportingContent = {
+                Text(
+                    text = roomId.value,
+                    style = ElementTheme.typography.fontBodySmRegular,
+                    color = ElementTheme.colors.textSecondary,
+                )
+            },
+            leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Code())),
+            trailingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Copy())),
+            onClick = {
+                context.copyToClipboard(
+                    text = roomId.value,
+                    toastMessage = toastMessage,
+                )
+            },
+        )
+        ListItem(
+            headlineContent = {
+                Text("Room version")
+            },
+            supportingContent = {
+                Text(
+                    text = roomVersion ?: "Unknown",
+                    style = ElementTheme.typography.fontBodySmRegular,
+                    color = ElementTheme.colors.textSecondary,
+                )
+            },
+            leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Info())),
+        )
+    }
+}
+
 @PreviewWithLargeHeight
 @Composable
 internal fun RoomDetailsPreview(@PreviewParameter(RoomDetailsStateProvider::class) state: RoomDetailsState) =
@@ -707,6 +794,14 @@ internal fun RoomDetailsPreview(@PreviewParameter(RoomDetailsStateProvider::clas
 @Composable
 internal fun RoomDetailsDarkPreview(@PreviewParameter(RoomDetailsStateProvider::class) state: RoomDetailsState) =
     ElementPreviewDark { ContentToPreview(state) }
+
+@PreviewWithLargeHeight
+@Composable
+internal fun RoomDetailsA11yPreview() = ElementPreview {
+    ContentToPreview(
+        state = aRoomDetailsState(displayAdminSettings = true)
+    )
+}
 
 @ExcludeFromCoverage
 @Composable
@@ -729,5 +824,6 @@ private fun ContentToPreview(state: RoomDetailsState) {
         onSecurityAndPrivacyClick = {},
         onProfileClick = {},
         onReportRoomClick = {},
+        leaveRoomView = {},
     )
 }

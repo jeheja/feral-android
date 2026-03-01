@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -21,30 +22,31 @@ import com.bumble.appyx.core.navigation.model.permanent.PermanentNavModel
 import com.bumble.appyx.core.node.Node
 import com.bumble.appyx.core.node.ParentNode
 import com.bumble.appyx.core.plugin.Plugin
-import com.bumble.appyx.core.plugin.plugins
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
-import io.element.android.anvilannotations.ContributesNode
-import io.element.android.appnav.di.SessionComponentFactory
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
+import io.element.android.annotations.ContributesNode
+import io.element.android.appnav.di.SessionGraphFactory
 import io.element.android.libraries.architecture.NodeInputs
+import io.element.android.libraries.architecture.callback
 import io.element.android.libraries.architecture.createNode
 import io.element.android.libraries.architecture.inputs
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.DaggerComponentOwner
+import io.element.android.libraries.di.DependencyInjectionGraphOwner
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.ui.media.ImageLoaderHolder
 import kotlinx.parcelize.Parcelize
 
 /**
- * `LoggedInAppScopeFlowNode` is a Node responsible to set up the Dagger
+ * `LoggedInAppScopeFlowNode` is a Node responsible to set up the Session graph.
  * [io.element.android.libraries.di.SessionScope]. It has only one child: [LoggedInFlowNode].
  * This allow to inject objects with SessionScope in the constructor of [LoggedInFlowNode].
  */
 @ContributesNode(AppScope::class)
-class LoggedInAppScopeFlowNode @AssistedInject constructor(
+@AssistedInject
+class LoggedInAppScopeFlowNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
-    sessionComponentFactory: SessionComponentFactory,
+    sessionGraphFactory: SessionGraphFactory,
     private val imageLoaderHolder: ImageLoaderHolder,
 ) : ParentNode<LoggedInAppScopeFlowNode.NavTarget>(
     navModel = PermanentNavModel(
@@ -53,10 +55,13 @@ class LoggedInAppScopeFlowNode @AssistedInject constructor(
     ),
     buildContext = buildContext,
     plugins = plugins
-), DaggerComponentOwner {
+), DependencyInjectionGraphOwner {
     interface Callback : Plugin {
-        fun onOpenBugReport()
+        fun navigateToBugReport()
+        fun navigateToAddAccount()
     }
+
+    private val callback: Callback = callback()
 
     @Parcelize
     object NavTarget : Parcelable
@@ -66,12 +71,12 @@ class LoggedInAppScopeFlowNode @AssistedInject constructor(
     ) : NodeInputs
 
     private val inputs: Inputs = inputs()
-    override val daggerComponent = sessionComponentFactory.create(inputs.matrixClient)
+    override val graph = sessionGraphFactory.create(inputs.matrixClient)
 
     override fun onBuilt() {
         super.onBuilt()
         lifecycle.subscribe(
-            onCreate = {
+            onResume = {
                 SingletonImageLoader.setUnsafe(imageLoaderHolder.get(inputs.matrixClient))
             },
         )
@@ -79,8 +84,12 @@ class LoggedInAppScopeFlowNode @AssistedInject constructor(
 
     override fun resolve(navTarget: NavTarget, buildContext: BuildContext): Node {
         val callback = object : LoggedInFlowNode.Callback {
-            override fun onOpenBugReport() {
-                plugins<Callback>().forEach { it.onOpenBugReport() }
+            override fun navigateToBugReport() {
+                callback.navigateToBugReport()
+            }
+
+            override fun navigateToAddAccount() {
+                callback.navigateToAddAccount()
             }
         }
         return createNode<LoggedInFlowNode>(buildContext, listOf(callback))

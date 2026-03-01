@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,7 +18,7 @@ import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.core.uri.ensureProtocol
 import io.element.android.libraries.matrix.test.AN_ACCOUNT_PROVIDER_2
 import io.element.android.libraries.matrix.test.AN_ACCOUNT_PROVIDER_3
-import io.element.android.libraries.matrix.test.A_THROWABLE
+import io.element.android.libraries.matrix.test.AN_EXCEPTION
 import io.element.android.libraries.matrix.test.auth.FakeMatrixAuthenticationService
 import io.element.android.tests.testutils.WarmUpRule
 import io.element.android.tests.testutils.test
@@ -37,14 +38,12 @@ class ChooseAccountProviderPresenterTest {
             subtitle = null,
             isPublic = false,
             isMatrixOrg = false,
-            isValid = true,
         )
         val accountProvider2 = AccountProvider(
             url = ACCOUNT_PROVIDER_FROM_CONFIG_2.ensureProtocol(),
             subtitle = null,
             isPublic = false,
             isMatrixOrg = false,
-            isValid = true,
         )
     }
 
@@ -97,7 +96,11 @@ class ChooseAccountProviderPresenterTest {
 
     @Test
     fun `present - select account provider and continue - error then clear error`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.failure(AN_EXCEPTION)
+            },
+        )
         val presenter = createPresenter(
             enterpriseService = FakeEnterpriseService(
                 defaultHomeserverListResult = { listOf(ACCOUNT_PROVIDER_FROM_CONFIG_1, ACCOUNT_PROVIDER_FROM_CONFIG_2) },
@@ -113,7 +116,6 @@ class ChooseAccountProviderPresenterTest {
             }
             awaitItem().also {
                 assertThat(it.selectedAccountProvider).isEqualTo(accountProvider1)
-                authenticationService.givenChangeServerError(A_THROWABLE)
                 it.eventSink(ChooseAccountProviderEvents.Continue)
                 skipItems(1) // Loading
 

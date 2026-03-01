@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -10,15 +11,19 @@
 package io.element.android.libraries.push.impl.push
 
 import app.cash.turbine.test
+import com.google.common.truth.Truth.assertThat
 import io.element.android.features.call.api.CallType
 import io.element.android.features.call.test.FakeElementCallEntryPoint
+import io.element.android.libraries.androidutils.json.DefaultJsonProvider
 import io.element.android.libraries.core.meta.BuildMeta
-import io.element.android.libraries.matrix.api.auth.MatrixAuthenticationService
+import io.element.android.libraries.featureflag.api.FeatureFlags
+import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.core.UserId
-import io.element.android.libraries.matrix.api.notification.CallNotifyType
+import io.element.android.libraries.matrix.api.exception.NotificationResolverException
+import io.element.android.libraries.matrix.api.notification.RtcNotificationType
 import io.element.android.libraries.matrix.api.timeline.item.event.EventType
 import io.element.android.libraries.matrix.test.AN_EVENT_ID
 import io.element.android.libraries.matrix.test.AN_EVENT_ID_2
@@ -26,27 +31,34 @@ import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.libraries.matrix.test.A_SECRET
 import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.libraries.matrix.test.A_USER_ID
-import io.element.android.libraries.matrix.test.auth.FakeMatrixAuthenticationService
 import io.element.android.libraries.matrix.test.core.aBuildMeta
+import io.element.android.libraries.push.api.push.NotificationEventRequest
+import io.element.android.libraries.push.api.push.SyncOnNotifiableEvent
 import io.element.android.libraries.push.impl.history.FakePushHistoryService
 import io.element.android.libraries.push.impl.history.PushHistoryService
+import io.element.android.libraries.push.impl.notifications.DefaultNotificationResolverQueue
 import io.element.android.libraries.push.impl.notifications.FakeNotifiableEventResolver
-import io.element.android.libraries.push.impl.notifications.NotificationEventRequest
-import io.element.android.libraries.push.impl.notifications.NotificationResolverQueue
-import io.element.android.libraries.push.impl.notifications.ResolvingException
+import io.element.android.libraries.push.impl.notifications.FallbackNotificationFactory
 import io.element.android.libraries.push.impl.notifications.channels.FakeNotificationChannels
+import io.element.android.libraries.push.impl.notifications.fixtures.aFallbackNotifiableEvent
 import io.element.android.libraries.push.impl.notifications.fixtures.aNotifiableCallEvent
 import io.element.android.libraries.push.impl.notifications.fixtures.aNotifiableMessageEvent
 import io.element.android.libraries.push.impl.notifications.model.NotifiableEvent
 import io.element.android.libraries.push.impl.notifications.model.ResolvedPushEvent
 import io.element.android.libraries.push.impl.test.DefaultTestPush
 import io.element.android.libraries.push.impl.troubleshoot.DiagnosticPushHandler
+import io.element.android.libraries.push.impl.workmanager.SyncNotificationsWorkerDataConverter
 import io.element.android.libraries.pushproviders.api.PushData
 import io.element.android.libraries.pushstore.api.UserPushStore
 import io.element.android.libraries.pushstore.api.clientsecret.PushClientSecret
 import io.element.android.libraries.pushstore.test.userpushstore.FakeUserPushStore
 import io.element.android.libraries.pushstore.test.userpushstore.FakeUserPushStoreFactory
 import io.element.android.libraries.pushstore.test.userpushstore.clientsecret.FakePushClientSecret
+import io.element.android.libraries.workmanager.api.WorkManagerRequest
+import io.element.android.libraries.workmanager.test.FakeWorkManagerScheduler
+import io.element.android.services.analytics.test.FakeAnalyticsService
+import io.element.android.services.toolbox.test.sdk.FakeBuildVersionSdkIntProvider
+import io.element.android.services.toolbox.test.systemclock.FakeSystemClock
 import io.element.android.tests.testutils.lambda.any
 import io.element.android.tests.testutils.lambda.lambdaError
 import io.element.android.tests.testutils.lambda.lambdaRecorder
@@ -62,6 +74,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 private const val A_PUSHER_INFO = "info"
 
+@Suppress("LargeClass")
 class DefaultPushHandlerTest {
     @Test
     fun `check handleInvalid behavior`() = runTest {
@@ -86,7 +99,7 @@ class DefaultPushHandlerTest {
     fun `when classical PushData is received, the notification drawer is informed`() = runTest {
         val aNotifiableMessageEvent = aNotifiableMessageEvent()
         val notifiableEventResult =
-            lambdaRecorder<SessionId, List<NotificationEventRequest>, Result<Map<NotificationEventRequest, Result<ResolvedPushEvent>>>> { _, _, ->
+            lambdaRecorder<SessionId, List<NotificationEventRequest>, Result<Map<NotificationEventRequest, Result<ResolvedPushEvent>>>> { _, _ ->
                 val request = NotificationEventRequest(A_SESSION_ID, A_ROOM_ID, AN_EVENT_ID, A_PUSHER_INFO)
                 Result.success(mapOf(request to Result.success(ResolvedPushEvent.Event(aNotifiableMessageEvent))))
             }
@@ -124,6 +137,45 @@ class DefaultPushHandlerTest {
             .isCalledOnce()
             .with(value(listOf(aNotifiableMessageEvent)))
         onPushReceivedResult.assertions()
+            .isCalledOnce()
+    }
+
+    @Test
+    fun `when classical PushData is received and the workmanager flag is enabled, the work is scheduled`() = runTest {
+        val aNotifiableMessageEvent = aNotifiableMessageEvent()
+        val notifiableEventResult =
+            lambdaRecorder<SessionId, List<NotificationEventRequest>, Result<Map<NotificationEventRequest, Result<ResolvedPushEvent>>>> { _, _ ->
+                val request = NotificationEventRequest(A_SESSION_ID, A_ROOM_ID, AN_EVENT_ID, A_PUSHER_INFO)
+                Result.success(mapOf(request to Result.success(ResolvedPushEvent.Event(aNotifiableMessageEvent))))
+            }
+        val incrementPushCounterResult = lambdaRecorder<Unit> {}
+        val aPushData = PushData(
+            eventId = AN_EVENT_ID,
+            roomId = A_ROOM_ID,
+            unread = 0,
+            clientSecret = A_SECRET,
+        )
+
+        val featureFlagService = FakeFeatureFlagService(mapOf(FeatureFlags.SyncNotificationsWithWorkManager.key to true))
+        val submitWorkLambda = lambdaRecorder<WorkManagerRequest, Unit> {}
+        val workManagerScheduler = FakeWorkManagerScheduler(submitLambda = submitWorkLambda)
+
+        val defaultPushHandler = createDefaultPushHandler(
+            notifiableEventsResult = notifiableEventResult,
+            pushClientSecret = FakePushClientSecret(
+                getUserIdFromSecretResult = { A_USER_ID }
+            ),
+            incrementPushCounterResult = incrementPushCounterResult,
+            featureFlagService = featureFlagService,
+            workManagerScheduler = workManagerScheduler,
+        )
+        defaultPushHandler.handle(aPushData, A_PUSHER_INFO)
+
+        advanceTimeBy(300.milliseconds)
+
+        submitWorkLambda.assertions().isCalledOnce()
+
+        incrementPushCounterResult.assertions()
             .isCalledOnce()
     }
 
@@ -175,7 +227,7 @@ class DefaultPushHandlerTest {
         }
 
     @Test
-    fun `when PushData is received, but client secret is not known, fallback the latest session`() =
+    fun `when PushData is received, but client secret is not known, nothing happen`() =
         runTest {
             val aNotifiableMessageEvent = aNotifiableMessageEvent()
             val notifiableEventResult =
@@ -201,58 +253,6 @@ class DefaultPushHandlerTest {
                 pushClientSecret = FakePushClientSecret(
                     getUserIdFromSecretResult = { null }
                 ),
-                matrixAuthenticationService = FakeMatrixAuthenticationService().apply {
-                    getLatestSessionIdLambda = { A_USER_ID }
-                },
-                incrementPushCounterResult = incrementPushCounterResult,
-                pushHistoryService = pushHistoryService,
-            )
-            defaultPushHandler.handle(aPushData, A_PUSHER_INFO)
-
-            advanceTimeBy(300.milliseconds)
-
-            incrementPushCounterResult.assertions()
-                .isCalledOnce()
-            notifiableEventResult.assertions()
-                .isCalledOnce()
-                .with(value(A_USER_ID), any())
-            onNotifiableEventsReceived.assertions()
-                .isCalledOnce()
-                .with(value(listOf(aNotifiableMessageEvent)))
-            onPushReceivedResult.assertions()
-                .isCalledOnce()
-        }
-
-    @Test
-    fun `when PushData is received, but client secret is not known, and there is no latest session, nothing happen`() =
-        runTest {
-            val aNotifiableMessageEvent = aNotifiableMessageEvent()
-            val notifiableEventResult =
-                lambdaRecorder<SessionId, List<NotificationEventRequest>, Result<Map<NotificationEventRequest, Result<ResolvedPushEvent>>>> { _, _ ->
-                    val request = NotificationEventRequest(A_SESSION_ID, A_ROOM_ID, AN_EVENT_ID, A_PUSHER_INFO)
-                    Result.success(mapOf(request to Result.success(ResolvedPushEvent.Event(aNotifiableMessageEvent))))
-                }
-            val onNotifiableEventsReceived = lambdaRecorder<List<NotifiableEvent>, Unit> {}
-            val incrementPushCounterResult = lambdaRecorder<Unit> {}
-            val aPushData = PushData(
-                eventId = AN_EVENT_ID,
-                roomId = A_ROOM_ID,
-                unread = 0,
-                clientSecret = A_SECRET,
-            )
-            val onPushReceivedResult = lambdaRecorder<String, EventId?, RoomId?, SessionId?, Boolean, Boolean, String?, Unit> { _, _, _, _, _, _, _ -> }
-            val pushHistoryService = FakePushHistoryService(
-                onPushReceivedResult = onPushReceivedResult,
-            )
-            val defaultPushHandler = createDefaultPushHandler(
-                onNotifiableEventsReceived = onNotifiableEventsReceived,
-                notifiableEventsResult = notifiableEventResult,
-                pushClientSecret = FakePushClientSecret(
-                    getUserIdFromSecretResult = { null }
-                ),
-                matrixAuthenticationService = FakeMatrixAuthenticationService().apply {
-                    getLatestSessionIdLambda = { null }
-                },
                 incrementPushCounterResult = incrementPushCounterResult,
                 pushHistoryService = pushHistoryService,
             )
@@ -268,11 +268,35 @@ class DefaultPushHandlerTest {
         }
 
     @Test
-    fun `when classical PushData is received, but not able to resolve the event, nothing happen`() =
+    fun `when classical PushData is received, but a failure occurs (session not found), nothing happen`() {
+        `test notification resolver failure`(
+            notificationResolveResult = { _ ->
+                Result.failure(NotificationResolverException.UnknownError("Unable to restore session"))
+            },
+            shouldSetOptimizationBatteryBanner = false,
+        )
+    }
+
+    @Test
+    fun `when classical PushData is received, but not able to resolve the event, the banner to disable battery optimization will be displayed`() {
+        `test notification resolver failure`(
+            notificationResolveResult = { requests: List<NotificationEventRequest> ->
+                Result.success(
+                    requests.associateWith { Result.failure(NotificationResolverException.UnknownError("Unable to resolve event")) }
+                )
+            },
+            shouldSetOptimizationBatteryBanner = true,
+        )
+    }
+
+    private fun `test notification resolver failure`(
+        notificationResolveResult: (List<NotificationEventRequest>) -> Result<Map<NotificationEventRequest, Result<ResolvedPushEvent>>>,
+        shouldSetOptimizationBatteryBanner: Boolean,
+    ) {
         runTest {
             val notifiableEventResult =
-                lambdaRecorder<SessionId, List<NotificationEventRequest>, Result<Map<NotificationEventRequest, Result<ResolvedPushEvent>>>> { _, _ ->
-                    Result.failure(ResolvingException("Unable to resolve"))
+                lambdaRecorder<SessionId, List<NotificationEventRequest>, Result<Map<NotificationEventRequest, Result<ResolvedPushEvent>>>> { _, requests ->
+                    notificationResolveResult(requests)
                 }
             val onNotifiableEventsReceived = lambdaRecorder<List<NotifiableEvent>, Unit> {}
             val incrementPushCounterResult = lambdaRecorder<Unit> {}
@@ -286,6 +310,7 @@ class DefaultPushHandlerTest {
             val pushHistoryService = FakePushHistoryService(
                 onPushReceivedResult = onPushReceivedResult,
             )
+            val showBatteryOptimizationBannerResult = lambdaRecorder<Unit> {}
             val defaultPushHandler = createDefaultPushHandler(
                 onNotifiableEventsReceived = onNotifiableEventsReceived,
                 notifiableEventsResult = notifiableEventResult,
@@ -297,6 +322,9 @@ class DefaultPushHandlerTest {
                     getUserIdFromSecretResult = { A_USER_ID }
                 ),
                 incrementPushCounterResult = incrementPushCounterResult,
+                mutableBatteryOptimizationStore = FakeMutableBatteryOptimizationStore(
+                    showBatteryOptimizationBannerResult = showBatteryOptimizationBannerResult,
+                ),
                 pushHistoryService = pushHistoryService,
             )
             defaultPushHandler.handle(aPushData, A_PUSHER_INFO)
@@ -308,12 +336,18 @@ class DefaultPushHandlerTest {
             notifiableEventResult.assertions()
                 .isCalledOnce()
                 .with(value(A_USER_ID), any())
-            onNotifiableEventsReceived.assertions()
-                .isNeverCalled()
             onPushReceivedResult.assertions()
                 .isCalledOnce()
                 .with(any(), value(AN_EVENT_ID), value(A_ROOM_ID), value(A_USER_ID), value(false), value(true), any())
+            showBatteryOptimizationBannerResult.assertions().let {
+                if (shouldSetOptimizationBatteryBanner) {
+                    it.isCalledOnce()
+                } else {
+                    it.isNeverCalled()
+                }
+            }
         }
+    }
 
     @Test
     fun `when ringing call PushData is received, the incoming call will be handled`() = runTest {
@@ -348,7 +382,7 @@ class DefaultPushHandlerTest {
                     mapOf(
                         request to Result.success(
                             ResolvedPushEvent.Event(
-                                aNotifiableCallEvent(callNotifyType = CallNotifyType.RING, timestamp = Instant.now().toEpochMilli())
+                                aNotifiableCallEvent(rtcNotificationType = RtcNotificationType.RING, timestamp = Instant.now().toEpochMilli())
                             )
                         )
                     )
@@ -400,7 +434,7 @@ class DefaultPushHandlerTest {
             onNotifiableEventsReceived = onNotifiableEventsReceived,
             notifiableEventsResult = { _, _ ->
                 val request = NotificationEventRequest(A_SESSION_ID, A_ROOM_ID, AN_EVENT_ID, A_PUSHER_INFO)
-                Result.success(mapOf(request to Result.success(ResolvedPushEvent.Event(aNotifiableMessageEvent(type = EventType.CALL_NOTIFY)))))
+                Result.success(mapOf(request to Result.success(ResolvedPushEvent.Event(aNotifiableMessageEvent(type = EventType.RTC_NOTIFICATION)))))
             },
             incrementPushCounterResult = {},
             pushClientSecret = FakePushClientSecret(
@@ -542,7 +576,7 @@ class DefaultPushHandlerTest {
     fun `when receiving several push notifications at the same time, those are batched before being processed`() = runTest {
         val aNotifiableMessageEvent = aNotifiableMessageEvent()
         val notifiableEventResult =
-            lambdaRecorder<SessionId, List<NotificationEventRequest>, Result<Map<NotificationEventRequest, Result<ResolvedPushEvent>>>> { _, _, ->
+            lambdaRecorder<SessionId, List<NotificationEventRequest>, Result<Map<NotificationEventRequest, Result<ResolvedPushEvent>>>> { _, _ ->
                 val request = NotificationEventRequest(A_SESSION_ID, A_ROOM_ID, AN_EVENT_ID, A_PUSHER_INFO)
                 Result.success(mapOf(request to Result.success(ResolvedPushEvent.Event(aNotifiableMessageEvent))))
             }
@@ -591,20 +625,66 @@ class DefaultPushHandlerTest {
             .isCalledExactly(2)
     }
 
+    @Test
+    fun `when receiving a fallback event, we notify the push history service about it not being resolved`() = runTest {
+        val aNotifiableFallbackEvent = aFallbackNotifiableEvent()
+        val notifiableEventResult =
+            lambdaRecorder<SessionId, List<NotificationEventRequest>, Result<Map<NotificationEventRequest, Result<ResolvedPushEvent>>>> { _, _ ->
+                val request = NotificationEventRequest(A_SESSION_ID, A_ROOM_ID, AN_EVENT_ID, A_PUSHER_INFO)
+                Result.success(mapOf(request to Result.success(ResolvedPushEvent.Event(aNotifiableFallbackEvent))))
+            }
+        val onNotifiableEventsReceived = lambdaRecorder<List<NotifiableEvent>, Unit> {}
+        val incrementPushCounterResult = lambdaRecorder<Unit> {}
+        var receivedFallbackEvent = false
+        val onPushReceivedResult =
+            lambdaRecorder<String, EventId?, RoomId?, SessionId?, Boolean, Boolean, String?, Unit> { _, _, _, _, isResolved, _, comment ->
+                receivedFallbackEvent = !isResolved && comment == "Unable to resolve event: ${aNotifiableFallbackEvent.cause}"
+            }
+        val pushHistoryService = FakePushHistoryService(
+            onPushReceivedResult = onPushReceivedResult,
+        )
+        val aPushData = PushData(
+            eventId = AN_EVENT_ID,
+            roomId = A_ROOM_ID,
+            unread = 0,
+            clientSecret = A_SECRET,
+        )
+        val defaultPushHandler = createDefaultPushHandler(
+            onNotifiableEventsReceived = onNotifiableEventsReceived,
+            notifiableEventsResult = notifiableEventResult,
+            pushClientSecret = FakePushClientSecret(
+                getUserIdFromSecretResult = { A_USER_ID }
+            ),
+            incrementPushCounterResult = incrementPushCounterResult,
+            pushHistoryService = pushHistoryService,
+        )
+        defaultPushHandler.handle(aPushData, A_PUSHER_INFO)
+
+        advanceTimeBy(300.milliseconds)
+
+        onNotifiableEventsReceived.assertions().isCalledOnce()
+
+        assertThat(receivedFallbackEvent).isTrue()
+    }
+
     private fun TestScope.createDefaultPushHandler(
         onNotifiableEventsReceived: (List<NotifiableEvent>) -> Unit = { lambdaError() },
         onRedactedEventsReceived: (List<ResolvedPushEvent.Redaction>) -> Unit = { lambdaError() },
         notifiableEventsResult: (SessionId, List<NotificationEventRequest>) -> Result<Map<NotificationEventRequest, Result<ResolvedPushEvent>>> =
-            { _, _, -> lambdaError() },
+            { _, _ -> lambdaError() },
         incrementPushCounterResult: () -> Unit = { lambdaError() },
+        mutableBatteryOptimizationStore: MutableBatteryOptimizationStore = FakeMutableBatteryOptimizationStore(),
         userPushStore: UserPushStore = FakeUserPushStore(),
         pushClientSecret: PushClientSecret = FakePushClientSecret(),
         buildMeta: BuildMeta = aBuildMeta(),
-        matrixAuthenticationService: MatrixAuthenticationService = FakeMatrixAuthenticationService(),
         diagnosticPushHandler: DiagnosticPushHandler = DiagnosticPushHandler(),
         elementCallEntryPoint: FakeElementCallEntryPoint = FakeElementCallEntryPoint(),
         notificationChannels: FakeNotificationChannels = FakeNotificationChannels(),
         pushHistoryService: PushHistoryService = FakePushHistoryService(),
+        syncOnNotifiableEvent: SyncOnNotifiableEvent = SyncOnNotifiableEvent {},
+        featureFlagService: FakeFeatureFlagService = FakeFeatureFlagService(initialState = mapOf(FeatureFlags.SyncNotificationsWithWorkManager.key to false)),
+        workManagerScheduler: FakeWorkManagerScheduler = FakeWorkManagerScheduler(),
+        analyticsService: FakeAnalyticsService = FakeAnalyticsService(),
     ): DefaultPushHandler {
         return DefaultPushHandler(
             onNotifiableEventReceived = FakeOnNotifiableEventReceived(onNotifiableEventsReceived),
@@ -614,16 +694,30 @@ class DefaultPushHandlerTest {
                     incrementPushCounterResult()
                 }
             },
+            mutableBatteryOptimizationStore = mutableBatteryOptimizationStore,
             userPushStoreFactory = FakeUserPushStoreFactory { userPushStore },
             pushClientSecret = pushClientSecret,
             buildMeta = buildMeta,
-            matrixAuthenticationService = matrixAuthenticationService,
             diagnosticPushHandler = diagnosticPushHandler,
             elementCallEntryPoint = elementCallEntryPoint,
             notificationChannels = notificationChannels,
             pushHistoryService = pushHistoryService,
-            resolverQueue = NotificationResolverQueue(notifiableEventResolver = FakeNotifiableEventResolver(notifiableEventsResult), backgroundScope),
+            // We don't use a fake here so we can perform tests that are a bit more end to end
+            resolverQueue = DefaultNotificationResolverQueue(
+                notifiableEventResolver = FakeNotifiableEventResolver(notifiableEventsResult),
+                appCoroutineScope = backgroundScope,
+                workManagerScheduler = workManagerScheduler,
+                featureFlagService = featureFlagService,
+                workerDataConverter = SyncNotificationsWorkerDataConverter(DefaultJsonProvider()),
+                buildVersionSdkIntProvider = FakeBuildVersionSdkIntProvider(33),
+            ),
             appCoroutineScope = backgroundScope,
+            fallbackNotificationFactory = FallbackNotificationFactory(
+                clock = FakeSystemClock(),
+            ),
+            syncOnNotifiableEvent = syncOnNotifiableEvent,
+            featureFlagService = featureFlagService,
+            analyticsService = analyticsService,
         )
     }
 }

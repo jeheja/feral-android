@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,6 +15,7 @@ import io.element.android.libraries.matrix.api.media.ImageInfo
 import io.element.android.libraries.matrix.api.media.MediaSource
 import io.element.android.libraries.matrix.api.poll.PollAnswer
 import io.element.android.libraries.matrix.api.poll.PollKind
+import io.element.android.libraries.matrix.api.timeline.item.EventThreadInfo
 import io.element.android.libraries.matrix.api.timeline.item.TimelineItemDebugInfo
 import io.element.android.libraries.matrix.api.timeline.item.event.EventContent
 import io.element.android.libraries.matrix.api.timeline.item.event.EventReaction
@@ -25,7 +27,7 @@ import io.element.android.libraries.matrix.api.timeline.item.event.MessageShield
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageType
 import io.element.android.libraries.matrix.api.timeline.item.event.PollContent
 import io.element.android.libraries.matrix.api.timeline.item.event.ProfileChangeContent
-import io.element.android.libraries.matrix.api.timeline.item.event.ProfileTimelineDetails
+import io.element.android.libraries.matrix.api.timeline.item.event.ProfileDetails
 import io.element.android.libraries.matrix.api.timeline.item.event.Receipt
 import io.element.android.libraries.matrix.api.timeline.item.event.SendHandleProvider
 import io.element.android.libraries.matrix.api.timeline.item.event.StickerContent
@@ -51,7 +53,7 @@ fun anEventTimelineItem(
     reactions: ImmutableList<EventReaction> = persistentListOf(),
     receipts: ImmutableList<Receipt> = persistentListOf(),
     sender: UserId = A_USER_ID,
-    senderProfile: ProfileTimelineDetails = aProfileTimelineDetails(),
+    senderProfile: ProfileDetails = aProfileDetails(),
     timestamp: Long = 0L,
     content: EventContent = aProfileChangeMessageContent(),
     debugInfoProvider: TimelineItemDebugInfoProvider = TimelineItemDebugInfoProvider { aTimelineItemDebugInfo() },
@@ -75,13 +77,15 @@ fun anEventTimelineItem(
     timelineItemDebugInfoProvider = debugInfoProvider,
     messageShieldProvider = messageShieldProvider,
     sendHandleProvider = sendHandleProvider,
+    forwarder = null,
+    forwarderProfile = null,
 )
 
-fun aProfileTimelineDetails(
+fun aProfileDetails(
     displayName: String? = A_USER_NAME,
     displayNameAmbiguous: Boolean = false,
     avatarUrl: String? = null
-): ProfileTimelineDetails = ProfileTimelineDetails.Ready(
+): ProfileDetails = ProfileDetails.Ready(
     displayName = displayName,
     displayNameAmbiguous = displayNameAmbiguous,
     avatarUrl = avatarUrl,
@@ -103,7 +107,7 @@ fun aMessageContent(
     body: String = "body",
     inReplyTo: InReplyTo? = null,
     isEdited: Boolean = false,
-    isThreaded: Boolean = false,
+    threadInfo: EventThreadInfo? = null,
     messageType: MessageType = TextMessageType(
         body = body,
         formatted = null
@@ -112,7 +116,7 @@ fun aMessageContent(
     body = body,
     inReplyTo = inReplyTo,
     isEdited = isEdited,
-    isThreaded = isThreaded,
+    threadInfo = threadInfo,
     type = messageType
 )
 
@@ -121,11 +125,13 @@ fun aStickerContent(
     info: ImageInfo,
     mediaSource: MediaSource,
     body: String? = null,
+    threadInfo: EventThreadInfo? = null,
 ) = StickerContent(
     filename = filename,
     body = body,
     info = info,
     source = mediaSource,
+    threadInfo = threadInfo,
 )
 
 fun aTimelineItemDebugInfo(
@@ -146,6 +152,7 @@ fun aPollContent(
     votes: ImmutableMap<String, ImmutableList<UserId>> = persistentMapOf(),
     endTime: ULong? = null,
     isEdited: Boolean = false,
+    threadInfo: EventThreadInfo? = null,
 ) = PollContent(
     question = question,
     kind = kind,
@@ -154,4 +161,5 @@ fun aPollContent(
     votes = votes,
     endTime = endTime,
     isEdited = isEdited,
+    threadInfo = threadInfo,
 )

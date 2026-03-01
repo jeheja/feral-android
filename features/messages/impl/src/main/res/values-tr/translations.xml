@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="crypto_event_authenticity_not_guaranteed">"Bu şifrelenmiş mesajın doğruluğu bu cihazda garanti edilemez."</string>
+  <string name="crypto_event_authenticity_previously_verified">"Daha önce doğrulanmış bir kullanıcı tarafından şifrelenmiştir."</string>
+  <string name="crypto_event_authenticity_sent_in_clear">"Şifrelenmemiş."</string>
+  <string name="crypto_event_authenticity_unknown_device">"Bilinmeyen veya silinmiş bir cihaz tarafından şifrelenmiştir."</string>
+  <string name="crypto_event_authenticity_unsigned_device">"Sahibi tarafından doğrulanmamış bir cihaz tarafından şifrelenmiştir."</string>
+  <string name="crypto_event_authenticity_unverified_identity">"Doğrulanmamış bir kullanıcı tarafından şifrelenmiştir."</string>
   <string name="emoji_picker_category_activity">"Aktiviteler"</string>
   <string name="emoji_picker_category_flags">"Bayraklar"</string>
   <string name="emoji_picker_category_foods">"Yiyecek ve İçecek"</string>
@@ -8,6 +14,9 @@
   <string name="emoji_picker_category_people">"İfadeler ve İnsanlar"</string>
   <string name="emoji_picker_category_places">"Seyahat ve Yerler"</string>
   <string name="emoji_picker_category_symbols">"Simgeler"</string>
+  <string name="screen_media_upload_preview_caption_warning">"Açıklamalar, eski uygulamaları kullanan kişiler tarafından görülemeyebilir."</string>
+  <string name="screen_media_upload_preview_error_failed_processing">"Medya yüklenemedi, lütfen tekrar deneyin."</string>
+  <string name="screen_media_upload_preview_error_failed_sending">"Medya yüklenemedi, lütfen tekrar deneyin."</string>
   <string name="screen_report_content_block_user">"Kullanıcıyı engelle"</string>
   <string name="screen_report_content_block_user_hint">"Bu kullanıcıdan gelen mevcut ve gelecekteki tüm mesajları gizlemek isteyip istemediğinizi işaretleyin"</string>
   <string name="screen_report_content_explanation">"Bu mesaj ana sunucunuzun yöneticisine bildirilecektir. Şifrelenmiş mesajları okuyamayacaklardır."</string>

@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.zacsweers.metro.Inject
 import io.element.android.features.securebackup.impl.loggerTagDisable
 import io.element.android.features.securebackup.impl.loggerTagRoot
 import io.element.android.libraries.architecture.AsyncAction
@@ -30,9 +32,9 @@ import io.element.android.libraries.matrix.api.encryption.EncryptionService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
 
-class SecureBackupRootPresenter @Inject constructor(
+@Inject
+class SecureBackupRootPresenter(
     private val encryptionService: EncryptionService,
     private val buildMeta: BuildMeta,
     private val snackbarDispatcher: SnackbarDispatcher,
@@ -57,7 +59,7 @@ class SecureBackupRootPresenter @Inject constructor(
             }
         }
 
-        fun handleEvents(event: SecureBackupRootEvents) {
+        fun handleEvent(event: SecureBackupRootEvents) {
             when (event) {
                 SecureBackupRootEvents.RetryKeyBackupState -> localCoroutineScope.getKeyBackupStatus(doesBackupExistOnServerAction)
                 SecureBackupRootEvents.EnableKeyStorage -> localCoroutineScope.enableBackup(enableAction)
@@ -77,7 +79,7 @@ class SecureBackupRootPresenter @Inject constructor(
             appName = buildMeta.applicationName,
             displayKeyStorageDisabledError = displayKeyStorageDisabledError,
             snackbarMessage = snackbarMessage,
-            eventSink = ::handleEvents,
+            eventSink = ::handleEvent,
         )
     }
 

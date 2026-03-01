@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -44,7 +45,7 @@ class ToPlainTextTest {
         val formattedBody = FormattedBody(
             format = MessageFormat.HTML,
             body = """
-                Hello world
+                Hello <strong>formatted</strong> <em>world</em>
                 <ul><li>This is an unordered list.</li></ul>
                 <ol><li>This is an ordered list.</li></ol>
                 <br />
@@ -52,7 +53,7 @@ class ToPlainTextTest {
         )
         assertThat(formattedBody.toPlainText(permalinkParser = FakePermalinkParser())).isEqualTo(
             """
-            Hello world 
+            Hello formatted world 
             • This is an unordered list.
             1. This is an ordered list.
             """.trimIndent()
@@ -92,6 +93,29 @@ class ToPlainTextTest {
             Hello world 
             • This is an unordered list.
             1. This is an ordered list.
+            """.trimIndent()
+        )
+    }
+
+    @Test
+    fun `TextMessageType toPlainText - respects the ol start attr if present`() {
+        val messageType = TextMessageType(
+            body = "1. First item\n2. Second item\n",
+            formatted = FormattedBody(
+                format = MessageFormat.HTML,
+                body = """
+                    <ol start='11'>
+                        <li>First item.</li>
+                        <li>Second item.</li>  
+                    </ol>
+                    <br />
+                """.trimIndent()
+            )
+        )
+        assertThat(messageType.toPlainText(permalinkParser = FakePermalinkParser())).isEqualTo(
+            """
+            11. First item.
+            12. Second item.
             """.trimIndent()
         )
     }

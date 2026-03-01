@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,14 +14,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.zacsweers.metro.Inject
 import io.element.android.features.lockscreen.impl.biometric.BiometricAuthenticator
 import io.element.android.features.lockscreen.impl.biometric.BiometricAuthenticatorManager
 import io.element.android.features.lockscreen.impl.storage.LockScreenStore
 import io.element.android.libraries.architecture.Presenter
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-class SetupBiometricPresenter @Inject constructor(
+@Inject
+class SetupBiometricPresenter(
     private val lockScreenStore: LockScreenStore,
     private val biometricAuthenticatorManager: BiometricAuthenticatorManager,
 ) : Presenter<SetupBiometricState> {
@@ -33,7 +35,7 @@ class SetupBiometricPresenter @Inject constructor(
         val coroutineScope = rememberCoroutineScope()
         val biometricUnlock = biometricAuthenticatorManager.rememberConfirmBiometricAuthenticator()
 
-        fun handleEvents(event: SetupBiometricEvents) {
+        fun handleEvent(event: SetupBiometricEvents) {
             when (event) {
                 SetupBiometricEvents.AllowBiometric -> coroutineScope.launch {
                     biometricUnlock.setup()
@@ -51,7 +53,7 @@ class SetupBiometricPresenter @Inject constructor(
 
         return SetupBiometricState(
             isBiometricSetupDone = isBiometricSetupDone,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 }

@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -23,6 +24,7 @@ open class SecureBackupSetupStateProvider : PreviewParameterProvider<SecureBacku
                 setupState = SetupState.CreatedAndSaved(aFormattedRecoveryKey()),
                 showSaveConfirmationDialog = true,
             ),
+            aSecureBackupSetupState(setupState = SetupState.Error(Exception("Test error"))),
             // Add other states here
         )
 }
@@ -42,6 +44,7 @@ private fun SetupState.toRecoveryKeyViewState(): RecoveryKeyViewState {
     return RecoveryKeyViewState(
         recoveryKeyUserStory = RecoveryKeyUserStory.Setup,
         formattedRecoveryKey = recoveryKey(),
+        displayTextFieldContents = true,
         inProgress = this is SetupState.Creating,
     )
 }

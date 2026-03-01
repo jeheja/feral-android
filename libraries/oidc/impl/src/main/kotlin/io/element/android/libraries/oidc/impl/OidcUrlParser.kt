@@ -1,17 +1,17 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.oidc.impl
 
-import com.squareup.anvil.annotations.ContributesBinding
-import io.element.android.libraries.di.AppScope
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.matrix.api.auth.OidcRedirectUrlProvider
 import io.element.android.libraries.oidc.api.OidcAction
-import javax.inject.Inject
 
 fun interface OidcUrlParser {
     fun parse(url: String): OidcAction?
@@ -22,7 +22,7 @@ fun interface OidcUrlParser {
  * TODO Find documentation about the format.
  */
 @ContributesBinding(AppScope::class)
-class DefaultOidcUrlParser @Inject constructor(
+class DefaultOidcUrlParser(
     private val oidcRedirectUrlProvider: OidcRedirectUrlProvider,
 ) : OidcUrlParser {
     /**
@@ -35,7 +35,7 @@ class DefaultOidcUrlParser @Inject constructor(
      */
     override fun parse(url: String): OidcAction? {
         if (url.startsWith(oidcRedirectUrlProvider.provide()).not()) return null
-        if (url.contains("error=access_denied")) return OidcAction.GoBack
+        if (url.contains("error=access_denied")) return OidcAction.GoBack()
         if (url.contains("code=")) return OidcAction.Success(url)
 
         // Other case not supported, let's crash the app for now

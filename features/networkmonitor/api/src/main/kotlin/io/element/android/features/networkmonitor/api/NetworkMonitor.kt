@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -19,4 +20,9 @@ interface NetworkMonitor {
      * A flow containing the current network connectivity status.
      */
     val connectivity: StateFlow<NetworkStatus>
+
+    /**
+     * Checks if the active network is being blocked by Doze, even if it's available.
+     */
+    fun isNetworkBlocked(): Boolean
 }

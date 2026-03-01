@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,20 +16,21 @@ import com.bumble.appyx.core.node.Node
 import com.bumble.appyx.core.plugin.Plugin
 import com.bumble.appyx.navmodel.backstack.BackStack
 import com.bumble.appyx.navmodel.backstack.operation.push
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
-import io.element.android.anvilannotations.ContributesNode
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
+import io.element.android.annotations.ContributesNode
 import io.element.android.features.licenses.impl.details.DependenciesDetailsNode
 import io.element.android.features.licenses.impl.list.DependencyLicensesListNode
 import io.element.android.features.licenses.impl.model.DependencyLicenseItem
 import io.element.android.libraries.architecture.BackstackView
 import io.element.android.libraries.architecture.BaseFlowNode
 import io.element.android.libraries.architecture.createNode
-import io.element.android.libraries.di.AppScope
 import kotlinx.parcelize.Parcelize
 
 @ContributesNode(AppScope::class)
-class DependenciesFlowNode @AssistedInject constructor(
+@AssistedInject
+class DependenciesFlowNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
 ) : BaseFlowNode<DependenciesFlowNode.NavTarget>(
@@ -51,7 +53,7 @@ class DependenciesFlowNode @AssistedInject constructor(
         return when (navTarget) {
             is NavTarget.LicensesList -> {
                 val callback = object : DependencyLicensesListNode.Callback {
-                    override fun onOpenLicense(license: DependencyLicenseItem) {
+                    override fun navigateToLicense(license: DependencyLicenseItem) {
                         backstack.push(NavTarget.LicenseDetails(license))
                     }
                 }

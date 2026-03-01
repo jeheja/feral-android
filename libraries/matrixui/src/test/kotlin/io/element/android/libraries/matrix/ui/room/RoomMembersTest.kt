@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -99,7 +100,7 @@ class RoomMembersTest {
         val joinedRoom = FakeBaseRoom(
             sessionId = A_USER_ID,
         ).apply {
-            givenRoomInfo(aRoomInfo(isDirect = true))
+            givenRoomInfo(aRoomInfo(isDirect = true, activeMembersCount = 3L))
         }
         moleculeFlow(RecompositionMode.Immediate) {
             joinedRoom.getDirectRoomMember(

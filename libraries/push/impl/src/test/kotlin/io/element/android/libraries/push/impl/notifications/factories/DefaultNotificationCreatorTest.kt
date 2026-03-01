@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,13 +15,18 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.google.common.truth.Truth.assertThat
 import io.element.android.appconfig.NotificationConfig
+import io.element.android.features.enterprise.api.EnterpriseService
+import io.element.android.features.enterprise.test.FakeEnterpriseService
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.matrix.test.AN_EVENT_ID
+import io.element.android.libraries.matrix.test.A_COLOR_INT
 import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.libraries.matrix.test.A_THREAD_ID
 import io.element.android.libraries.matrix.test.core.aBuildMeta
 import io.element.android.libraries.matrix.ui.components.aMatrixUser
+import io.element.android.libraries.matrix.ui.media.test.FakeImageLoader
+import io.element.android.libraries.matrix.ui.media.test.FakeInitialsAvatarBitmapGenerator
 import io.element.android.libraries.push.api.notifications.NotificationBitmapLoader
 import io.element.android.libraries.push.impl.notifications.DefaultNotificationBitmapLoader
 import io.element.android.libraries.push.impl.notifications.NotificationActionIds
@@ -31,10 +37,10 @@ import io.element.android.libraries.push.impl.notifications.factories.action.Acc
 import io.element.android.libraries.push.impl.notifications.factories.action.MarkAsReadActionFactory
 import io.element.android.libraries.push.impl.notifications.factories.action.QuickReplyActionFactory
 import io.element.android.libraries.push.impl.notifications.factories.action.RejectInvitationActionFactory
-import io.element.android.libraries.push.impl.notifications.model.FallbackNotifiableEvent
+import io.element.android.libraries.push.impl.notifications.fixtures.aFallbackNotifiableEvent
+import io.element.android.libraries.push.impl.notifications.fixtures.aNotifiableMessageEvent
 import io.element.android.libraries.push.impl.notifications.model.InviteNotifiableEvent
 import io.element.android.libraries.push.impl.notifications.model.SimpleNotifiableEvent
-import io.element.android.libraries.push.test.notifications.FakeImageLoader
 import io.element.android.services.toolbox.test.sdk.FakeBuildVersionSdkIntProvider
 import io.element.android.services.toolbox.test.strings.FakeStringProvider
 import io.element.android.services.toolbox.test.systemclock.A_FAKE_TIMESTAMP
@@ -50,7 +56,9 @@ class DefaultNotificationCreatorTest {
     @Test
     fun `test createDiagnosticNotification`() {
         val sut = createNotificationCreator()
-        val result = sut.createDiagnosticNotification()
+        val result = sut.createDiagnosticNotification(
+            color = A_COLOR_INT,
+        )
         result.commonAssertions(
             expectedGroup = null,
             expectedCategory = NotificationCompat.CATEGORY_STATUS,
@@ -58,19 +66,28 @@ class DefaultNotificationCreatorTest {
     }
 
     @Test
+    fun `test createUnregistrationNotification`() {
+        val sut = createNotificationCreator()
+        val matrixUser = aMatrixUser()
+        val result = sut.createUnregistrationNotification(
+            notificationAccountParams = aNotificationAccountParams(
+                user = matrixUser,
+            ),
+        )
+        result.commonAssertions(
+            expectedGroup = matrixUser.userId.value,
+            expectedCategory = NotificationCompat.CATEGORY_ERROR,
+        )
+    }
+
+    @Test
     fun `test createFallbackNotification`() {
         val sut = createNotificationCreator()
         val result = sut.createFallbackNotification(
-            FallbackNotifiableEvent(
-                sessionId = A_SESSION_ID,
-                roomId = A_ROOM_ID,
-                eventId = AN_EVENT_ID,
-                editedEventId = null,
-                description = "description",
-                canBeReplaced = false,
-                isRedacted = false,
-                isUpdated = false,
-                timestamp = A_FAKE_TIMESTAMP,
+            existingNotification = null,
+            notificationAccountParams = aNotificationAccountParams(),
+            fallbackNotifiableEvents = listOf(
+                aFallbackNotifiableEvent(),
             )
         )
         result.commonAssertions(
@@ -82,6 +99,7 @@ class DefaultNotificationCreatorTest {
     fun `test createSimpleEventNotification`() {
         val sut = createNotificationCreator()
         val result = sut.createSimpleEventNotification(
+            notificationAccountParams = aNotificationAccountParams(),
             SimpleNotifiableEvent(
                 sessionId = A_SESSION_ID,
                 roomId = A_ROOM_ID,
@@ -96,7 +114,7 @@ class DefaultNotificationCreatorTest {
                 canBeReplaced = false,
                 isRedacted = false,
                 isUpdated = false,
-            )
+            ),
         )
         result.commonAssertions(
             expectedCategory = null,
@@ -105,8 +123,13 @@ class DefaultNotificationCreatorTest {
 
     @Test
     fun `test createSimpleEventNotification noisy`() {
-        val sut = createNotificationCreator()
+        val sut = createNotificationCreator(
+            enterpriseService = FakeEnterpriseService(
+                getNoisyNotificationChannelIdResult = { null },
+            ),
+        )
         val result = sut.createSimpleEventNotification(
+            notificationAccountParams = aNotificationAccountParams(),
             SimpleNotifiableEvent(
                 sessionId = A_SESSION_ID,
                 roomId = A_ROOM_ID,
@@ -121,7 +144,7 @@ class DefaultNotificationCreatorTest {
                 canBeReplaced = false,
                 isRedacted = false,
                 isUpdated = false,
-            )
+            ),
         )
         result.commonAssertions(
             expectedCategory = null,
@@ -132,6 +155,7 @@ class DefaultNotificationCreatorTest {
     fun `test createRoomInvitationNotification`() {
         val sut = createNotificationCreator()
         val result = sut.createRoomInvitationNotification(
+            notificationAccountParams = aNotificationAccountParams(),
             InviteNotifiableEvent(
                 sessionId = A_SESSION_ID,
                 roomId = A_ROOM_ID,
@@ -147,7 +171,7 @@ class DefaultNotificationCreatorTest {
                 isRedacted = false,
                 isUpdated = false,
                 roomName = "roomName",
-            )
+            ),
         )
         result.commonAssertions(
             expectedCategory = null,
@@ -163,8 +187,13 @@ class DefaultNotificationCreatorTest {
 
     @Test
     fun `test createRoomInvitationNotification noisy`() {
-        val sut = createNotificationCreator()
+        val sut = createNotificationCreator(
+            enterpriseService = FakeEnterpriseService(
+                getNoisyNotificationChannelIdResult = { null },
+            ),
+        )
         val result = sut.createRoomInvitationNotification(
+            notificationAccountParams = aNotificationAccountParams(),
             InviteNotifiableEvent(
                 sessionId = A_SESSION_ID,
                 roomId = A_ROOM_ID,
@@ -180,7 +209,7 @@ class DefaultNotificationCreatorTest {
                 isRedacted = false,
                 isUpdated = false,
                 roomName = "roomName",
-            )
+            ),
         )
         result.commonAssertions(
             expectedCategory = null,
@@ -192,7 +221,7 @@ class DefaultNotificationCreatorTest {
         val sut = createNotificationCreator()
         val matrixUser = aMatrixUser()
         val result = sut.createSummaryListNotification(
-            currentUser = matrixUser,
+            notificationAccountParams = aNotificationAccountParams(user = matrixUser),
             compatSummary = "compatSummary",
             noisy = false,
             lastMessageTimestamp = 123_456L,
@@ -204,10 +233,14 @@ class DefaultNotificationCreatorTest {
 
     @Test
     fun `test createSummaryListNotification noisy`() {
-        val sut = createNotificationCreator()
+        val sut = createNotificationCreator(
+            enterpriseService = FakeEnterpriseService(
+                getNoisyNotificationChannelIdResult = { null },
+            ),
+        )
         val matrixUser = aMatrixUser()
         val result = sut.createSummaryListNotification(
-            currentUser = matrixUser,
+            notificationAccountParams = aNotificationAccountParams(user = matrixUser),
             compatSummary = "compatSummary",
             noisy = true,
             lastMessageTimestamp = 123_456L,
@@ -220,8 +253,8 @@ class DefaultNotificationCreatorTest {
     @Test
     fun `test createMessagesListNotification`() = runTest {
         val sut = createNotificationCreator()
-        aMatrixUser()
         val result = sut.createMessagesListNotification(
+            notificationAccountParams = aNotificationAccountParams(),
             roomInfo = RoomEventGroupInfo(
                 sessionId = A_SESSION_ID,
                 roomId = A_ROOM_ID,
@@ -235,19 +268,22 @@ class DefaultNotificationCreatorTest {
             largeIcon = null,
             lastMessageTimestamp = 123_456L,
             tickerText = "tickerText",
-            currentUser = aMatrixUser(),
             existingNotification = null,
-            imageLoader = FakeImageLoader().getImageLoader(),
-            events = emptyList(),
+            imageLoader = FakeImageLoader(),
+            events = listOf(aNotifiableMessageEvent()),
         )
         result.commonAssertions()
     }
 
     @Test
     fun `test createMessagesListNotification should bing and thread`() = runTest {
-        val sut = createNotificationCreator()
-        aMatrixUser()
+        val sut = createNotificationCreator(
+            enterpriseService = FakeEnterpriseService(
+                getNoisyNotificationChannelIdResult = { null },
+            ),
+        )
         val result = sut.createMessagesListNotification(
+            notificationAccountParams = aNotificationAccountParams(),
             roomInfo = RoomEventGroupInfo(
                 sessionId = A_SESSION_ID,
                 roomId = A_ROOM_ID,
@@ -261,16 +297,15 @@ class DefaultNotificationCreatorTest {
             largeIcon = null,
             lastMessageTimestamp = 123_456L,
             tickerText = "tickerText",
-            currentUser = aMatrixUser(),
             existingNotification = null,
-            imageLoader = FakeImageLoader().getImageLoader(),
-            events = emptyList(),
+            imageLoader = FakeImageLoader(),
+            events = listOf(aNotifiableMessageEvent()),
         )
         result.commonAssertions()
     }
 
     private fun Notification.commonAssertions(
-        expectedGroup: String? = A_SESSION_ID.value,
+        expectedGroup: String? = aMatrixUser().userId.value,
         expectedCategory: String? = NotificationCompat.CATEGORY_MESSAGE,
     ) {
         assertThat(contentIntent).isNotNull()
@@ -287,8 +322,13 @@ const val REJECT_INVITATION_ACTION_TITLE = "RejectInvitationAction"
 fun createNotificationCreator(
     context: Context = RuntimeEnvironment.getApplication(),
     buildMeta: BuildMeta = aBuildMeta(),
-    notificationChannels: NotificationChannels = createNotificationChannels(),
-    bitmapLoader: NotificationBitmapLoader = DefaultNotificationBitmapLoader(context, FakeBuildVersionSdkIntProvider(Build.VERSION_CODES.R)),
+    enterpriseService: EnterpriseService = FakeEnterpriseService(),
+    notificationChannels: NotificationChannels = createNotificationChannels(enterpriseService),
+    bitmapLoader: NotificationBitmapLoader = DefaultNotificationBitmapLoader(
+        context = context,
+        sdkIntProvider = FakeBuildVersionSdkIntProvider(Build.VERSION_CODES.R),
+        initialsAvatarBitmapGenerator = FakeInitialsAvatarBitmapGenerator(),
+    ),
 ): NotificationCreator {
     return DefaultNotificationCreator(
         context = context,
@@ -329,7 +369,14 @@ fun createNotificationCreator(
     )
 }
 
-fun createNotificationChannels(): NotificationChannels {
+fun createNotificationChannels(
+    enterpriseService: EnterpriseService = FakeEnterpriseService(),
+): NotificationChannels {
     val context = RuntimeEnvironment.getApplication()
-    return DefaultNotificationChannels(NotificationManagerCompat.from(context), FakeStringProvider(""))
+    return DefaultNotificationChannels(
+        notificationManager = NotificationManagerCompat.from(context),
+        stringProvider = FakeStringProvider(""),
+        context = context,
+        enterpriseService = enterpriseService,
+    )
 }

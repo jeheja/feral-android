@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,10 +18,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.zacsweers.metro.Inject
 import im.vector.app.features.analytics.plan.CryptoSessionStateChange
 import im.vector.app.features.analytics.plan.UserProperties
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.core.log.logger.LoggerTag
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.matrix.api.MatrixClient
@@ -33,7 +36,7 @@ import io.element.android.libraries.matrix.api.sync.SyncService
 import io.element.android.libraries.matrix.api.verification.SessionVerificationService
 import io.element.android.libraries.matrix.api.verification.SessionVerifiedStatus
 import io.element.android.libraries.push.api.PushService
-import io.element.android.libraries.pushproviders.api.RegistrationFailure
+import io.element.android.libraries.push.api.PusherRegistrationFailure
 import io.element.android.services.analytics.api.AnalyticsService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.combine
@@ -41,11 +44,11 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
 
 private val pusherTag = LoggerTag("Pusher", LoggerTag.PushLoggerTag)
 
-class LoggedInPresenter @Inject constructor(
+@Inject
+class LoggedInPresenter(
     private val matrixClient: MatrixClient,
     private val syncService: SyncService,
     private val pushService: PushService,
@@ -68,7 +71,17 @@ class LoggedInPresenter @Inject constructor(
                     when (sessionVerifiedStatus) {
                         SessionVerifiedStatus.Unknown -> Unit
                         SessionVerifiedStatus.Verified -> {
-                            ensurePusherIsRegistered(pusherRegistrationState)
+                            Timber.tag(pusherTag.value).d("Ensure pusher is registered")
+                            pushService.ensurePusherIsRegistered(matrixClient).fold(
+                                onSuccess = {
+                                    Timber.tag(pusherTag.value).d("Pusher registered")
+                                    pusherRegistrationState.value = AsyncData.Success(Unit)
+                                },
+                                onFailure = {
+                                    Timber.tag(pusherTag.value).e(it, "Failed to register pusher")
+                                    pusherRegistrationState.value = AsyncData.Failure(it)
+                                },
+                            )
                         }
                         SessionVerifiedStatus.NotVerified -> {
                             pusherRegistrationState.value = AsyncData.Failure(PusherRegistrationFailure.AccountNotVerified())
@@ -120,67 +133,14 @@ class LoggedInPresenter @Inject constructor(
             ignoreRegistrationError = ignoreRegistrationError,
             forceNativeSlidingSyncMigration = forceNativeSlidingSyncMigration,
             appName = buildMeta.applicationName,
-            eventSink = ::handleEvent
+            eventSink = ::handleEvent,
         )
     }
 
     // Force the user to log out if they were using the proxy sliding sync as it's no longer supported by the SDK
-    private suspend fun MatrixClient.needsForcedNativeSlidingSyncMigration(): Result<Boolean> = runCatching {
+    private suspend fun MatrixClient.needsForcedNativeSlidingSyncMigration(): Result<Boolean> = runCatchingExceptions {
         val currentSlidingSyncVersion = currentSlidingSyncVersion().getOrThrow()
         currentSlidingSyncVersion == SlidingSyncVersion.Proxy
-    }
-
-    private suspend fun ensurePusherIsRegistered(pusherRegistrationState: MutableState<AsyncData<Unit>>) {
-        Timber.tag(pusherTag.value).d("Ensure pusher is registered")
-        val currentPushProvider = pushService.getCurrentPushProvider()
-        val result = if (currentPushProvider == null) {
-            Timber.tag(pusherTag.value).d("Register with the first available push provider with at least one distributor")
-            val pushProvider = pushService.getAvailablePushProviders()
-                .firstOrNull { it.getDistributors().isNotEmpty() }
-            // Else fallback to the first available push provider (the list should never be empty)
-                ?: pushService.getAvailablePushProviders().firstOrNull()
-                ?: return Unit
-                    .also { Timber.tag(pusherTag.value).w("No push providers available") }
-                    .also { pusherRegistrationState.value = AsyncData.Failure(PusherRegistrationFailure.NoProvidersAvailable()) }
-            val distributor = pushProvider.getDistributors().firstOrNull()
-                ?: return Unit
-                    .also { Timber.tag(pusherTag.value).w("No distributors available") }
-                    .also {
-                        // In this case, consider the push provider is chosen.
-                        pushService.selectPushProvider(matrixClient.sessionId, pushProvider)
-                    }
-                    .also { pusherRegistrationState.value = AsyncData.Failure(PusherRegistrationFailure.NoDistributorsAvailable()) }
-            pushService.registerWith(matrixClient, pushProvider, distributor)
-        } else {
-            val currentPushDistributor = currentPushProvider.getCurrentDistributor(matrixClient.sessionId)
-            if (currentPushDistributor == null) {
-                Timber.tag(pusherTag.value).d("Register with the first available distributor")
-                val distributor = currentPushProvider.getDistributors().firstOrNull()
-                    ?: return Unit
-                        .also { Timber.tag(pusherTag.value).w("No distributors available") }
-                        .also { pusherRegistrationState.value = AsyncData.Failure(PusherRegistrationFailure.NoDistributorsAvailable()) }
-                pushService.registerWith(matrixClient, currentPushProvider, distributor)
-            } else {
-                Timber.tag(pusherTag.value).d("Re-register with the current distributor")
-                pushService.registerWith(matrixClient, currentPushProvider, currentPushDistributor)
-            }
-        }
-        result.fold(
-            onSuccess = {
-                Timber.tag(pusherTag.value).d("Pusher registered")
-                pusherRegistrationState.value = AsyncData.Success(Unit)
-            },
-            onFailure = {
-                Timber.tag(pusherTag.value).e(it, "Failed to register pusher")
-                if (it is RegistrationFailure) {
-                    pusherRegistrationState.value = AsyncData.Failure(
-                        PusherRegistrationFailure.RegistrationFailure(it.clientException, it.isRegisteringAgain)
-                    )
-                } else {
-                    pusherRegistrationState.value = AsyncData.Failure(it)
-                }
-            }
-        )
     }
 
     private fun reportCryptoStatusToAnalytics(verificationState: SessionVerifiedStatus, recoveryState: RecoveryState) {

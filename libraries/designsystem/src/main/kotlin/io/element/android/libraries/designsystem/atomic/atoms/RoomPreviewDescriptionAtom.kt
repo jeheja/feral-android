@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,14 +16,18 @@ import io.element.android.compound.theme.ElementTheme
 import io.element.android.libraries.designsystem.theme.components.Text
 
 @Composable
-fun RoomPreviewDescriptionAtom(description: String, modifier: Modifier = Modifier) {
+fun RoomPreviewDescriptionAtom(
+    description: String,
+    modifier: Modifier = Modifier,
+    maxLines: Int = Int.MAX_VALUE,
+) {
     Text(
         modifier = modifier,
         text = description,
-        style = ElementTheme.typography.fontBodySmRegular,
+        style = ElementTheme.typography.fontBodyMdRegular,
         textAlign = TextAlign.Center,
-        color = ElementTheme.colors.textSecondary,
-        maxLines = 3,
+        color = ElementTheme.colors.textPrimary,
+        maxLines = maxLines,
         overflow = TextOverflow.Ellipsis,
     )
 }

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -28,6 +29,9 @@ sealed interface MessageShield {
 
     /** The sender was previously verified but is not anymore. */
     data class VerificationViolation(val isCritical: Boolean) : MessageShield
+
+    /** The sender of the event does not match the owner of the device that created the Megolm session. */
+    data class MismatchedSender(val isCritical: Boolean) : MessageShield
 }
 
 val MessageShield.isCritical: Boolean
@@ -38,4 +42,5 @@ val MessageShield.isCritical: Boolean
         is MessageShield.UnverifiedIdentity -> isCritical
         is MessageShield.SentInClear -> isCritical
         is MessageShield.VerificationViolation -> isCritical
+        is MessageShield.MismatchedSender -> isCritical
     }

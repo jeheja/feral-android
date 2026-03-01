@@ -1,29 +1,24 @@
+import org.gradle.accessors.dm.LibrariesForLibs
+
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2022-2024 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
-
-buildscript {
-    dependencies {
-        classpath(libs.kotlin.gradle.plugin)
-        classpath(libs.gms.google.services)
-    }
-}
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
     id("io.element.android-root")
+    alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.ksp) apply false
-    alias(libs.plugins.anvil) apply false
-    alias(libs.plugins.kotlin.jvm) apply false
-    alias(libs.plugins.kapt) apply false
     alias(libs.plugins.dependencycheck) apply false
+    alias(libs.plugins.roborazzi) apply false
     alias(libs.plugins.dependencyanalysis)
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
@@ -34,6 +29,8 @@ plugins {
 tasks.register<Delete>("clean").configure {
     delete(rootProject.layout.buildDirectory)
 }
+
+private val ktLintVersion = the<LibrariesForLibs>().versions.ktlint.get()
 
 allprojects {
     // Detekt
@@ -49,7 +46,8 @@ allprojects {
         config.from(files("$rootDir/tools/detekt/detekt.yml"))
     }
     dependencies {
-        detektPlugins("io.nlopez.compose.rules:detekt:0.4.22")
+        detektPlugins("io.nlopez.compose.rules:detekt:0.5.6")
+        detektPlugins(project(":tests:detekt-rules"))
     }
 
     tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
@@ -63,14 +61,12 @@ allprojects {
 
     // See https://github.com/JLLeitschuh/ktlint-gradle#configuration
     configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
-        // See https://github.com/pinterest/ktlint/releases/
-        // TODO Regularly check for new version here ^
-        version.set("1.1.1")
-        android.set(true)
-        ignoreFailures.set(false)
-        enableExperimentalRules.set(true)
+        version = ktLintVersion
+        android = true
+        ignoreFailures = false
+        enableExperimentalRules = true
         // display the corresponding rule
-        verbose.set(true)
+        verbose = true
         reporters {
             reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
             // To have XML report for Danger
@@ -97,6 +93,12 @@ allprojects {
 
             // Uncomment to suppress Compose Kotlin compiler compatibility warning
 //            freeCompilerArgs.addAll(listOf("-P", "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"))
+
+            // Fix compilation warning for annotations
+            // See https://youtrack.jetbrains.com/issue/KT-73255/Change-defaulting-rule-for-annotations for more details
+            freeCompilerArgs.add("-Xannotation-default-target=first-only")
+            // Opt-in to context receivers
+            freeCompilerArgs.add("-Xcontext-parameters")
         }
     }
 }
@@ -192,6 +194,21 @@ subprojects {
     tasks.findByName("recordPaparazzi")?.dependsOn(removeOldScreenshotsTask)
     tasks.findByName("recordPaparazziDebug")?.dependsOn(removeOldScreenshotsTask)
     tasks.findByName("recordPaparazziRelease")?.dependsOn(removeOldScreenshotsTask)
+}
+
+// Make sure to delete old snapshot before recording new ones
+subprojects {
+    val screenshotsDir = File("${project.projectDir}/screenshots")
+    val removeOldScreenshotsTask = tasks.register("removeOldScreenshots") {
+        onlyIf { screenshotsDir.exists() }
+        doFirst {
+            println("Delete previous screenshots located at $screenshotsDir\n")
+            screenshotsDir.deleteRecursively()
+        }
+    }
+    tasks.findByName("recordRoborazzi")?.dependsOn(removeOldScreenshotsTask)
+    tasks.findByName("recordRoborazziDebug")?.dependsOn(removeOldScreenshotsTask)
+    tasks.findByName("recordRoborazziRelease")?.dependsOn(removeOldScreenshotsTask)
 }
 
 subprojects {

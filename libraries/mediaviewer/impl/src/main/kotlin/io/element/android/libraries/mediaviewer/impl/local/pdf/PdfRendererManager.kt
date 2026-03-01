@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -10,6 +11,7 @@ package io.element.android.libraries.mediaviewer.impl.local.pdf
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import io.element.android.libraries.architecture.AsyncData
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
@@ -35,7 +37,7 @@ class PdfRendererManager(
         coroutineScope.launch {
             mutex.withLock {
                 withContext(Dispatchers.IO) {
-                    pdfRenderer = runCatching {
+                    pdfRenderer = runCatchingExceptions {
                         PdfRenderer(parcelFileDescriptor)
                     }.fold(
                         onSuccess = { pdfRenderer ->

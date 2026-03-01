@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -54,6 +55,21 @@ class DeveloperSettingsViewTest {
 
     @Config(qualifiers = "h1500dp")
     @Test
+    fun `clicking on push history notification invokes the expected callback`() {
+        val eventsRecorder = EventsRecorder<DeveloperSettingsEvents>(expectEvents = false)
+        ensureCalledOnce {
+            rule.setDeveloperSettingsView(
+                state = aDeveloperSettingsState(
+                    eventSink = eventsRecorder
+                ),
+                onPushHistoryClick = it
+            )
+            rule.clickOn(R.string.troubleshoot_notifications_entry_point_push_history_title)
+        }
+    }
+
+    @Config(qualifiers = "h1500dp")
+    @Test
     fun `clicking on element call url open the dialogs and submit emits the expected event`() {
         val eventsRecorder = EventsRecorder<DeveloperSettingsEvents>()
         rule.setDeveloperSettingsView(
@@ -68,7 +84,7 @@ class DeveloperSettingsViewTest {
         eventsRecorder.assertSingle(DeveloperSettingsEvents.SetCustomElementCallBaseUrl("https://call.element.dev"))
     }
 
-    @Config(qualifiers = "h1200dp")
+    @Config(qualifiers = "h2000dp")
     @Test
     fun `clicking on open showkase invokes the expected callback`() {
         val eventsRecorder = EventsRecorder<DeveloperSettingsEvents>(expectEvents = false)
@@ -97,7 +113,7 @@ class DeveloperSettingsViewTest {
         eventsRecorder.assertSingle(DeveloperSettingsEvents.SetTracingLogLevel(LogLevelItem.DEBUG))
     }
 
-    @Config(qualifiers = "h1700dp")
+    @Config(qualifiers = "h2200dp")
     @Test
     fun `clicking on clear cache emits the expected event`() {
         val eventsRecorder = EventsRecorder<DeveloperSettingsEvents>()
@@ -114,12 +130,14 @@ class DeveloperSettingsViewTest {
 private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setDeveloperSettingsView(
     state: DeveloperSettingsState,
     onOpenShowkase: () -> Unit = EnsureNeverCalled(),
+    onPushHistoryClick: () -> Unit = EnsureNeverCalled(),
     onBackClick: () -> Unit = EnsureNeverCalled()
 ) {
     setContent {
         DeveloperSettingsView(
             state = state,
             onOpenShowkase = onOpenShowkase,
+            onPushHistoryClick = onPushHistoryClick,
             onBackClick = onBackClick,
         )
     }

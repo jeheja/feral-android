@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -29,8 +30,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
+import io.element.android.libraries.designsystem.components.media.WaveFormSamples
 import io.element.android.libraries.designsystem.components.media.WaveformPlaybackView
-import io.element.android.libraries.designsystem.components.media.createFakeWaveform
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Icon
@@ -66,22 +67,12 @@ internal fun VoiceMessagePreview(
             .heightIn(26.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (isPlaying) {
-            PlayerButton(
-                type = PlayerButtonType.Pause,
-                onClick = onPauseClick,
-                enabled = isInteractive,
-            )
-        } else {
-            PlayerButton(
-                type = PlayerButtonType.Play,
-                onClick = onPlayClick,
-                enabled = isInteractive
-            )
-        }
-
+        PlayerButton(
+            type = if (isPlaying) PlayerButtonType.Pause else PlayerButtonType.Play,
+            onClick = if (isPlaying) onPauseClick else onPlayClick,
+            enabled = isInteractive,
+        )
         Spacer(modifier = Modifier.width(8.dp))
-
         Text(
             text = time.formatShort(),
             color = ElementTheme.colors.textSecondary,
@@ -89,9 +80,7 @@ internal fun VoiceMessagePreview(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-
         Spacer(modifier = Modifier.width(12.dp))
-
         WaveformPlaybackView(
             modifier = Modifier
                 .weight(1f)
@@ -138,14 +127,18 @@ private fun PlayerButton(
 private fun PauseIcon() = Icon(
     imageVector = CompoundIcons.PauseSolid(),
     contentDescription = stringResource(id = CommonStrings.a11y_pause),
-    modifier = Modifier.size(20.dp).padding(2.dp),
+    modifier = Modifier
+        .size(20.dp)
+        .padding(2.dp),
 )
 
 @Composable
 private fun PlayIcon() = Icon(
     imageVector = CompoundIcons.PlaySolid(),
     contentDescription = stringResource(id = CommonStrings.a11y_play),
-    modifier = Modifier.size(20.dp).padding(2.dp),
+    modifier = Modifier
+        .size(20.dp)
+        .padding(2.dp),
 )
 
 @PreviewsDayNight
@@ -160,7 +153,7 @@ internal fun VoiceMessagePreviewPreview() = ElementPreview {
             time = 2.seconds,
             playbackProgress = 0.2f,
             showCursor = true,
-            waveform = createFakeWaveform()
+            waveform = WaveFormSamples.longRealisticWaveForm,
         )
         AVoiceMessagePreview(
             isInteractive = true,
@@ -168,7 +161,7 @@ internal fun VoiceMessagePreviewPreview() = ElementPreview {
             time = 0.seconds,
             playbackProgress = 0.0f,
             showCursor = true,
-            waveform = createFakeWaveform()
+            waveform = WaveFormSamples.longRealisticWaveForm,
         )
         AVoiceMessagePreview(
             isInteractive = false,
@@ -176,7 +169,7 @@ internal fun VoiceMessagePreviewPreview() = ElementPreview {
             time = 789.seconds,
             playbackProgress = 0.0f,
             showCursor = false,
-            waveform = createFakeWaveform()
+            waveform = WaveFormSamples.longRealisticWaveForm,
         )
     }
 }

@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import dev.zacsweers.metro.Inject
 import io.element.android.features.logout.api.direct.DirectLogoutEvents
 import io.element.android.features.logout.api.direct.DirectLogoutState
 import io.element.android.features.logout.impl.tools.isBackingUp
@@ -25,9 +27,9 @@ import io.element.android.libraries.matrix.api.encryption.BackupUploadState
 import io.element.android.libraries.matrix.api.encryption.EncryptionService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-class DirectLogoutPresenter @Inject constructor(
+@Inject
+class DirectLogoutPresenter(
     private val matrixClient: MatrixClient,
     private val encryptionService: EncryptionService,
 ) : Presenter<DirectLogoutState> {
@@ -46,7 +48,7 @@ class DirectLogoutPresenter @Inject constructor(
 
         val isLastDevice by encryptionService.isLastDevice.collectAsState()
 
-        fun handleEvents(event: DirectLogoutEvents) {
+        fun handleEvent(event: DirectLogoutEvents) {
             when (event) {
                 is DirectLogoutEvents.Logout -> {
                     if (logoutAction.value.isConfirming() || event.ignoreSdkError) {
@@ -65,7 +67,7 @@ class DirectLogoutPresenter @Inject constructor(
             canDoDirectSignOut = !isLastDevice &&
                 !backupUploadState.isBackingUp(),
             logoutAction = logoutAction.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 

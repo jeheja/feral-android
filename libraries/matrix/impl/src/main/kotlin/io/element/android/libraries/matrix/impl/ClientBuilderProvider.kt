@@ -1,23 +1,23 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.impl
 
-import com.squareup.anvil.annotations.ContributesBinding
-import io.element.android.libraries.di.AppScope
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import org.matrix.rustcomponents.sdk.ClientBuilder
-import javax.inject.Inject
 
 interface ClientBuilderProvider {
     fun provide(): ClientBuilder
 }
 
 @ContributesBinding(AppScope::class)
-class RustClientBuilderProvider @Inject constructor() : ClientBuilderProvider {
+class RustClientBuilderProvider : ClientBuilderProvider {
     override fun provide(): ClientBuilder {
         return ClientBuilder()
     }

@@ -1,13 +1,15 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.impl.roomlist
 
 import io.element.android.libraries.matrix.api.roomlist.RoomSummary
+import io.element.android.services.analytics.api.AnalyticsService
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -17,18 +19,20 @@ import org.matrix.rustcomponents.sdk.RoomListEntriesUpdate
 import org.matrix.rustcomponents.sdk.RoomListServiceInterface
 import org.matrix.rustcomponents.sdk.use
 import timber.log.Timber
+import kotlin.collections.groupingBy
 import kotlin.coroutines.CoroutineContext
 
 class RoomSummaryListProcessor(
     private val roomSummaries: MutableSharedFlow<List<RoomSummary>>,
     private val roomListService: RoomListServiceInterface,
     private val coroutineContext: CoroutineContext,
-    private val roomSummaryDetailsFactory: RoomSummaryFactory = RoomSummaryFactory(),
+    private val roomSummaryFactory: RoomSummaryFactory,
+    private val analyticsService: AnalyticsService,
 ) {
     private val mutex = Mutex()
 
     suspend fun postUpdate(updates: List<RoomListEntriesUpdate>) {
-        updateRoomSummaries {
+        updateRoomSummaries(updates) {
             Timber.v("Update rooms from postUpdates (with ${updates.size} items) on ${Thread.currentThread()}")
             updates.forEach { update ->
                 applyUpdate(update)
@@ -37,7 +41,7 @@ class RoomSummaryListProcessor(
     }
 
     suspend fun rebuildRoomSummaries() {
-        updateRoomSummaries {
+        updateRoomSummaries(emptyList()) {
             forEachIndexed { i, summary ->
                 val result = buildRoomSummaryForIdentifier(summary.roomId.value)
                 if (result != null) {
@@ -96,7 +100,7 @@ class RoomSummaryListProcessor(
     }
 
     private suspend fun buildSummaryForRoomListEntry(entry: Room): RoomSummary {
-        return entry.use { roomSummaryDetailsFactory.create(room = it) }
+        return entry.use { roomSummaryFactory.create(room = it) }
     }
 
     private suspend fun buildRoomSummaryForIdentifier(identifier: String): RoomSummary? {
@@ -105,12 +109,32 @@ class RoomSummaryListProcessor(
         }
     }
 
-    private suspend fun updateRoomSummaries(block: suspend MutableList<RoomSummary>.() -> Unit) = withContext(coroutineContext) {
+    private suspend fun updateRoomSummaries(updates: List<RoomListEntriesUpdate>, block: suspend MutableList<RoomSummary>.() -> Unit) = withContext(
+        coroutineContext
+    ) {
         mutex.withLock {
             val current = roomSummaries.replayCache.lastOrNull()
             val mutableRoomSummaries = current.orEmpty().toMutableList()
             block(mutableRoomSummaries)
-            roomSummaries.emit(mutableRoomSummaries)
+
+            // TODO remove once https://github.com/element-hq/element-x-android/issues/5031 has been confirmed as fixed
+            val uniqueRooms = mutableRoomSummaries.distinctBy { it.roomId }
+
+            if (uniqueRooms.size != mutableRoomSummaries.size) {
+                val duplicates = mutableRoomSummaries.groupingBy { it.roomId }.eachCount().filter { it.value > 1 }
+                if (duplicates.isNotEmpty()) {
+                    analyticsService.trackError(
+                        IllegalStateException(
+                            "Found duplicates in room summaries after a list update from the SDK: $duplicates. " +
+                                "Updates: ${updates.description()}"
+                        )
+                    )
+                }
+            }
+
+            roomSummaries.emit(uniqueRooms)
         }
     }
 }
+
+private fun List<RoomListEntriesUpdate>.description(): String = joinToString { it.describe() }

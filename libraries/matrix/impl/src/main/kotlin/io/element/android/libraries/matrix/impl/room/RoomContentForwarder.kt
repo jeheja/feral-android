@@ -1,19 +1,20 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.impl.room
 
 import io.element.android.libraries.core.coroutine.parallelMap
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.room.ForwardEventException
 import io.element.android.libraries.matrix.impl.roomlist.roomOrNull
 import io.element.android.libraries.matrix.impl.timeline.runWithTimelineListenerRegistered
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeout
 import org.matrix.rustcomponents.sdk.MsgLikeKind
 import org.matrix.rustcomponents.sdk.RoomListService
@@ -52,7 +53,7 @@ class RoomContentForwarder(
         val failedForwardingTo = mutableSetOf<RoomId>()
         targetRooms.parallelMap { room ->
             room.use { targetRoom ->
-                runCatching {
+                runCatchingExceptions {
                     // Sending a message requires a registered timeline listener
                     targetRoom.timeline().runWithTimelineListenerRegistered {
                         withTimeout(timeoutMs.milliseconds) {
@@ -62,9 +63,6 @@ class RoomContentForwarder(
                 }
             }.onFailure {
                 failedForwardingTo.add(RoomId(room.id()))
-                if (it is CancellationException) {
-                    throw it
-                }
             }
         }
 

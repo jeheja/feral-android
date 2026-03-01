@@ -1,13 +1,15 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.impl.sync
 
 import io.element.android.libraries.core.coroutine.mapState
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.matrix.api.sync.SyncService
 import io.element.android.libraries.matrix.api.sync.SyncState
 import kotlinx.coroutines.CoroutineDispatcher
@@ -28,15 +30,15 @@ import org.matrix.rustcomponents.sdk.SyncService as InnerSyncService
 class RustSyncService(
     private val inner: InnerSyncService,
     private val dispatcher: CoroutineDispatcher,
-    sessionCoroutineScope: CoroutineScope
+    sessionCoroutineScope: CoroutineScope,
 ) : SyncService {
     private val isServiceReady = AtomicBoolean(true)
 
     override suspend fun startSync() = withContext(dispatcher) {
-        runCatching {
+        runCatchingExceptions {
             if (!isServiceReady.get()) {
                 Timber.d("Can't start sync: service is not ready")
-                return@runCatching
+                return@runCatchingExceptions
             }
             Timber.i("Start sync")
             inner.start()
@@ -46,10 +48,10 @@ class RustSyncService(
     }
 
     override suspend fun stopSync() = withContext(dispatcher) {
-        runCatching {
+        runCatchingExceptions {
             if (!isServiceReady.get()) {
                 Timber.d("Can't stop sync: service is not ready")
-                return@runCatching
+                return@runCatchingExceptions
             }
             Timber.i("Stop sync")
             inner.stop()
@@ -69,10 +71,10 @@ class RustSyncService(
     override val syncState: StateFlow<SyncState> =
         inner.stateFlow()
             .map(SyncServiceState::toSyncState)
+            .distinctUntilChanged()
             .onEach { state ->
                 Timber.i("Sync state=$state")
             }
-            .distinctUntilChanged()
             .stateIn(sessionCoroutineScope, SharingStarted.Eagerly, SyncState.Idle)
 
     override val isOnline: StateFlow<Boolean> = syncState.mapState { it != SyncState.Offline }

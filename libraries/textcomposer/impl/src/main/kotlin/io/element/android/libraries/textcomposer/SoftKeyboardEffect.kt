@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,6 +15,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.viewinterop.AndroidView
 import io.element.android.libraries.androidutils.ui.awaitWindowFocus
+import io.element.android.libraries.androidutils.ui.isKeyboardVisible
 import io.element.android.libraries.androidutils.ui.showKeyboard
 
 /**
@@ -40,11 +42,13 @@ internal fun <T> SoftKeyboardEffect(
             // Await window focus in case returning from a dialog
             view.awaitWindowFocus()
 
-            // Show the keyboard, temporarily using the root view for focus
-            view.showKeyboard(andRequestFocus = true)
+            if (!view.isKeyboardVisible()) {
+                // Show the keyboard, temporarily using the root view for focus
+                view.showKeyboard(andRequestFocus = true)
 
-            // Refocus to the correct view
-            latestOnRequestFocus()
+                // Refocus to the correct view
+                latestOnRequestFocus()
+            }
         }
     }
 }

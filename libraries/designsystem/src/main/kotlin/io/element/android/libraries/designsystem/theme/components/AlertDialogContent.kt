@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -64,7 +65,7 @@ internal fun SimpleAlertDialogContent(
         content = {
             Text(
                 text = content,
-                style = ElementTheme.materialTypography.bodyMedium,
+                style = ElementTheme.typography.fontBodyMdRegular,
             )
         },
         submitText = submitText,
@@ -142,7 +143,7 @@ internal fun SimpleAlertDialogContent(
                 Text(
                     text = titleText,
                     style = ElementTheme.typography.fontHeadingSmMedium,
-                    textAlign = TextAlign.Center,
+                    textAlign = if (icon != null) TextAlign.Center else TextAlign.Start,
                 )
             }
         },
@@ -505,6 +506,46 @@ internal fun DialogWithThirdButtonPreview() {
                 cancelText = "Cancel",
                 submitText = "Delete",
                 thirdButtonText = "Other",
+                onSubmitClick = {},
+            )
+        }
+    }
+}
+
+@Preview(group = PreviewGroup.Dialogs, name = "Dialog with a very long title")
+@Composable
+@Suppress("MaxLineLength")
+internal fun DialogWithVeryLongTitlePreview() {
+    ElementThemedPreview(showBackground = false) {
+        DialogPreview {
+            SimpleAlertDialogContent(
+                title = "Dialog Title that takes more than one line",
+                content = "A dialog is a type of modal window that appears in front of app content to provide critical information," +
+                    " or prompt for a decision to be made. Learn more",
+                submitText = "OK",
+                onSubmitClick = {},
+            )
+        }
+    }
+}
+
+@Preview(group = PreviewGroup.Dialogs, name = "Dialog with a very long title and icon")
+@Composable
+@Suppress("MaxLineLength")
+internal fun DialogWithVeryLongTitleAndIconPreview() {
+    ElementThemedPreview(showBackground = false) {
+        DialogPreview {
+            SimpleAlertDialogContent(
+                icon = {
+                    Icon(
+                        imageVector = CompoundIcons.NotificationsSolid(),
+                        contentDescription = null
+                    )
+                },
+                title = "Dialog Title that takes more than one line",
+                content = "A dialog is a type of modal window that appears in front of app content to provide critical information," +
+                    " or prompt for a decision to be made. Learn more",
+                submitText = "OK",
                 onSubmitClick = {},
             )
         }

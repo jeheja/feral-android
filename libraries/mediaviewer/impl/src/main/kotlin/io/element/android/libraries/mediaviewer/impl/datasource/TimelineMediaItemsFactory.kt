@@ -1,12 +1,14 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.mediaviewer.impl.datasource
 
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.androidutils.diff.DefaultDiffCacheInvalidator
 import io.element.android.libraries.androidutils.diff.DiffCacheUpdater
 import io.element.android.libraries.androidutils.diff.MutableListDiffCache
@@ -14,16 +16,16 @@ import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.matrix.api.timeline.MatrixTimelineItem
 import io.element.android.libraries.mediaviewer.impl.model.MediaItem
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 
-class TimelineMediaItemsFactory @Inject constructor(
+@Inject
+class TimelineMediaItemsFactory(
     private val dispatchers: CoroutineDispatchers,
     private val virtualItemFactory: VirtualItemFactory,
     private val eventItemFactory: EventItemFactory,
@@ -68,7 +70,7 @@ class TimelineMediaItemsFactory @Inject constructor(
                 newTimelineItemStates.add(cacheItem)
             }
         }
-        _timelineItems.emit(newTimelineItemStates.toPersistentList())
+        _timelineItems.emit(newTimelineItemStates.toImmutableList())
     }
 
     private fun buildAndCacheItem(

@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -19,32 +20,37 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.libraries.androidutils.file.TemporaryUriDeleter
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runCatchingUpdatingState
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.core.mimetype.MimeTypes
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.ui.media.AvatarAction
 import io.element.android.libraries.mediapickers.api.PickerProvider
+import io.element.android.libraries.mediaupload.api.MediaOptimizationConfigProvider
 import io.element.android.libraries.mediaupload.api.MediaPreProcessor
-import io.element.android.libraries.permissions.api.PermissionsEvents
+import io.element.android.libraries.permissions.api.PermissionsEvent
 import io.element.android.libraries.permissions.api.PermissionsPresenter
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-class EditUserProfilePresenter @AssistedInject constructor(
+@AssistedInject
+class EditUserProfilePresenter(
     @Assisted private val matrixUser: MatrixUser,
+    @Assisted private val navigator: EditUserProfileNavigator,
     private val matrixClient: MatrixClient,
     private val mediaPickerProvider: PickerProvider,
     private val mediaPreProcessor: MediaPreProcessor,
     private val temporaryUriDeleter: TemporaryUriDeleter,
+    private val mediaOptimizationConfigProvider: MediaOptimizationConfigProvider,
     permissionsPresenterFactory: PermissionsPresenter.Factory,
 ) : Presenter<EditUserProfileState> {
     private val cameraPermissionPresenter: PermissionsPresenter = permissionsPresenterFactory.create(android.Manifest.permission.CAMERA)
@@ -52,27 +58,30 @@ class EditUserProfilePresenter @AssistedInject constructor(
 
     @AssistedFactory
     interface Factory {
-        fun create(matrixUser: MatrixUser): EditUserProfilePresenter
+        fun create(
+            matrixUser: MatrixUser,
+            navigator: EditUserProfileNavigator,
+        ): EditUserProfilePresenter
     }
 
     @Composable
     override fun present(): EditUserProfileState {
         val cameraPermissionState = cameraPermissionPresenter.present()
-        var userAvatarUri by rememberSaveable { mutableStateOf(matrixUser.avatarUrl?.toUri()) }
+        var userAvatarUri by rememberSaveable { mutableStateOf(matrixUser.avatarUrl) }
         var userDisplayName by rememberSaveable { mutableStateOf(matrixUser.displayName) }
         val cameraPhotoPicker = mediaPickerProvider.registerCameraPhotoPicker(
             onResult = { uri ->
                 if (uri != null) {
-                    temporaryUriDeleter.delete(userAvatarUri)
-                    userAvatarUri = uri
+                    temporaryUriDeleter.delete(userAvatarUri?.toUri())
+                    userAvatarUri = uri.toString()
                 }
             }
         )
         val galleryImagePicker = mediaPickerProvider.registerGalleryImagePicker(
             onResult = { uri ->
                 if (uri != null) {
-                    temporaryUriDeleter.delete(userAvatarUri)
-                    userAvatarUri = uri
+                    temporaryUriDeleter.delete(userAvatarUri?.toUri())
+                    userAvatarUri = uri.toString()
                 }
             }
         )
@@ -96,34 +105,60 @@ class EditUserProfilePresenter @AssistedInject constructor(
 
         val saveAction: MutableState<AsyncAction<Unit>> = remember { mutableStateOf(AsyncAction.Uninitialized) }
         val localCoroutineScope = rememberCoroutineScope()
-        fun handleEvents(event: EditUserProfileEvents) {
+
+        val canSave = remember(userDisplayName, userAvatarUri) {
+            val hasProfileChanged = hasDisplayNameChanged(userDisplayName, matrixUser) ||
+                hasAvatarUrlChanged(userAvatarUri, matrixUser)
+            !userDisplayName.isNullOrBlank() && hasProfileChanged
+        }
+
+        fun handleEvent(event: EditUserProfileEvent) {
             when (event) {
-                is EditUserProfileEvents.Save -> localCoroutineScope.saveChanges(userDisplayName, userAvatarUri, matrixUser, saveAction)
-                is EditUserProfileEvents.HandleAvatarAction -> {
+                is EditUserProfileEvent.Save -> localCoroutineScope.saveChanges(
+                    name = userDisplayName,
+                    avatarUri = userAvatarUri?.toUri(),
+                    currentUser = matrixUser,
+                    action = saveAction,
+                )
+                is EditUserProfileEvent.HandleAvatarAction -> {
                     when (event.action) {
                         AvatarAction.ChoosePhoto -> galleryImagePicker.launch()
                         AvatarAction.TakePhoto -> if (cameraPermissionState.permissionGranted) {
                             cameraPhotoPicker.launch()
                         } else {
                             pendingPermissionRequest = true
-                            cameraPermissionState.eventSink(PermissionsEvents.RequestPermissions)
+                            cameraPermissionState.eventSink(PermissionsEvent.RequestPermissions)
                         }
                         AvatarAction.Remove -> {
-                            temporaryUriDeleter.delete(userAvatarUri)
+                            temporaryUriDeleter.delete(userAvatarUri?.toUri())
                             userAvatarUri = null
                         }
                     }
                 }
-
-                is EditUserProfileEvents.UpdateDisplayName -> userDisplayName = event.name
-                EditUserProfileEvents.CancelSaveChanges -> saveAction.value = AsyncAction.Uninitialized
+                is EditUserProfileEvent.UpdateDisplayName -> userDisplayName = event.name
+                EditUserProfileEvent.Exit -> {
+                    when (saveAction.value) {
+                        is AsyncAction.Confirming -> {
+                            // Close the dialog right now
+                            saveAction.value = AsyncAction.Uninitialized
+                            navigator.close()
+                        }
+                        AsyncAction.Loading -> Unit
+                        is AsyncAction.Failure,
+                        is AsyncAction.Success -> {
+                            // Should not happen
+                        }
+                        AsyncAction.Uninitialized -> {
+                            if (canSave) {
+                                saveAction.value = AsyncAction.ConfirmingCancellation
+                            } else {
+                                navigator.close()
+                            }
+                        }
+                    }
+                }
+                EditUserProfileEvent.CloseDialog -> saveAction.value = AsyncAction.Uninitialized
             }
-        }
-
-        val canSave = remember(userDisplayName, userAvatarUri) {
-            val hasProfileChanged = hasDisplayNameChanged(userDisplayName, matrixUser) ||
-                hasAvatarUrlChanged(userAvatarUri, matrixUser)
-            !userDisplayName.isNullOrBlank() && hasProfileChanged
         }
 
         return EditUserProfileState(
@@ -134,16 +169,15 @@ class EditUserProfilePresenter @AssistedInject constructor(
             saveButtonEnabled = canSave && saveAction.value !is AsyncAction.Loading,
             saveAction = saveAction.value,
             cameraPermissionState = cameraPermissionState,
-            eventSink = { handleEvents(it) },
+            eventSink = ::handleEvent,
         )
     }
 
     private fun hasDisplayNameChanged(name: String?, currentUser: MatrixUser) =
         name?.trim() != currentUser.displayName?.trim()
 
-    private fun hasAvatarUrlChanged(avatarUri: Uri?, currentUser: MatrixUser) =
-        // Need to call `toUri()?.toString()` to make the test pass (we mockk Uri)
-        avatarUri?.toString()?.trim() != currentUser.avatarUrl?.toUri()?.toString()?.trim()
+    private fun hasAvatarUrlChanged(avatarUri: String?, currentUser: MatrixUser) =
+        avatarUri?.trim() != currentUser.avatarUrl?.trim()
 
     private fun CoroutineScope.saveChanges(
         name: String?,
@@ -168,13 +202,13 @@ class EditUserProfilePresenter @AssistedInject constructor(
     }
 
     private suspend fun updateAvatar(avatarUri: Uri?): Result<Unit> {
-        return runCatching {
+        return runCatchingExceptions {
             if (avatarUri != null) {
                 val preprocessed = mediaPreProcessor.process(
                     uri = avatarUri,
                     mimeType = MimeTypes.Jpeg,
                     deleteOriginal = false,
-                    compressIfPossible = false,
+                    mediaOptimizationConfig = mediaOptimizationConfigProvider.get(),
                 ).getOrThrow()
                 matrixClient.uploadAvatar(MimeTypes.Jpeg, preprocessed.file.readBytes()).getOrThrow()
             } else {

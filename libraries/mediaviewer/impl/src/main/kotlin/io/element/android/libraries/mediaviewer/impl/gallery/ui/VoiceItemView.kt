@@ -1,16 +1,17 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.mediaviewer.impl.gallery.ui
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,7 +39,9 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
+import io.element.android.libraries.designsystem.atomic.atoms.PlaybackSpeedButton
 import io.element.android.libraries.designsystem.components.media.WaveformPlaybackView
+import io.element.android.libraries.designsystem.modifiers.onKeyboardContextMenuAction
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.CircularProgressIndicator
@@ -49,11 +52,11 @@ import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.mediaviewer.impl.model.MediaItem
 import io.element.android.libraries.mediaviewer.impl.model.aMediaItemVoice
 import io.element.android.libraries.ui.strings.CommonStrings
-import io.element.android.libraries.voiceplayer.api.VoiceMessageEvents
+import io.element.android.libraries.voiceplayer.api.VoiceMessageEvent
 import io.element.android.libraries.voiceplayer.api.VoiceMessageState
 import io.element.android.libraries.voiceplayer.api.VoiceMessageStateProvider
 import io.element.android.libraries.voiceplayer.api.aVoiceMessageState
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 
 @Composable
@@ -84,7 +87,6 @@ fun VoiceItemView(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun VoiceInfoRow(
     state: VoiceMessageState,
@@ -92,7 +94,7 @@ private fun VoiceInfoRow(
     onLongClick: () -> Unit,
 ) {
     fun playPause() {
-        state.eventSink(VoiceMessageEvents.PlayPause)
+        state.eventSink(VoiceMessageEvent.PlayPause)
     }
 
     Row(
@@ -102,26 +104,40 @@ private fun VoiceInfoRow(
                 color = ElementTheme.colors.bgSubtleSecondary,
                 shape = RoundedCornerShape(12.dp),
             )
-            .combinedClickable(onClick = {}, onLongClick = onLongClick)
+            .combinedClickable(
+                onClick = {},
+                onLongClick = onLongClick,
+                onLongClickLabel = stringResource(CommonStrings.action_open_context_menu),
+            )
+            .onKeyboardContextMenuAction(onLongClick)
             .fillMaxWidth()
             .padding(start = 12.dp, end = 36.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        when (state.button) {
-            VoiceMessageState.Button.Play -> PlayButton(onClick = ::playPause)
-            VoiceMessageState.Button.Pause -> PauseButton(onClick = ::playPause)
-            VoiceMessageState.Button.Downloading -> ProgressButton()
-            VoiceMessageState.Button.Retry -> RetryButton(onClick = ::playPause)
-            VoiceMessageState.Button.Disabled -> PlayButton(onClick = {}, enabled = false)
+        when (state.buttonType) {
+            VoiceMessageState.ButtonType.Play -> PlayButton(onClick = ::playPause)
+            VoiceMessageState.ButtonType.Pause -> PauseButton(onClick = ::playPause)
+            VoiceMessageState.ButtonType.Downloading -> ProgressButton()
+            VoiceMessageState.ButtonType.Retry -> RetryButton(onClick = ::playPause)
+            VoiceMessageState.ButtonType.Disabled -> PlayButton(onClick = {}, enabled = false)
         }
         Spacer(Modifier.width(8.dp))
-        Text(
-            text = if (state.progress > 0f) state.time else voice.mediaInfo.duration ?: state.time,
-            color = ElementTheme.colors.textSecondary,
-            style = ElementTheme.typography.fontBodyMdMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            PlaybackSpeedButton(
+                speed = state.playbackSpeed,
+                onClick = { state.eventSink(VoiceMessageEvent.ChangePlaybackSpeed) },
+            )
+            Text(
+                text = if (state.progress > 0f) state.time else voice.mediaInfo.duration ?: state.time,
+                color = ElementTheme.colors.textSecondary,
+                style = ElementTheme.typography.fontBodyMdMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         Spacer(modifier = Modifier.width(8.dp))
         WaveformPlaybackView(
             modifier = Modifier
@@ -129,9 +145,9 @@ private fun VoiceInfoRow(
                 .height(34.dp),
             showCursor = state.showCursor,
             playbackProgress = state.progress,
-            waveform = voice.mediaInfo.waveform.orEmpty().toPersistentList(),
+            waveform = voice.mediaInfo.waveform.orEmpty().toImmutableList(),
             onSeek = {
-                state.eventSink(VoiceMessageEvents.Seek(it))
+                state.eventSink(VoiceMessageEvent.Seek(it))
             },
             seekEnabled = true,
         )

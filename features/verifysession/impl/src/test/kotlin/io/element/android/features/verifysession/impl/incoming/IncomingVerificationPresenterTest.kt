@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -12,6 +13,7 @@ import io.element.android.features.verifysession.impl.ui.aEmojisSessionVerificat
 import io.element.android.libraries.dateformatter.api.DateFormatter
 import io.element.android.libraries.dateformatter.test.FakeDateFormatter
 import io.element.android.libraries.matrix.api.core.FlowId
+import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.api.verification.SessionVerificationRequestDetails
 import io.element.android.libraries.matrix.api.verification.SessionVerificationService
 import io.element.android.libraries.matrix.api.verification.VerificationFlowState
@@ -289,31 +291,32 @@ class IncomingVerificationPresenterTest {
             navigatorLambda.assertions().isCalledOnce()
         }
     }
-
-    private val anIncomingSessionVerificationRequest = VerificationRequest.Incoming.OtherSession(
-        details = SessionVerificationRequestDetails(
-            senderProfile = SessionVerificationRequestDetails.SenderProfile(
-                userId = A_USER_ID,
-                displayName = "a device name",
-                avatarUrl = null,
-            ),
-            flowId = FlowId("flowId"),
-            deviceId = A_DEVICE_ID,
-            firstSeenTimestamp = A_TIMESTAMP,
-        )
-    )
-
-    private fun TestScope.createPresenter(
-        verificationRequest: VerificationRequest.Incoming = anIncomingSessionVerificationRequest,
-        navigator: IncomingVerificationNavigator = IncomingVerificationNavigator { lambdaError() },
-        service: SessionVerificationService = FakeSessionVerificationService(),
-        dateFormatter: DateFormatter = FakeDateFormatter(),
-    ) = IncomingVerificationPresenter(
-        verificationRequest = verificationRequest,
-        navigator = navigator,
-        sessionVerificationService = service,
-        stateMachine = IncomingVerificationStateMachine(service),
-        dateFormatter = dateFormatter,
-        sessionCoroutineScope = backgroundScope,
-    )
 }
+
+private val anIncomingSessionVerificationRequest = VerificationRequest.Incoming.OtherSession(
+    details = SessionVerificationRequestDetails(
+        senderProfile = MatrixUser(
+            userId = A_USER_ID,
+            displayName = "a user name",
+            avatarUrl = null,
+        ),
+        flowId = FlowId("flowId"),
+        deviceId = A_DEVICE_ID,
+        deviceDisplayName = "a device name",
+        firstSeenTimestamp = A_TIMESTAMP,
+    )
+)
+
+internal fun TestScope.createPresenter(
+    verificationRequest: VerificationRequest.Incoming = anIncomingSessionVerificationRequest,
+    navigator: IncomingVerificationNavigator = IncomingVerificationNavigator { lambdaError() },
+    service: SessionVerificationService = FakeSessionVerificationService(),
+    dateFormatter: DateFormatter = FakeDateFormatter(),
+) = IncomingVerificationPresenter(
+    verificationRequest = verificationRequest,
+    navigator = navigator,
+    sessionVerificationService = service,
+    stateMachine = IncomingVerificationStateMachine(service),
+    dateFormatter = dateFormatter,
+    sessionCoroutineScope = backgroundScope,
+)

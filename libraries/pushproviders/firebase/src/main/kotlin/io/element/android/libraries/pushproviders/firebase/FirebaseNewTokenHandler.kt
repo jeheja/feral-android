@@ -1,16 +1,17 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.pushproviders.firebase
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.core.extensions.flatMap
 import io.element.android.libraries.core.log.logger.LoggerTag
-import io.element.android.libraries.di.AppScope
 import io.element.android.libraries.matrix.api.MatrixClientProvider
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.pushproviders.api.PusherSubscriber
@@ -18,7 +19,6 @@ import io.element.android.libraries.pushstore.api.UserPushStoreFactory
 import io.element.android.libraries.sessionstorage.api.SessionStore
 import io.element.android.libraries.sessionstorage.api.toUserList
 import timber.log.Timber
-import javax.inject.Inject
 
 private val loggerTag = LoggerTag("FirebaseNewTokenHandler", LoggerTag.PushLoggerTag)
 
@@ -30,7 +30,7 @@ interface FirebaseNewTokenHandler {
 }
 
 @ContributesBinding(AppScope::class)
-class DefaultFirebaseNewTokenHandler @Inject constructor(
+class DefaultFirebaseNewTokenHandler(
     private val pusherSubscriber: PusherSubscriber,
     private val sessionStore: SessionStore,
     private val userPushStoreFactory: UserPushStoreFactory,

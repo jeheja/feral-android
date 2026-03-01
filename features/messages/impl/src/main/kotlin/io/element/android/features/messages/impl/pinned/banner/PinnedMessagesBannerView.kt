@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -78,7 +79,7 @@ fun PinnedMessagesBannerView(
 
 @Composable
 private fun PinnedMessagesBannerRow(
-    state: PinnedMessagesBannerState,
+    state: PinnedMessagesBannerState.Visible,
     onClick: (EventId) -> Unit,
     onViewAllClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -95,7 +96,7 @@ private fun PinnedMessagesBannerRow(
                 if (state is PinnedMessagesBannerState.Loaded) {
                     analyticsService.captureInteraction(Interaction.Name.PinnedMessageBannerClick)
                     onClick(state.currentPinnedMessage.eventId)
-                    state.eventSink(PinnedMessagesBannerEvents.MoveToNextPinned)
+                    state.eventSink(PinnedMessagesBannerEvent.MoveToNextPinned)
                 }
             },
         verticalAlignment = Alignment.CenterVertically,

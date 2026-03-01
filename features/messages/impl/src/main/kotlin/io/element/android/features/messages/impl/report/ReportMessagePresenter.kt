@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,9 +16,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runUpdatingState
@@ -30,7 +31,8 @@ import io.element.android.libraries.ui.strings.CommonStrings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-class ReportMessagePresenter @AssistedInject constructor(
+@AssistedInject
+class ReportMessagePresenter(
     private val room: JoinedRoom,
     @Assisted private val inputs: Inputs,
     private val snackbarDispatcher: SnackbarDispatcher,
@@ -52,12 +54,12 @@ class ReportMessagePresenter @AssistedInject constructor(
         var blockUser by rememberSaveable { mutableStateOf(false) }
         var result: MutableState<AsyncAction<Unit>> = remember { mutableStateOf(AsyncAction.Uninitialized) }
 
-        fun handleEvents(event: ReportMessageEvents) {
+        fun handleEvent(event: ReportMessageEvent) {
             when (event) {
-                is ReportMessageEvents.UpdateReason -> reason = event.reason
-                ReportMessageEvents.ToggleBlockUser -> blockUser = !blockUser
-                ReportMessageEvents.Report -> coroutineScope.report(inputs.eventId, inputs.senderId, reason, blockUser, result)
-                ReportMessageEvents.ClearError -> result.value = AsyncAction.Uninitialized
+                is ReportMessageEvent.UpdateReason -> reason = event.reason
+                ReportMessageEvent.ToggleBlockUser -> blockUser = !blockUser
+                ReportMessageEvent.Report -> coroutineScope.report(inputs.eventId, inputs.senderId, reason, blockUser, result)
+                ReportMessageEvent.ClearError -> result.value = AsyncAction.Uninitialized
             }
         }
 
@@ -65,7 +67,7 @@ class ReportMessagePresenter @AssistedInject constructor(
             reason = reason,
             blockUser = blockUser,
             result = result.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 

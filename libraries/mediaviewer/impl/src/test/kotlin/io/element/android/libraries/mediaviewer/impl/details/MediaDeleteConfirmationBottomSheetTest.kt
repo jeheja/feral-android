@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -19,6 +20,7 @@ import io.element.android.tests.testutils.EnsureNeverCalledWithParam
 import io.element.android.tests.testutils.clickOn
 import io.element.android.tests.testutils.ensureCalledOnce
 import io.element.android.tests.testutils.ensureCalledOnceWithParam
+import io.element.android.tests.testutils.setSafeContent
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestRule
@@ -60,7 +62,7 @@ private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setMedia
     onDelete: (EventId) -> Unit = EnsureNeverCalledWithParam(),
     onDismiss: () -> Unit = EnsureNeverCalled(),
 ) {
-    setContent {
+    setSafeContent {
         MediaDeleteConfirmationBottomSheet(
             state = state,
             onDelete = onDelete,

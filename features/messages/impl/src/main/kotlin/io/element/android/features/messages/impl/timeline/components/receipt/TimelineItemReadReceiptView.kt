@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -26,7 +27,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.invisibleToUser
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
@@ -37,6 +38,7 @@ import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.messages.impl.timeline.model.ReadReceiptData
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.components.avatar.getBestName
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -59,23 +61,23 @@ fun TimelineItemReadReceiptView(
         if (renderReadReceipts) {
             ReadReceiptsRow(
                 modifier = modifier.clearAndSetSemantics {
-                    invisibleToUser()
+                    hideFromAccessibility()
                 }
             ) {
                 ReadReceiptsAvatars(
                     receipts = state.receipts,
                     modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .clickable {
-                                onReadReceiptsClick()
-                            }
-                            .padding(2.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable {
+                            onReadReceiptsClick()
+                        }
+                        .padding(2.dp)
                 )
             }
         }
     } else {
         when (state.sendState) {
-            LocalEventSendState.Sending -> {
+            is LocalEventSendState.Sending -> {
                 ReadReceiptsRow(modifier) {
                     Icon(
                         modifier = Modifier.padding(2.dp),
@@ -112,9 +114,9 @@ private fun ReadReceiptsRow(
 ) {
     Row(
         modifier = modifier
-                .fillMaxWidth()
-                .height(AvatarSize.TimelineReadReceipt.dp + 8.dp)
-                .padding(horizontal = 18.dp),
+            .fillMaxWidth()
+            .height(AvatarSize.TimelineReadReceipt.dp + 8.dp)
+            .padding(horizontal = 18.dp),
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -154,15 +156,16 @@ private fun ReadReceiptsAvatars(
                 .forEachIndexed { index, readReceiptData ->
                     Box(
                         modifier = Modifier
-                                .padding(end = (12.dp + avatarStrokeSize * 2) * index)
-                                .size(size = avatarSize + avatarStrokeSize * 2)
-                                .clip(CircleShape)
-                                .background(avatarStrokeColor)
-                                .zIndex(index.toFloat()),
+                            .padding(end = (12.dp + avatarStrokeSize * 2) * index)
+                            .size(size = avatarSize + avatarStrokeSize * 2)
+                            .clip(CircleShape)
+                            .background(avatarStrokeColor)
+                            .zIndex(index.toFloat()),
                         contentAlignment = Alignment.Center,
                     ) {
                         Avatar(
                             avatarData = readReceiptData.avatarData,
+                            avatarType = AvatarType.User,
                         )
                     }
                 }

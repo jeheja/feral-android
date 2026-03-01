@@ -1,17 +1,30 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.securebackup.impl.enter
 
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
@@ -25,6 +38,9 @@ import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Button
 import io.element.android.libraries.ui.strings.CommonStrings
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun SecureBackupEnterRecoveryKeyView(
@@ -55,12 +71,30 @@ fun SecureBackupEnterRecoveryKeyView(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Content(
     state: SecureBackupEnterRecoveryKeyState,
 ) {
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    var isFocused by remember { mutableStateOf(false) }
+    val isImeVisible = WindowInsets.isImeVisible
+    val coroutineScope = rememberCoroutineScope()
+    LaunchedEffect(isImeVisible, isFocused) {
+        // When the keyboard is shown, we want to scroll the text field into view
+        if (isImeVisible && isFocused) {
+            coroutineScope.launch {
+                // Delay to ensure the keyboard is fully shown
+                delay(100.milliseconds)
+                bringIntoViewRequester.bringIntoView()
+            }
+        }
+    }
     RecoveryKeyView(
-        modifier = Modifier.padding(top = 52.dp, bottom = 32.dp),
+        modifier = Modifier
+            .onFocusChanged { isFocused = it.isFocused }
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .padding(top = 52.dp, bottom = 32.dp),
         state = state.recoveryKeyViewState,
         onClick = null,
         onChange = {
@@ -69,6 +103,9 @@ private fun Content(
         onSubmit = {
             state.eventSink.invoke(SecureBackupEnterRecoveryKeyEvents.Submit)
         },
+        toggleRecoveryKeyVisibility = {
+            state.eventSink(SecureBackupEnterRecoveryKeyEvents.ChangeRecoveryKeyFieldContentsVisibility(it))
+        }
     )
 }
 

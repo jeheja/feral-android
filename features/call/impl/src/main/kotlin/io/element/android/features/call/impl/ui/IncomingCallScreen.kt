@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -39,6 +40,7 @@ import io.element.android.libraries.designsystem.background.OnboardingBackground
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Icon
@@ -49,6 +51,9 @@ import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.ui.strings.CommonStrings
 
+/**
+ * Ref: https://www.figma.com/design/0MMNu7cTOzLOlWb7ctTkv3/Element-X?node-id=16501-5740
+ */
 @Composable
 internal fun IncomingCallScreen(
     notificationData: CallNotificationData,
@@ -74,7 +79,8 @@ internal fun IncomingCallScreen(
                     name = notificationData.senderName,
                     url = notificationData.avatarUrl,
                     size = AvatarSize.IncomingCall,
-                )
+                ),
+                avatarType = AvatarType.User,
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
@@ -91,11 +97,8 @@ internal fun IncomingCallScreen(
             )
         }
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, bottom = 64.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(bottom = 64.dp),
+            horizontalArrangement = Arrangement.spacedBy(48.dp),
         ) {
             ActionButton(
                 size = 64.dp,
@@ -105,7 +108,6 @@ internal fun IncomingCallScreen(
                 backgroundColor = ElementTheme.colors.iconSuccessPrimary,
                 borderColor = ElementTheme.colors.borderSuccessSubtle
             )
-
             ActionButton(
                 size = 64.dp,
                 onClick = onCancel,
@@ -140,7 +142,7 @@ private fun ActionButton(
             onClick = onClick,
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = backgroundColor,
-                contentColor = Color.White,
+                contentColor = ElementTheme.colors.iconOnSolidPrimary,
             )
         ) {
             Icon(
@@ -174,6 +176,7 @@ internal fun IncomingCallScreenPreview() = ElementPreview {
             notificationChannelId = "incoming_call",
             timestamp = 0L,
             textContent = null,
+            expirationTimestamp = 1000L,
         ),
         onAnswer = {},
         onCancel = {},

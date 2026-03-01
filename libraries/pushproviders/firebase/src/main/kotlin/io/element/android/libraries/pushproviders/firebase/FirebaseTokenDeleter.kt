@@ -1,17 +1,17 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.pushproviders.firebase
 
 import com.google.firebase.messaging.FirebaseMessaging
-import com.squareup.anvil.annotations.ContributesBinding
-import io.element.android.libraries.di.AppScope
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import timber.log.Timber
-import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
@@ -24,7 +24,7 @@ interface FirebaseTokenDeleter {
 }
 
 @ContributesBinding(AppScope::class)
-class DefaultFirebaseTokenDeleter @Inject constructor(
+class DefaultFirebaseTokenDeleter(
     private val isPlayServiceAvailable: IsPlayServiceAvailable,
 ) : FirebaseTokenDeleter {
     override suspend fun delete() {

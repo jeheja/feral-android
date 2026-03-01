@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -35,7 +36,6 @@ import io.element.android.libraries.designsystem.components.async.AsyncActionVie
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.aliasScreenTitle
 import io.element.android.libraries.designsystem.theme.components.Button
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.Text
@@ -57,18 +57,13 @@ fun ReportMessageView(
         progressDialog = {},
         onSuccess = { onBackClick() },
         errorMessage = { stringResource(CommonStrings.error_unknown) },
-        onErrorDismiss = { state.eventSink(ReportMessageEvents.ClearError) }
+        onErrorDismiss = { state.eventSink(ReportMessageEvent.ClearError) }
     )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        stringResource(CommonStrings.action_report_content),
-                        style = ElementTheme.typography.aliasScreenTitle,
-                    )
-                },
+                titleStr = stringResource(CommonStrings.action_report_content),
                 navigationIcon = {
                     BackButton(onClick = onBackClick)
                 }
@@ -89,7 +84,7 @@ fun ReportMessageView(
 
             TextField(
                 value = state.reason,
-                onValueChange = { state.eventSink(ReportMessageEvents.UpdateReason(it)) },
+                onValueChange = { state.eventSink(ReportMessageEvent.UpdateReason(it)) },
                 placeholder = stringResource(R.string.screen_report_content_hint),
                 minLines = 3,
                 enabled = !isSending,
@@ -118,7 +113,7 @@ fun ReportMessageView(
                 Switch(
                     enabled = !isSending,
                     checked = state.blockUser,
-                    onCheckedChange = { state.eventSink(ReportMessageEvents.ToggleBlockUser) },
+                    onCheckedChange = { state.eventSink(ReportMessageEvent.ToggleBlockUser) },
                 )
             }
 
@@ -130,7 +125,7 @@ fun ReportMessageView(
                 showProgress = isSending,
                 onClick = {
                     focusManager.clearFocus(force = true)
-                    state.eventSink(ReportMessageEvents.Report)
+                    state.eventSink(ReportMessageEvent.Report)
                 },
                 modifier = Modifier
                     .fillMaxWidth()

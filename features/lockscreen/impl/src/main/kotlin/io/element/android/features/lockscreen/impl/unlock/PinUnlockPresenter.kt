@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import dev.zacsweers.metro.Inject
 import io.element.android.features.lockscreen.impl.biometric.BiometricAuthenticator
 import io.element.android.features.lockscreen.impl.biometric.BiometricAuthenticatorManager
 import io.element.android.features.lockscreen.impl.pin.PinCodeManager
@@ -26,14 +28,16 @@ import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runCatchingUpdatingState
 import io.element.android.libraries.core.bool.orFalse
+import io.element.android.libraries.di.annotations.AppCoroutineScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-class PinUnlockPresenter @Inject constructor(
+@Inject
+class PinUnlockPresenter(
     private val pinCodeManager: PinCodeManager,
     private val biometricAuthenticatorManager: BiometricAuthenticatorManager,
     private val logoutUseCase: LogoutUseCase,
+    @AppCoroutineScope
     private val coroutineScope: CoroutineScope,
     private val pinUnlockHelper: PinUnlockHelper,
 ) : Presenter<PinUnlockState> {
@@ -91,7 +95,7 @@ class PinUnlockPresenter @Inject constructor(
             isUnlocked.value = true
         }
 
-        fun handleEvents(event: PinUnlockEvents) {
+        fun handleEvent(event: PinUnlockEvents) {
             when (event) {
                 is PinUnlockEvents.OnPinKeypadPressed -> {
                     pinEntryState.value = pinEntry.process(event.pinKeypadModel)
@@ -126,7 +130,7 @@ class PinUnlockPresenter @Inject constructor(
             showBiometricUnlock = biometricUnlock.isActive,
             biometricUnlockResult = biometricUnlockResult,
             isUnlocked = isUnlocked.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 
@@ -171,7 +175,7 @@ class PinUnlockPresenter @Inject constructor(
 
     private fun CoroutineScope.signOut(signOutAction: MutableState<AsyncAction<Unit>>) = launch {
         suspend {
-            logoutUseCase.logout(ignoreSdkError = true)
+            logoutUseCase.logoutAll(ignoreSdkError = true)
         }.runCatchingUpdatingState(signOutAction)
     }
 }

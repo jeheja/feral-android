@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,10 +14,10 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.db.SqlSchema
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import io.element.encrypteddb.passphrase.PassphraseProvider
-import net.sqlcipher.database.SupportFactory
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 /**
- * Creates an encrypted version of the [SqlDriver] using SQLCipher's [SupportFactory].
+ * Creates an encrypted version of the [SqlDriver] using SQLCipher's [SupportOpenHelperFactory].
  * @param passphraseProvider Provides the passphrase needed to use the SQLite database with SQLCipher.
  */
 class SqlCipherDriverFactory(
@@ -29,8 +30,9 @@ class SqlCipherDriverFactory(
      * @param context Android [Context], used to instantiate the driver.
      */
     fun create(schema: SqlSchema<QueryResult.Value<Unit>>, name: String, context: Context): SqlDriver {
+        System.loadLibrary("sqlcipher")
         val passphrase = passphraseProvider.getPassphrase()
-        val factory = SupportFactory(passphrase)
+        val factory = SupportOpenHelperFactory(passphrase)
         return AndroidSqliteDriver(schema = schema, context = context, name = name, factory = factory)
     }
 }

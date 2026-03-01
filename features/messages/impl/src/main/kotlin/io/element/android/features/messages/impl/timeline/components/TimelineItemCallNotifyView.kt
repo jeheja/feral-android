@@ -1,13 +1,13 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.messages.impl.timeline.components
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,16 +30,17 @@ import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.messages.impl.timeline.aTimelineItemEvent
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
-import io.element.android.features.messages.impl.timeline.model.event.TimelineItemCallNotifyContent
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemRtcNotificationContent
 import io.element.android.features.roomcall.api.RoomCallState
 import io.element.android.features.roomcall.api.RoomCallStateProvider
 import io.element.android.libraries.designsystem.components.avatar.Avatar
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
+import io.element.android.libraries.designsystem.modifiers.onKeyboardContextMenuAction
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.text.toDp
 import io.element.android.libraries.ui.strings.CommonStrings
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun TimelineItemCallNotifyView(
     event: TimelineItem.Event,
@@ -52,12 +53,21 @@ internal fun TimelineItemCallNotifyView(
         modifier = modifier
             .fillMaxWidth()
             .border(1.dp, ElementTheme.colors.borderInteractiveSecondary, RoundedCornerShape(8.dp))
-            .combinedClickable(enabled = true, onClick = {}, onLongClick = { onLongClick(event) })
+            .combinedClickable(
+                enabled = true,
+                onClick = {},
+                onLongClick = { onLongClick(event) },
+                onLongClickLabel = stringResource(CommonStrings.action_open_context_menu),
+            )
+            .onKeyboardContextMenuAction { onLongClick(event) }
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Avatar(avatarData = event.senderAvatar)
+        Avatar(
+            avatarData = event.senderAvatar,
+            avatarType = AvatarType.User,
+        )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = event.safeSenderName,
@@ -110,7 +120,7 @@ internal fun TimelineItemCallNotifyViewPreview() = ElementPreview {
             .filter { it !is RoomCallState.Unavailable }
             .forEach { roomCallState ->
                 TimelineItemCallNotifyView(
-                    event = aTimelineItemEvent(content = TimelineItemCallNotifyContent()),
+                    event = aTimelineItemEvent(content = TimelineItemRtcNotificationContent()),
                     roomCallState = roomCallState,
                     onLongClick = {},
                     onJoinCallClick = {},

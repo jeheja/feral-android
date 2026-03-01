@@ -1,18 +1,19 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.push.impl
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.appconfig.PushConfig
 import io.element.android.libraries.core.extensions.mapFailure
 import io.element.android.libraries.core.log.logger.LoggerTag
 import io.element.android.libraries.core.meta.BuildMeta
-import io.element.android.libraries.di.AppScope
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.exception.ClientException
@@ -23,14 +24,13 @@ import io.element.android.libraries.pushproviders.api.RegistrationFailure
 import io.element.android.libraries.pushstore.api.UserPushStoreFactory
 import io.element.android.libraries.pushstore.api.clientsecret.PushClientSecret
 import timber.log.Timber
-import javax.inject.Inject
 
 internal const val DEFAULT_PUSHER_FILE_TAG = "mobile"
 
 private val loggerTag = LoggerTag("DefaultPusherSubscriber", LoggerTag.PushLoggerTag)
 
 @ContributesBinding(AppScope::class)
-class DefaultPusherSubscriber @Inject constructor(
+class DefaultPusherSubscriber(
     private val buildMeta: BuildMeta,
     private val pushClientSecret: PushClientSecret,
     private val userPushStoreFactory: UserPushStoreFactory,
@@ -49,7 +49,7 @@ class DefaultPusherSubscriber @Inject constructor(
             Timber.tag(loggerTag.value)
                 .d("Unnecessary to register again the same pusher, but do it in case the pusher has been removed from the server")
         }
-        return matrixClient.pushersService()
+        return matrixClient.pushersService
             .setHttpPusher(
                 createHttpPusher(pushKey, gateway, matrixClient.sessionId)
             )
@@ -99,7 +99,7 @@ class DefaultPusherSubscriber @Inject constructor(
         gateway: String,
     ): Result<Unit> {
         val userDataStore = userPushStoreFactory.getOrCreate(matrixClient.sessionId)
-        return matrixClient.pushersService()
+        return matrixClient.pushersService
             .unsetHttpPusher(
                 unsetHttpPusherData = UnsetHttpPusherData(
                     pushKey = pushKey,

@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import dev.zacsweers.metro.Inject
 import io.element.android.features.securebackup.impl.loggerTagDisable
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.Presenter
@@ -23,9 +25,9 @@ import io.element.android.libraries.matrix.api.encryption.EncryptionService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
 
-class SecureBackupDisablePresenter @Inject constructor(
+@Inject
+class SecureBackupDisablePresenter(
     private val encryptionService: EncryptionService,
     private val buildMeta: BuildMeta,
 ) : Presenter<SecureBackupDisableState> {
@@ -35,7 +37,7 @@ class SecureBackupDisablePresenter @Inject constructor(
         Timber.tag(loggerTagDisable.value).d("backupState: $backupState")
         val disableAction: MutableState<AsyncAction<Unit>> = remember { mutableStateOf(AsyncAction.Uninitialized) }
         val coroutineScope = rememberCoroutineScope()
-        fun handleEvents(event: SecureBackupDisableEvents) {
+        fun handleEvent(event: SecureBackupDisableEvents) {
             when (event) {
                 is SecureBackupDisableEvents.DisableBackup -> coroutineScope.disableBackup(disableAction)
                 SecureBackupDisableEvents.DismissDialogs -> {
@@ -48,7 +50,7 @@ class SecureBackupDisablePresenter @Inject constructor(
             backupState = backupState,
             disableAction = disableAction.value,
             appName = buildMeta.applicationName,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 

@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -45,6 +46,12 @@ interface MediaPlayer : AutoCloseable {
      * Seeks the current media to the given position.
      */
     fun seekTo(positionMs: Long)
+
+    /**
+     * Sets the playback speed.
+     * @param speed The playback speed (e.g., 0.5f for half speed, 1.0f for normal, 2.0f for double speed)
+     */
+    fun setPlaybackSpeed(speed: Float)
 
     /**
      * Releases any resources associated with this player.

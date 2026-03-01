@@ -1,70 +1,47 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.api.room.powerlevels
 
-import io.element.android.libraries.matrix.api.room.BaseRoom
-import io.element.android.libraries.matrix.api.room.MessageEventType
-import io.element.android.libraries.matrix.api.room.StateEventType
+import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.room.RoomMember
+import kotlinx.collections.immutable.ImmutableMap
 
+/**
+ * Represents the power levels in a Matrix room, containing both the levels needed to perform actions and the custom power levels for users.
+ *
+ * **WARNING**: this won't contain the power level of the room creators, as it is not stored in the power levels event. The `users` property is private to
+ * enforce this restriction and try to avoid using this property directly to check if a user has a certain role.
+ * Use the [usersWithRole] or [roleOf] methods instead, and never for creators, that logic should be handled separately.
+ */
 data class RoomPowerLevels(
-    val ban: Long,
-    val invite: Long,
-    val kick: Long,
-    val sendEvents: Long,
-    val redactEvents: Long,
-    val roomName: Long,
-    val roomAvatar: Long,
-    val roomTopic: Long,
-)
+    /**
+     * The power levels required to perform various actions in the room.
+     */
+    val values: RoomPowerLevelsValues,
+    private val users: ImmutableMap<UserId, Long>,
+) {
+    /**
+     * Returns the power level of the user in the room.
+     *
+     * If the user is not found, returns 0.
+     */
+    fun powerLevelOf(userId: UserId): Long {
+        return users[userId] ?: 0L
+    }
 
-/**
- * Shortcut for calling [BaseRoom.canUserInvite] with our own user.
- */
-suspend fun BaseRoom.canInvite(): Result<Boolean> = canUserInvite(sessionId)
-
-/**
- * Shortcut for calling [BaseRoom.canUserKick] with our own user.
- */
-suspend fun BaseRoom.canKick(): Result<Boolean> = canUserKick(sessionId)
-
-/**
- * Shortcut for calling [BaseRoom.canUserBan] with our own user.
- */
-suspend fun BaseRoom.canBan(): Result<Boolean> = canUserBan(sessionId)
-
-/**
- * Shortcut for calling [BaseRoom.canUserSendState] with our own user.
- */
-suspend fun BaseRoom.canSendState(type: StateEventType): Result<Boolean> = canUserSendState(sessionId, type)
-
-/**
- * Shortcut for calling [BaseRoom.canUserSendMessage] with our own user.
- */
-suspend fun BaseRoom.canSendMessage(type: MessageEventType): Result<Boolean> = canUserSendMessage(sessionId, type)
-
-/**
- * Shortcut for calling [BaseRoom.canUserRedactOwn] with our own user.
- */
-suspend fun BaseRoom.canRedactOwn(): Result<Boolean> = canUserRedactOwn(sessionId)
-
-/**
- * Shortcut for calling [BaseRoom.canRedactOther] with our own user.
- */
-suspend fun BaseRoom.canRedactOther(): Result<Boolean> = canUserRedactOther(sessionId)
-
-/**
- * Shortcut for checking if current user can handle knock requests.
- */
-suspend fun BaseRoom.canHandleKnockRequests(): Result<Boolean> = runCatching {
-    canInvite().getOrThrow() || canBan().getOrThrow() || canKick().getOrThrow()
+    /**
+     * Returns the role of the user in the room based on their power level.
+     * If the user is not found, returns null.
+     *
+     * **WARNING**: This method must not be used with a creator role, as it won't return any results.
+     */
+    fun roleOf(userId: UserId): RoomMember.Role? {
+        return users[userId]?.let(RoomMember.Role::forPowerLevel)
+    }
 }
-
-/**
- * Shortcut for calling [BaseRoom.canUserPinUnpin] with our own user.
- */
-suspend fun BaseRoom.canPinUnpin(): Result<Boolean> = canUserPinUnpin(sessionId)

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -10,11 +11,12 @@ package io.element.android.features.securebackup.impl.enter
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import io.element.android.features.securebackup.impl.R
 import io.element.android.features.securebackup.impl.setup.views.aFormattedRecoveryKey
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.ui.strings.CommonStrings
@@ -79,6 +81,23 @@ class SecureBackupEnterRecoveryKeyViewTest {
         recorder.assertSingle(
             SecureBackupEnterRecoveryKeyEvents.OnRecoveryKeyChange("X$keyValue")
         )
+    }
+
+    @Test
+    @Config(qualifiers = "h1024dp")
+    fun `toggling the visibility of the textfield changes it`() {
+        val recorder = EventsRecorder<SecureBackupEnterRecoveryKeyEvents>()
+        val keyValue = aFormattedRecoveryKey()
+        rule.setSecureBackupEnterRecoveryKeyView(aSecureBackupEnterRecoveryKeyState(isSubmitEnabled = true, eventSink = recorder))
+
+        // Initially, the text field should be visible
+        rule.onNodeWithText(keyValue).assertExists()
+
+        rule.onNodeWithContentDescription(rule.activity.getString(CommonStrings.a11y_hide_password)).performClick()
+
+        rule.waitForIdle()
+
+        recorder.assertSingle(SecureBackupEnterRecoveryKeyEvents.ChangeRecoveryKeyFieldContentsVisibility(false))
     }
 
     @Test

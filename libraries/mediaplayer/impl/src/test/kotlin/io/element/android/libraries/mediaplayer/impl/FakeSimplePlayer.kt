@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -19,6 +20,7 @@ class FakeSimplePlayer(
     private val isPlayingLambda: () -> Boolean = { lambdaError() },
     private val pauseLambda: () -> Unit = { lambdaError() },
     private val seekToLambda: (Long) -> Unit = { lambdaError() },
+    private val setPlaybackSpeedLambda: (Float) -> Unit = { lambdaError() },
     private val releaseLambda: () -> Unit = { lambdaError() },
 ) : SimplePlayer {
     private val listeners = mutableListOf<SimplePlayer.Listener>()
@@ -44,6 +46,7 @@ class FakeSimplePlayer(
     override fun isPlaying() = isPlayingLambda()
     override fun pause() = pauseLambda()
     override fun seekTo(positionMs: Long) = seekToLambda(positionMs)
+    override fun setPlaybackSpeed(speed: Float) = setPlaybackSpeedLambda(speed)
     override fun release() = releaseLambda()
 
     fun simulateIsPlayingChanged(isPlaying: Boolean) {

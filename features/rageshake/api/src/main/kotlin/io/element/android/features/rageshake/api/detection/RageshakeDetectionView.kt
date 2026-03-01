@@ -1,7 +1,8 @@
 /*
- * Copyright 2022-2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2022-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -34,22 +35,22 @@ fun RageshakeDetectionView(
     val context = LocalContext.current
     OnLifecycleEvent { _, event ->
         when (event) {
-            Lifecycle.Event.ON_RESUME -> eventSink(RageshakeDetectionEvents.StartDetection)
-            Lifecycle.Event.ON_PAUSE -> eventSink(RageshakeDetectionEvents.StopDetection)
+            Lifecycle.Event.ON_RESUME -> eventSink(RageshakeDetectionEvent.StartDetection)
+            Lifecycle.Event.ON_PAUSE -> eventSink(RageshakeDetectionEvent.StopDetection)
             else -> Unit
         }
     }
     when {
         state.takeScreenshot -> TakeScreenshot(
-            onScreenshot = { eventSink(RageshakeDetectionEvents.ProcessScreenshot(it)) }
+            onScreenshot = { eventSink(RageshakeDetectionEvent.ProcessScreenshot(it)) }
         )
         state.showDialog -> {
             LaunchedEffect(Unit) {
                 context.vibrate()
             }
             RageshakeDialogContent(
-                onNoClick = { eventSink(RageshakeDetectionEvents.Dismiss) },
-                onDisableClick = { eventSink(RageshakeDetectionEvents.Disable) },
+                onNoClick = { eventSink(RageshakeDetectionEvent.Dismiss) },
+                onDisableClick = { eventSink(RageshakeDetectionEvent.Disable) },
                 onYesClick = onOpenBugReport
             )
         }

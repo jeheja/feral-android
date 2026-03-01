@@ -1,13 +1,14 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.impl.fixtures.factories
 
-import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeFfiRoomPowerLevels
 import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.libraries.matrix.test.A_ROOM_NAME
 import org.matrix.rustcomponents.sdk.JoinRule
@@ -17,10 +18,11 @@ import org.matrix.rustcomponents.sdk.RoomHistoryVisibility
 import org.matrix.rustcomponents.sdk.RoomInfo
 import org.matrix.rustcomponents.sdk.RoomMember
 import org.matrix.rustcomponents.sdk.RoomNotificationMode
-import org.matrix.rustcomponents.sdk.RoomTombstoneInfo
+import org.matrix.rustcomponents.sdk.RoomPowerLevels
+import org.matrix.rustcomponents.sdk.SuccessorRoom
 import uniffi.matrix_sdk_base.EncryptionState
 
-fun aRustRoomInfo(
+internal fun aRustRoomInfo(
     id: String = A_ROOM_ID.value,
     displayName: String? = A_ROOM_NAME,
     rawName: String? = A_ROOM_NAME,
@@ -30,7 +32,6 @@ fun aRustRoomInfo(
     isDirect: Boolean = false,
     isPublic: Boolean = false,
     isSpace: Boolean = false,
-    tombstone: RoomTombstoneInfo? = null,
     isFavourite: Boolean = false,
     canonicalAlias: String? = null,
     alternativeAliases: List<String> = listOf(),
@@ -40,7 +41,7 @@ fun aRustRoomInfo(
     activeMembersCount: ULong = 0uL,
     invitedMembersCount: ULong = 0uL,
     joinedMembersCount: ULong = 0uL,
-    userPowerLevels: Map<String, Long> = mapOf(),
+    roomPowerLevels: RoomPowerLevels = FakeFfiRoomPowerLevels(),
     highlightCount: ULong = 0uL,
     notificationCount: ULong = 0uL,
     userDefinedNotificationMode: RoomNotificationMode? = null,
@@ -51,9 +52,14 @@ fun aRustRoomInfo(
     numUnreadNotifications: ULong = 0uL,
     numUnreadMentions: ULong = 0uL,
     pinnedEventIds: List<String> = listOf(),
-    roomCreator: UserId? = null,
+    roomCreators: List<String>? = emptyList(),
     joinRule: JoinRule? = null,
     historyVisibility: RoomHistoryVisibility = RoomHistoryVisibility.Joined,
+    successorRoom: SuccessorRoom? = null,
+    roomVersion: String? = "11",
+    privilegedCreatorsRole: Boolean = false,
+    serviceMembers: List<String> = emptyList(),
+    isLowPriority: Boolean = false,
 ) = RoomInfo(
     id = id,
     displayName = displayName,
@@ -64,7 +70,6 @@ fun aRustRoomInfo(
     isDirect = isDirect,
     isPublic = isPublic,
     isSpace = isSpace,
-    tombstone = tombstone,
     isFavourite = isFavourite,
     canonicalAlias = canonicalAlias,
     alternativeAliases = alternativeAliases,
@@ -74,7 +79,7 @@ fun aRustRoomInfo(
     activeMembersCount = activeMembersCount,
     invitedMembersCount = invitedMembersCount,
     joinedMembersCount = joinedMembersCount,
-    userPowerLevels = userPowerLevels,
+    powerLevels = roomPowerLevels,
     highlightCount = highlightCount,
     notificationCount = notificationCount,
     cachedUserDefinedNotificationMode = userDefinedNotificationMode,
@@ -85,7 +90,12 @@ fun aRustRoomInfo(
     numUnreadNotifications = numUnreadNotifications,
     numUnreadMentions = numUnreadMentions,
     pinnedEventIds = pinnedEventIds,
-    creator = roomCreator?.value,
+    creators = roomCreators,
     joinRule = joinRule,
-    historyVisibility = historyVisibility
+    historyVisibility = historyVisibility,
+    successorRoom = successorRoom,
+    roomVersion = roomVersion,
+    privilegedCreatorsRole = privilegedCreatorsRole,
+    serviceMembers = serviceMembers,
+    isLowPriority = isLowPriority,
 )

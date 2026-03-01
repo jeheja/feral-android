@@ -1,15 +1,16 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.roomdetails.impl
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import io.element.android.features.leaveroom.api.LeaveRoomEvent
 import io.element.android.features.leaveroom.api.LeaveRoomState
-import io.element.android.features.leaveroom.api.aLeaveRoomState
 import io.element.android.features.roomcall.api.RoomCallState
 import io.element.android.features.roomcall.api.aStandByCallState
 import io.element.android.features.roomdetails.impl.members.aRoomMember
@@ -25,15 +26,16 @@ import io.element.android.libraries.matrix.api.room.RoomMember
 import io.element.android.libraries.matrix.api.room.RoomMembershipState
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
 import io.element.android.libraries.matrix.api.room.RoomNotificationSettings
+import io.element.android.libraries.matrix.api.room.history.RoomHistoryVisibility
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.ui.components.aMatrixUserList
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 
 open class RoomDetailsStateProvider : PreviewParameterProvider<RoomDetailsState> {
     override val values: Sequence<RoomDetailsState>
         get() = sequenceOf(
             aRoomDetailsState(displayAdminSettings = true),
-            aRoomDetailsState(roomTopic = RoomTopicState.Hidden),
+            aRoomDetailsState(roomTopic = RoomTopicState.Hidden, showDebugInfo = true),
             aRoomDetailsState(roomTopic = RoomTopicState.CanAddTopic),
             aRoomDetailsState(isEncrypted = false),
             aRoomDetailsState(roomAlias = null),
@@ -53,8 +55,12 @@ open class RoomDetailsStateProvider : PreviewParameterProvider<RoomDetailsState>
             aRoomDetailsState(knockRequestsCount = null, canShowKnockRequests = true),
             aRoomDetailsState(knockRequestsCount = 4, canShowKnockRequests = true),
             aRoomDetailsState(hasMemberVerificationViolations = true),
+            aRoomDetailsState(isTombstoned = true),
             aDmRoomDetailsState(dmRoomMemberVerificationState = UserProfileVerificationState.VERIFIED),
             aDmRoomDetailsState(dmRoomMemberVerificationState = UserProfileVerificationState.VERIFICATION_VIOLATION),
+            aSharedHistoryRoomDetailsState(roomHistoryVisibility = RoomHistoryVisibility.Joined),
+            aSharedHistoryRoomDetailsState(roomHistoryVisibility = RoomHistoryVisibility.Shared),
+            aSharedHistoryRoomDetailsState(roomHistoryVisibility = RoomHistoryVisibility.WorldReadable),
             // Add other state here
         )
 }
@@ -66,9 +72,8 @@ fun aDmRoomMember(
     membership: RoomMembershipState = RoomMembershipState.JOIN,
     isNameAmbiguous: Boolean = false,
     powerLevel: Long = 0,
-    normalizedPowerLevel: Long = powerLevel,
     isIgnored: Boolean = false,
-    role: RoomMember.Role = RoomMember.Role.USER,
+    role: RoomMember.Role = RoomMember.Role.User,
     membershipChangeReason: String? = null,
 ) = RoomMember(
     userId = userId,
@@ -77,7 +82,6 @@ fun aDmRoomMember(
     membership = membership,
     isNameAmbiguous = isNameAmbiguous,
     powerLevel = powerLevel,
-    normalizedPowerLevel = normalizedPowerLevel,
     isIgnored = isIgnored,
     role = role,
     membershipChangeReason = membershipChangeReason
@@ -99,7 +103,6 @@ fun aRoomDetailsState(
     isEncrypted: Boolean = true,
     canInvite: Boolean = false,
     canEdit: Boolean = false,
-    canShowNotificationSettings: Boolean = true,
     roomCallState: RoomCallState = aStandByCallState(),
     roomType: RoomDetailsType = RoomDetailsType.Room,
     roomMemberDetailsState: UserProfileState? = null,
@@ -109,8 +112,6 @@ fun aRoomDetailsState(
     displayAdminSettings: Boolean = false,
     isPublic: Boolean = true,
     heroes: List<MatrixUser> = emptyList(),
-    canShowPinnedMessages: Boolean = true,
-    canShowMediaGallery: Boolean = true,
     pinnedMessagesCount: Int? = null,
     snackbarMessage: SnackbarMessage? = null,
     canShowKnockRequests: Boolean = false,
@@ -118,6 +119,10 @@ fun aRoomDetailsState(
     canShowSecurityAndPrivacy: Boolean = true,
     hasMemberVerificationViolations: Boolean = false,
     canReportRoom: Boolean = true,
+    isTombstoned: Boolean = false,
+    showDebugInfo: Boolean = false,
+    enableKeyShareOnInvite: Boolean = false,
+    roomHistoryVisibility: RoomHistoryVisibility = RoomHistoryVisibility.Shared,
     eventSink: (RoomDetailsEvent) -> Unit = {},
 ) = RoomDetailsState(
     roomId = roomId,
@@ -129,7 +134,6 @@ fun aRoomDetailsState(
     isEncrypted = isEncrypted,
     canInvite = canInvite,
     canEdit = canEdit,
-    canShowNotificationSettings = canShowNotificationSettings,
     roomCallState = roomCallState,
     roomType = roomType,
     roomMemberDetailsState = roomMemberDetailsState,
@@ -138,9 +142,7 @@ fun aRoomDetailsState(
     isFavorite = isFavorite,
     displayRolesAndPermissionsSettings = displayAdminSettings,
     isPublic = isPublic,
-    heroes = heroes.toPersistentList(),
-    canShowPinnedMessages = canShowPinnedMessages,
-    canShowMediaGallery = canShowMediaGallery,
+    heroes = heroes.toImmutableList(),
     pinnedMessagesCount = pinnedMessagesCount,
     snackbarMessage = snackbarMessage,
     canShowKnockRequests = canShowKnockRequests,
@@ -148,8 +150,19 @@ fun aRoomDetailsState(
     canShowSecurityAndPrivacy = canShowSecurityAndPrivacy,
     hasMemberVerificationViolations = hasMemberVerificationViolations,
     canReportRoom = canReportRoom,
+    isTombstoned = isTombstoned,
+    showDebugInfo = showDebugInfo,
+    roomVersion = "12",
+    enableKeyShareOnInvite = enableKeyShareOnInvite,
+    roomHistoryVisibility = roomHistoryVisibility,
     eventSink = eventSink,
 )
+
+internal fun aLeaveRoomState(
+    eventSink: (LeaveRoomEvent) -> Unit = {}
+) = object : LeaveRoomState {
+    override val eventSink: (LeaveRoomEvent) -> Unit = eventSink
+}
 
 fun aRoomNotificationSettings(
     mode: RoomNotificationMode = RoomNotificationMode.MUTE,
@@ -176,4 +189,12 @@ fun aDmRoomDetailsState(
         isBlocked = AsyncData.Success(isDmMemberIgnored),
         verificationState = dmRoomMemberVerificationState,
     )
+)
+
+fun aSharedHistoryRoomDetailsState(
+    roomHistoryVisibility: RoomHistoryVisibility
+) = aRoomDetailsState(
+    isEncrypted = true,
+    enableKeyShareOnInvite = true,
+    roomHistoryVisibility = roomHistoryVisibility,
 )

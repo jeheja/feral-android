@@ -1,9 +1,11 @@
-import extension.setupAnvil
+import extension.setupDependencyInjection
+import extension.testCommonDependencies
 
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2023, 2024 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 plugins {
@@ -14,24 +16,19 @@ android {
     namespace = "io.element.android.libraries.mediaplayer.impl"
 }
 
-setupAnvil()
+setupDependencyInjection()
 
 dependencies {
     api(projects.libraries.mediaplayer.api)
     implementation(libs.androidx.media3.exoplayer)
 
-    implementation(libs.dagger)
     implementation(projects.libraries.audio.api)
+    implementation(projects.libraries.core)
     implementation(projects.libraries.di)
 
     implementation(libs.coroutines.core)
 
-    testImplementation(projects.tests.testutils)
+    testCommonDependencies(libs)
     testImplementation(projects.libraries.audio.test)
-    testImplementation(libs.test.junit)
-    testImplementation(libs.test.truth)
-    testImplementation(libs.test.mockk)
-    testImplementation(libs.test.turbine)
     testImplementation(libs.coroutines.core)
-    testImplementation(libs.coroutines.test)
 }

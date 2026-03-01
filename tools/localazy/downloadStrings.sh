@@ -1,8 +1,9 @@
 #! /bin/bash
 
+# Copyright (c) 2025 Element Creations Ltd.
 # Copyright 2023-2024 New Vector Ltd.
 #
-# SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+# SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 # Please see LICENSE files in the repository root for full details.
 
 set -e
@@ -37,14 +38,6 @@ find . -name 'localazy.xml' -exec ./tools/localazy/formatXmlResourcesFile.py {} 
 if [[ $allFiles == 1 ]]; then
   find . -name 'translations.xml' -exec ./tools/localazy/formatXmlResourcesFile.py {} \;
 fi
-
-set +e
-echo "Moving files from values-id to values-in..."
-find . -type d -name 'values-id' -execdir mv {}/translations.xml {}/../values-in/translations.xml \; 2> /dev/null
-
-echo "Deleting all the folders values-id..."
-find . -type d -name 'values-id' -exec rm -rf {} \; 2> /dev/null
-set -e
 
 echo "Checking forbidden terms..."
 find . -name 'localazy.xml' -exec ./tools/localazy/checkForbiddenTerms.py {} \;

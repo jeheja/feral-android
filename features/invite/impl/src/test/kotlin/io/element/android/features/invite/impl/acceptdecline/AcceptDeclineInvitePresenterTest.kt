@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -56,7 +57,7 @@ class AcceptDeclineInvitePresenterTest {
             awaitItem().also { state ->
                 assertThat(state.declineAction).isEqualTo(ConfirmingDeclineInvite(inviteData, false))
                 state.eventSink(
-                    InternalAcceptDeclineInviteEvents.CancelDeclineInvite
+                    InternalAcceptDeclineInviteEvents.ClearDeclineActionState
                 )
             }
             awaitItem().also { state ->
@@ -90,7 +91,7 @@ class AcceptDeclineInvitePresenterTest {
             awaitItem().also { state ->
                 assertThat(state.declineAction).isInstanceOf(AsyncAction.Failure::class.java)
                 state.eventSink(
-                    InternalAcceptDeclineInviteEvents.DismissDeclineError
+                    InternalAcceptDeclineInviteEvents.ClearDeclineActionState
                 )
             }
             awaitItem().also { state ->
@@ -154,7 +155,7 @@ class AcceptDeclineInvitePresenterTest {
             awaitItem().also { state ->
                 assertThat(state.acceptAction).isInstanceOf(AsyncAction.Failure::class.java)
                 state.eventSink(
-                    InternalAcceptDeclineInviteEvents.DismissAcceptError
+                    InternalAcceptDeclineInviteEvents.ClearAcceptActionState
                 )
             }
             awaitItem().also { state ->

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -24,9 +25,9 @@ import com.bumble.appyx.core.plugin.Plugin
 import com.bumble.appyx.core.plugin.plugins
 import com.bumble.appyx.navmodel.backstack.BackStack
 import com.bumble.appyx.navmodel.backstack.operation.newRoot
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
-import io.element.android.anvilannotations.ContributesNode
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
+import io.element.android.annotations.ContributesNode
 import io.element.android.appnav.room.RoomNavigationTarget
 import io.element.android.libraries.architecture.BackstackView
 import io.element.android.libraries.architecture.BaseFlowNode
@@ -34,10 +35,16 @@ import io.element.android.libraries.architecture.NodeInputs
 import io.element.android.libraries.architecture.createNode
 import io.element.android.libraries.architecture.inputs
 import io.element.android.libraries.di.SessionScope
+import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
-import io.element.android.libraries.matrix.api.sync.SyncService
+import io.element.android.libraries.matrix.api.core.ThreadId
+import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.ui.room.LoadingRoomState
 import io.element.android.libraries.matrix.ui.room.LoadingRoomStateFlowFactory
+import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction.LoadJoinedRoomFlow
+import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction.NotificationToMessage
+import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction.OpenRoom
+import io.element.android.services.analytics.api.AnalyticsService
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -45,11 +52,12 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.Parcelize
 
 @ContributesNode(SessionScope::class)
-class JoinedRoomFlowNode @AssistedInject constructor(
+@AssistedInject
+class JoinedRoomFlowNode(
     @Assisted val buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
     loadingRoomStateFlowFactory: LoadingRoomStateFlowFactory,
-    private val syncService: SyncService,
+    private val analyticsService: AnalyticsService,
 ) :
     BaseFlowNode<JoinedRoomFlowNode.NavTarget>(
         backstack = BackStack(
@@ -61,11 +69,12 @@ class JoinedRoomFlowNode @AssistedInject constructor(
     ) {
     data class Inputs(
         val roomId: RoomId,
+        val joinedRoom: JoinedRoom?,
         val initialElement: RoomNavigationTarget,
     ) : NodeInputs
 
     private val inputs: Inputs = inputs()
-    private val loadingRoomStateStateFlow = loadingRoomStateFlowFactory.create(lifecycleScope, inputs.roomId)
+    private val loadingRoomStateStateFlow = loadingRoomStateFlowFactory.create(lifecycleScope, inputs.roomId, inputs.joinedRoom)
 
     sealed interface NavTarget : Parcelable {
         @Parcelize
@@ -77,6 +86,11 @@ class JoinedRoomFlowNode @AssistedInject constructor(
 
     override fun onBuilt() {
         super.onBuilt()
+
+        val parentTransaction = analyticsService.getLongRunningTransaction(NotificationToMessage)
+        val openRoomTransaction = analyticsService.startLongRunningTransaction(OpenRoom, parentTransaction)
+        analyticsService.startLongRunningTransaction(LoadJoinedRoomFlow, openRoomTransaction)
+
         loadingRoomStateStateFlow
             .map {
                 it is LoadingRoomState.Loaded
@@ -115,13 +129,16 @@ class JoinedRoomFlowNode @AssistedInject constructor(
 
     private fun loadingNode(buildContext: BuildContext, onBackClick: () -> Unit) = node(buildContext) { modifier ->
         val loadingRoomState by loadingRoomStateStateFlow.collectAsState()
-        val isOnline by syncService.isOnline.collectAsState()
         LoadingRoomNodeView(
             state = loadingRoomState,
-            hasNetworkConnection = isOnline,
-            modifier = modifier,
-            onBackClick = onBackClick
+            onBackClick = onBackClick,
+            modifier = modifier
         )
+    }
+
+    suspend fun attachThread(threadId: ThreadId, focusedEventId: EventId?) {
+        waitForChildAttached<JoinedRoomLoadedFlowNode>()
+            .attachThread(threadId, focusedEventId)
     }
 
     @Composable

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,20 +17,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.libraries.androidutils.R
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
+import io.element.android.libraries.core.extensions.mapCatchingExceptions
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatcher
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
 import io.element.android.libraries.designsystem.utils.snackbar.collectSnackbarMessageAsState
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.media.MatrixMediaLoader
 import io.element.android.libraries.matrix.api.room.BaseRoom
-import io.element.android.libraries.matrix.api.room.powerlevels.canRedactOther
-import io.element.android.libraries.matrix.api.room.powerlevels.canRedactOwn
+import io.element.android.libraries.matrix.api.room.powerlevels.permissionsAsState
 import io.element.android.libraries.mediaviewer.api.local.LocalMedia
 import io.element.android.libraries.mediaviewer.api.local.LocalMediaFactory
 import io.element.android.libraries.mediaviewer.impl.datasource.MediaGalleryDataSource
@@ -37,13 +38,16 @@ import io.element.android.libraries.mediaviewer.impl.details.MediaBottomSheetSta
 import io.element.android.libraries.mediaviewer.impl.local.LocalMediaActions
 import io.element.android.libraries.mediaviewer.impl.model.GroupedMediaItems
 import io.element.android.libraries.mediaviewer.impl.model.MediaItem
+import io.element.android.libraries.mediaviewer.impl.model.MediaPermissions
 import io.element.android.libraries.mediaviewer.impl.model.eventId
 import io.element.android.libraries.mediaviewer.impl.model.mediaInfo
+import io.element.android.libraries.mediaviewer.impl.model.mediaPermissions
 import io.element.android.libraries.mediaviewer.impl.model.mediaSource
 import io.element.android.libraries.ui.strings.CommonStrings
 import kotlinx.coroutines.launch
 
-class MediaGalleryPresenter @AssistedInject constructor(
+@AssistedInject
+class MediaGalleryPresenter(
     @Assisted private val navigator: MediaGalleryNavigator,
     private val room: BaseRoom,
     private val mediaGalleryDataSource: MediaGalleryDataSource,
@@ -77,10 +81,14 @@ class MediaGalleryPresenter @AssistedInject constructor(
             mediaGalleryDataSource.start()
         }
 
+        val permissions by room.permissionsAsState(MediaPermissions.DEFAULT) { perms ->
+            perms.mediaPermissions()
+        }
+
         val snackbarMessage by snackbarDispatcher.collectSnackbarMessageAsState()
         localMediaActions.Configure()
 
-        fun handleEvents(event: MediaGalleryEvents) {
+        fun handleEvent(event: MediaGalleryEvents) {
             when (event) {
                 is MediaGalleryEvents.ChangeMode -> {
                     mode = event.mode
@@ -103,6 +111,10 @@ class MediaGalleryPresenter @AssistedInject constructor(
                         share(it)
                     }
                 }
+                is MediaGalleryEvents.Forward -> {
+                    mediaBottomSheetState = MediaBottomSheetState.Hidden
+                    navigator.onForwardClick(event.eventId)
+                }
                 is MediaGalleryEvents.ViewInTimeline -> {
                     mediaBottomSheetState = MediaBottomSheetState.Hidden
                     navigator.onViewInTimelineClick(event.eventId)
@@ -112,8 +124,8 @@ class MediaGalleryPresenter @AssistedInject constructor(
                         eventId = event.mediaItem.eventId(),
                         canDelete = when (event.mediaItem.mediaInfo().senderId) {
                             null -> false
-                            room.sessionId -> room.canRedactOwn().getOrElse { false } && event.mediaItem.eventId() != null
-                            else -> room.canRedactOther().getOrElse { false } && event.mediaItem.eventId() != null
+                            room.sessionId -> permissions.canRedactOwn && event.mediaItem.eventId() != null
+                            else -> permissions.canRedactOther && event.mediaItem.eventId() != null
                         },
                         mediaInfo = event.mediaItem.mediaInfo(),
                         thumbnailSource = when (event.mediaItem) {
@@ -144,7 +156,7 @@ class MediaGalleryPresenter @AssistedInject constructor(
             groupedMediaItems = groupedMediaItems,
             mediaBottomSheetState = mediaBottomSheetState,
             snackbarMessage = snackbarMessage,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 
@@ -154,7 +166,7 @@ class MediaGalleryPresenter @AssistedInject constructor(
             mimeType = mediaItem.mediaInfo().mimeType,
             filename = mediaItem.mediaInfo().filename
         )
-            .mapCatching { mediaFile ->
+            .mapCatchingExceptions { mediaFile ->
                 localMediaFactory.createFromMediaFile(
                     mediaFile = mediaFile,
                     mediaInfo = mediaItem.mediaInfo()
@@ -164,7 +176,7 @@ class MediaGalleryPresenter @AssistedInject constructor(
 
     private suspend fun saveOnDisk(mediaItem: MediaItem.Event) {
         downloadMedia(mediaItem)
-            .mapCatching { localMedia ->
+            .mapCatchingExceptions { localMedia ->
                 localMediaActions.saveOnDisk(localMedia)
             }
             .onSuccess {
@@ -179,7 +191,7 @@ class MediaGalleryPresenter @AssistedInject constructor(
 
     private suspend fun share(mediaItem: MediaItem.Event) {
         downloadMedia(mediaItem)
-            .mapCatching { localMedia ->
+            .mapCatchingExceptions { localMedia ->
                 localMediaActions.share(localMedia)
             }
             .onFailure {

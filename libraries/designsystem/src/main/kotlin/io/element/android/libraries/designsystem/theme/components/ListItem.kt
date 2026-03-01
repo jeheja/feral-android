@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -106,14 +107,14 @@ fun ListItem(
     onClick: (() -> Unit)? = null,
 ) {
     // We cannot just pass the disabled colors, they must be set manually: https://issuetracker.google.com/issues/280480132
-    val headlineColor = if (enabled) colors.headlineColor else colors.disabledHeadlineColor
-    val supportingColor = if (enabled) colors.supportingTextColor else colors.disabledHeadlineColor.copy(alpha = 0.80f)
-    val leadingContentColor = if (enabled) colors.leadingIconColor else colors.disabledLeadingIconColor
-    val trailingContentColor = if (enabled) colors.trailingIconColor else colors.disabledTrailingIconColor
+    val headlineColor = if (enabled) colors.contentColor else colors.disabledContentColor
+    val supportingColor = if (enabled) colors.supportingContentColor else colors.disabledContentColor.copy(alpha = 0.80f)
+    val leadingContentColor = if (enabled) colors.leadingContentColor else colors.disabledLeadingContentColor
+    val trailingContentColor = if (enabled) colors.trailingContentColor else colors.disabledTrailingContentColor
 
     val decoratedHeadlineContent: @Composable () -> Unit = {
         CompositionLocalProvider(
-            LocalTextStyle provides ElementTheme.materialTypography.bodyLarge,
+            LocalTextStyle provides ElementTheme.typography.fontBodyLgRegular,
             LocalContentColor provides headlineColor,
         ) {
             headlineContent()
@@ -122,7 +123,7 @@ fun ListItem(
     val decoratedSupportingContent: (@Composable () -> Unit)? = supportingContent?.let { content ->
         {
             CompositionLocalProvider(
-                LocalTextStyle provides ElementTheme.materialTypography.bodyMedium,
+                LocalTextStyle provides ElementTheme.typography.fontBodyMdRegular,
                 LocalContentColor provides supportingColor,
             ) {
                 content()

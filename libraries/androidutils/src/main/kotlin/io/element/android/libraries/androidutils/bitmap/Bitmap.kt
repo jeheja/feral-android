@@ -1,7 +1,8 @@
 /*
- * Copyright 2022-2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2022-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -64,7 +65,7 @@ fun BitmapFactory.Options.calculateInSampleSize(desiredWidth: Int, desiredHeight
  * Decodes the [inputStream] into a [Bitmap] and applies the needed rotation based on [orientation].
  * This orientation value must be one of `ExifInterface.ORIENTATION_*` constants.
  */
-fun Bitmap.rotateToMetadataOrientation(orientation: Int): Bitmap {
+fun Bitmap.rotateToExifMetadataOrientation(orientation: Int): Bitmap {
     val matrix = Matrix()
     when (orientation) {
         ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)

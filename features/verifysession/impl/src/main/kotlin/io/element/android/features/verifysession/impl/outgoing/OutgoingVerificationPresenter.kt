@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,9 +17,9 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import com.freeletics.flowredux.compose.rememberStateAndDispatch
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.matrix.api.encryption.EncryptionService
@@ -34,14 +35,15 @@ import timber.log.Timber
 import io.element.android.features.verifysession.impl.outgoing.OutgoingVerificationStateMachine.Event as StateMachineEvent
 import io.element.android.features.verifysession.impl.outgoing.OutgoingVerificationStateMachine.State as StateMachineState
 
-class OutgoingVerificationPresenter @AssistedInject constructor(
+@AssistedInject
+class OutgoingVerificationPresenter(
     @Assisted private val showDeviceVerifiedScreen: Boolean,
     @Assisted private val verificationRequest: VerificationRequest.Outgoing,
     private val sessionVerificationService: SessionVerificationService,
     private val encryptionService: EncryptionService,
 ) : Presenter<OutgoingVerificationState> {
     @AssistedFactory
-    interface Factory {
+    fun interface Factory {
         fun create(
             verificationRequest: VerificationRequest.Outgoing,
             showDeviceVerifiedScreen: Boolean,
@@ -91,7 +93,7 @@ class OutgoingVerificationPresenter @AssistedInject constructor(
             observeVerificationService()
         }
 
-        fun handleEvents(event: OutgoingVerificationViewEvents) {
+        fun handleEvent(event: OutgoingVerificationViewEvents) {
             Timber.d("Verification user action: ${event::class.simpleName}")
             when (event) {
                 // Just relay the event to the state machine
@@ -108,7 +110,7 @@ class OutgoingVerificationPresenter @AssistedInject constructor(
         return OutgoingVerificationState(
             step = step,
             request = verificationRequest,
-            eventSink = ::handleEvents,
+            eventSink = ::handleEvent,
         )
     }
 

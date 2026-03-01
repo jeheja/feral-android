@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,7 +10,9 @@ package io.element.android.tests.testutils
 
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import io.element.android.libraries.designsystem.utils.LocalUiTestMode
 import org.junit.Assert.assertFalse
 import org.junit.rules.TestRule
 import kotlin.coroutines.CoroutineContext
@@ -49,7 +52,16 @@ object RobolectricDispatcherCleaner {
     }
 }
 
-fun <R : TestRule, A : ComponentActivity> AndroidComposeTestRule<R, A>.setSafeContent(content: @Composable () -> Unit) {
-    RobolectricDispatcherCleaner.clearAndroidUiDispatcher()
-    setContent(content)
+fun <R : TestRule, A : ComponentActivity> AndroidComposeTestRule<R, A>.setSafeContent(
+    clearAndroidUiDispatcher: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    if (clearAndroidUiDispatcher) {
+        RobolectricDispatcherCleaner.clearAndroidUiDispatcher()
+    }
+    setContent {
+        CompositionLocalProvider(LocalUiTestMode provides true) {
+            content()
+        }
+    }
 }

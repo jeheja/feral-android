@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -36,4 +37,10 @@ interface Feature {
      * If true: the feature is finished, it will not appear in the developer options screen.
      */
     val isFinished: Boolean
+
+    /**
+     * Whether the feature is only available in Labs (and not in developer options).
+     * Feature flags that set this to `true` can be enabled by any users, not only those that have enabled developer mode.
+     */
+    val isInLabs: Boolean
 }

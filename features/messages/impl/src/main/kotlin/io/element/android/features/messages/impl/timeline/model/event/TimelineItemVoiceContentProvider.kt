@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,7 +12,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import io.element.android.libraries.core.mimetype.MimeTypes
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.media.MediaSource
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
@@ -45,6 +46,7 @@ fun aTimelineItemVoiceContent(
     waveform: List<Float> = listOf(0f, 1f, 2f, 3f, 4f, 5f, 6f, 7f, 8f, 9f, 8f, 7f, 6f, 5f, 4f, 3f, 2f, 1f, 0f),
 ) = TimelineItemVoiceContent(
     eventId = eventId,
+    fileSize = 1024 * 1024,
     filename = filename,
     caption = caption,
     formattedCaption = null,
@@ -52,7 +54,7 @@ fun aTimelineItemVoiceContent(
     duration = duration,
     mediaSource = mediaSource,
     mimeType = mimeType,
-    waveform = waveform.toPersistentList(),
+    waveform = waveform.toImmutableList(),
     formattedFileSize = "1.0 MB",
     fileExtension = "ogg",
 )

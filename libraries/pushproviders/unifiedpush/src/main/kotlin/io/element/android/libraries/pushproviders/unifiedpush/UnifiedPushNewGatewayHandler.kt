@@ -1,22 +1,22 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.pushproviders.unifiedpush
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.core.extensions.flatMap
 import io.element.android.libraries.core.log.logger.LoggerTag
-import io.element.android.libraries.di.AppScope
 import io.element.android.libraries.matrix.api.MatrixClientProvider
 import io.element.android.libraries.pushproviders.api.PusherSubscriber
 import io.element.android.libraries.pushstore.api.UserPushStoreFactory
 import io.element.android.libraries.pushstore.api.clientsecret.PushClientSecret
 import timber.log.Timber
-import javax.inject.Inject
 
 private val loggerTag = LoggerTag("DefaultUnifiedPushNewGatewayHandler", LoggerTag.PushLoggerTag)
 
@@ -28,7 +28,7 @@ interface UnifiedPushNewGatewayHandler {
 }
 
 @ContributesBinding(AppScope::class)
-class DefaultUnifiedPushNewGatewayHandler @Inject constructor(
+class DefaultUnifiedPushNewGatewayHandler(
     private val pusherSubscriber: PusherSubscriber,
     private val userPushStoreFactory: UserPushStoreFactory,
     private val pushClientSecret: PushClientSecret,
@@ -39,7 +39,7 @@ class DefaultUnifiedPushNewGatewayHandler @Inject constructor(
         val userId = pushClientSecret.getUserIdFromSecret(clientSecret) ?: return Result.failure<Unit>(
             IllegalStateException("Unable to retrieve session")
         ).also {
-            Timber.w("Unable to retrieve session")
+            Timber.tag(loggerTag.value).w("Unable to retrieve session")
         }
         val userDataStore = userPushStoreFactory.getOrCreate(userId)
         return if (userDataStore.getPushProviderName() == UnifiedPushConfig.NAME) {
@@ -47,6 +47,9 @@ class DefaultUnifiedPushNewGatewayHandler @Inject constructor(
                 .getOrRestore(userId)
                 .flatMap { client ->
                     pusherSubscriber.registerPusher(client, endpoint, pushGateway)
+                }
+                .onFailure {
+                    Timber.tag(loggerTag.value).w(it, "Unable to register pusher")
                 }
         } else {
             Timber.tag(loggerTag.value).d("This session is not using UnifiedPush pusher")

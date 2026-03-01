@@ -1,15 +1,16 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.joinroom.impl.di
 
-import com.squareup.anvil.annotations.ContributesTo
-import dagger.Module
-import dagger.Provides
+import dev.zacsweers.metro.BindingContainer
+import dev.zacsweers.metro.ContributesTo
+import dev.zacsweers.metro.Provides
 import im.vector.app.features.analytics.plan.JoinedRoom
 import io.element.android.features.invite.api.SeenInvitesStore
 import io.element.android.features.invite.api.acceptdecline.AcceptDeclineInviteState
@@ -22,10 +23,9 @@ import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.RoomIdOrAlias
 import io.element.android.libraries.matrix.api.room.join.JoinRoom
-import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import java.util.Optional
 
-@Module
+@BindingContainer
 @ContributesTo(SessionScope::class)
 object JoinRoomModule {
     @Provides
@@ -37,7 +37,6 @@ object JoinRoomModule {
         forgetRoom: ForgetRoom,
         acceptDeclineInvitePresenter: Presenter<AcceptDeclineInviteState>,
         buildMeta: BuildMeta,
-        appPreferencesStore: AppPreferencesStore,
         seenInvitesStore: SeenInvitesStore,
     ): JoinRoomPresenter.Factory {
         return object : JoinRoomPresenter.Factory {
@@ -61,7 +60,6 @@ object JoinRoomModule {
                     cancelKnockRoom = cancelKnockRoom,
                     acceptDeclineInvitePresenter = acceptDeclineInvitePresenter,
                     buildMeta = buildMeta,
-                    appPreferencesStore = appPreferencesStore,
                     seenInvitesStore = seenInvitesStore,
                 )
             }

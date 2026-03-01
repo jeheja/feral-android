@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -25,6 +26,11 @@ interface PushProvider {
     val name: String
 
     /**
+     * true if the Push provider supports multiple distributors.
+     */
+    val supportMultipleDistributors: Boolean
+
+    /**
      * Return the list of available distributors.
      */
     fun getDistributors(): List<Distributor>
@@ -33,6 +39,11 @@ interface PushProvider {
      * Register the pusher to the homeserver.
      */
     suspend fun registerWith(matrixClient: MatrixClient, distributor: Distributor): Result<Unit>
+
+    /**
+     * Return the current distributor, or null if none.
+     */
+    suspend fun getCurrentDistributorValue(sessionId: SessionId): String?
 
     /**
      * Return the current distributor, or null if none.
@@ -49,7 +60,7 @@ interface PushProvider {
      */
     suspend fun onSessionDeleted(sessionId: SessionId)
 
-    suspend fun getCurrentUserPushConfig(): CurrentUserPushConfig?
+    suspend fun getPushConfig(sessionId: SessionId): Config?
 
     fun canRotateToken(): Boolean
 

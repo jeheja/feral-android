@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -27,11 +28,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -45,17 +46,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import io.element.android.compound.theme.ElementTheme
+import io.element.android.features.messages.impl.timeline.a11y.a11yReactionDetails
 import io.element.android.features.messages.impl.timeline.components.REACTION_IMAGE_ASPECT_RATIO
 import io.element.android.features.messages.impl.timeline.model.AggregatedReaction
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.text.toDp
@@ -76,16 +83,13 @@ fun ReactionSummaryView(
     state: ReactionSummaryState,
     modifier: Modifier = Modifier,
 ) {
-    val sheetState = rememberModalBottomSheetState()
-
     fun onDismiss() {
-        state.eventSink(ReactionSummaryEvents.Clear)
+        state.eventSink(ReactionSummaryEvent.Clear)
     }
 
     if (state.target != null) {
         ModalBottomSheet(
             onDismissRequest = ::onDismiss,
-            sheetState = sheetState,
             modifier = modifier
         ) {
             ReactionSummaryViewContent(summary = state.target)
@@ -110,8 +114,10 @@ private fun ReactionSummaryViewContent(
     LaunchedEffect(pagerState.currentPage) {
         selectedReactionKey = summary.reactions[pagerState.currentPage].key
         val visibleInfo = reactionListState.layoutInfo.visibleItemsInfo
-        if (selectedReactionIndex <= visibleInfo.first().index || selectedReactionIndex >= visibleInfo.last().index) {
-            reactionListState.animateScrollToItem(selectedReactionIndex)
+        if (visibleInfo.isNotEmpty()) {
+            if (selectedReactionIndex <= visibleInfo.first().index || selectedReactionIndex >= visibleInfo.last().index) {
+                reactionListState.animateScrollToItem(selectedReactionIndex)
+            }
         }
     }
 
@@ -140,9 +146,7 @@ private fun ReactionSummaryViewContent(
         HorizontalPager(state = pagerState) { page ->
             LazyColumn(modifier = Modifier.fillMaxHeight()) {
                 items(summary.reactions[page].senders) { sender ->
-
                     val user = sender.user ?: MatrixUser(userId = sender.senderId)
-
                     SenderRow(
                         avatarData = user.getAvatarData(AvatarSize.UserListItem),
                         name = user.displayName ?: user.userId.value,
@@ -166,21 +170,32 @@ private fun AggregatedReactionButton(
     } else {
         Color.Transparent
     }
-
     val textColor = if (isHighlighted) {
         MaterialTheme.colorScheme.inversePrimary
     } else {
         ElementTheme.colors.textPrimary
     }
-
     val roundedCornerShape = RoundedCornerShape(corner = CornerSize(percent = 50))
+    val a11yText = a11yReactionDetails(
+        emoji = reaction.key,
+        userAlreadyReacted = reaction.isHighlighted,
+        reactionCount = reaction.count,
+    )
     Surface(
         modifier = Modifier
             .background(buttonColor, roundedCornerShape)
             .clip(roundedCornerShape)
             .clickable(onClick = onClick)
-            .padding(vertical = 8.dp, horizontal = 12.dp),
-        color = buttonColor
+            .padding(vertical = 8.dp, horizontal = 12.dp)
+            .selectable(
+                selected = isHighlighted,
+                role = Role.Tab,
+                onClick = onClick,
+            )
+            .clearAndSetSemantics {
+                contentDescription = a11yText
+            },
+        color = buttonColor,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -230,10 +245,14 @@ private fun SenderRow(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 4.dp),
+            .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 4.dp)
+            .semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Avatar(avatarData)
+        Avatar(
+            avatarData = avatarData,
+            avatarType = AvatarType.User,
+        )
         Column(
             modifier = Modifier.padding(start = 12.dp),
         ) {

@@ -1,23 +1,21 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.push.impl.notifications
 
 import android.content.Intent
-import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.core.ThreadId
 import io.element.android.libraries.matrix.api.room.IntentionalMention
-import io.element.android.libraries.matrix.api.room.message.ReplyParameters
-import io.element.android.libraries.matrix.api.room.message.replyInThread
-import io.element.android.libraries.matrix.api.roomlist.RoomSummary
+import io.element.android.libraries.matrix.api.room.RoomInfo
 import io.element.android.libraries.matrix.api.timeline.ReceiptType
 import io.element.android.libraries.matrix.test.AN_EVENT_ID
 import io.element.android.libraries.matrix.test.A_MESSAGE
@@ -42,6 +40,7 @@ import io.element.android.libraries.push.impl.push.FakeOnNotifiableEventReceived
 import io.element.android.libraries.push.impl.push.OnNotifiableEventReceived
 import io.element.android.libraries.push.test.notifications.FakeNotificationCleaner
 import io.element.android.services.appnavstate.api.ActiveRoomsHolder
+import io.element.android.services.appnavstate.impl.DefaultActiveRoomsHolder
 import io.element.android.services.toolbox.api.strings.StringProvider
 import io.element.android.services.toolbox.api.systemclock.SystemClock
 import io.element.android.services.toolbox.test.strings.FakeStringProvider
@@ -224,7 +223,13 @@ class NotificationBroadcastReceiverHandlerTest {
             getLambda = getLambda
         )
         val clearMessagesForRoomLambda = lambdaRecorder<SessionId, RoomId, Unit> { _, _ -> }
-        val joinedRoom = FakeJoinedRoom()
+        val markAsReadResult = lambdaRecorder<ReceiptType, Result<Unit>> { Result.success(Unit) }
+        val timeline = FakeTimeline(markAsReadResult = markAsReadResult)
+        val joinedRoom = FakeJoinedRoom(
+            baseRoom = FakeBaseRoom(),
+            liveTimeline = timeline,
+            createTimelineResult = { Result.success(timeline) },
+        )
         val fakeNotificationCleaner = FakeNotificationCleaner(
             clearMessagesForRoomLambda = clearMessagesForRoomLambda,
         )
@@ -243,7 +248,7 @@ class NotificationBroadcastReceiverHandlerTest {
         clearMessagesForRoomLambda.assertions()
             .isCalledOnce()
             .with(value(A_SESSION_ID), value(A_ROOM_ID))
-        assertThat(joinedRoom.baseRoom.markAsReadCalls).isEqualTo(listOf(expectedReceiptType))
+        markAsReadResult.assertions().isCalledOnce().with(value(expectedReceiptType))
     }
 
     @Test
@@ -258,7 +263,7 @@ class NotificationBroadcastReceiverHandlerTest {
 
     @Test
     fun `Test join room`() = runTest {
-        val joinRoom = lambdaRecorder<RoomId, Result<RoomSummary?>> { _ -> Result.success(null) }
+        val joinRoom = lambdaRecorder<RoomId, Result<RoomInfo?>> { _ -> Result.success(null) }
         val clearMembershipNotificationForRoomLambda = lambdaRecorder<SessionId, RoomId, Unit> { _, _ -> }
         val fakeNotificationCleaner = FakeNotificationCleaner(
             clearMembershipNotificationForRoomLambda = clearMembershipNotificationForRoomLambda,
@@ -338,7 +343,7 @@ class NotificationBroadcastReceiverHandlerTest {
     fun `Test send reply`() = runTest {
         val sendMessage = lambdaRecorder<String, String?, List<IntentionalMention>, Result<Unit>> { _, _, _ -> Result.success(Unit) }
         val replyMessage =
-            lambdaRecorder<ReplyParameters, String, String?, List<IntentionalMention>, Boolean, Result<Unit>> { _, _, _, _, _ -> Result.success(Unit) }
+            lambdaRecorder<EventId?, String, String?, List<IntentionalMention>, Boolean, Result<Unit>> { _, _, _, _, _ -> Result.success(Unit) }
         val liveTimeline = FakeTimeline().apply {
             sendMessageLambda = sendMessage
             replyMessageLambda = replyMessage
@@ -405,7 +410,7 @@ class NotificationBroadcastReceiverHandlerTest {
     fun `Test send reply to thread`() = runTest {
         val sendMessage = lambdaRecorder<String, String?, List<IntentionalMention>, Result<Unit>> { _, _, _ -> Result.success(Unit) }
         val replyMessage =
-            lambdaRecorder<ReplyParameters, String, String?, List<IntentionalMention>, Boolean, Result<Unit>> { _, _, _, _, _ -> Result.success(Unit) }
+            lambdaRecorder<EventId?, String, String?, List<IntentionalMention>, Boolean, Result<Unit>> { _, _, _, _, _ -> Result.success(Unit) }
         val liveTimeline = FakeTimeline().apply {
             sendMessageLambda = sendMessage
             replyMessageLambda = replyMessage
@@ -444,7 +449,7 @@ class NotificationBroadcastReceiverHandlerTest {
         replyMessage.assertions()
             .isCalledOnce()
             .with(
-                value(replyInThread(eventId = AN_EVENT_ID, explicitReply = false)),
+                value(AN_EVENT_ID),
                 value(A_MESSAGE),
                 value(null),
                 value(emptyList<IntentionalMention>()),
@@ -467,7 +472,7 @@ class NotificationBroadcastReceiverHandlerTest {
 
     private fun TestScope.createNotificationBroadcastReceiverHandler(
         joinedRoom: FakeJoinedRoom? = FakeJoinedRoom(),
-        joinRoom: (RoomId) -> Result<RoomSummary?> = { lambdaError() },
+        joinRoom: (RoomId) -> Result<RoomInfo?> = { lambdaError() },
         matrixClient: MatrixClient? = FakeMatrixClient().apply {
             givenGetRoomResult(A_ROOM_ID, joinedRoom)
             joinRoomLambda = joinRoom
@@ -478,7 +483,7 @@ class NotificationBroadcastReceiverHandlerTest {
         onNotifiableEventReceived: OnNotifiableEventReceived = FakeOnNotifiableEventReceived(),
         stringProvider: StringProvider = FakeStringProvider(),
         replyMessageExtractor: ReplyMessageExtractor = FakeReplyMessageExtractor(),
-        activeRoomsHolder: ActiveRoomsHolder = ActiveRoomsHolder(),
+        activeRoomsHolder: ActiveRoomsHolder = DefaultActiveRoomsHolder(),
     ): NotificationBroadcastReceiverHandler {
         return NotificationBroadcastReceiverHandler(
             appCoroutineScope = this,

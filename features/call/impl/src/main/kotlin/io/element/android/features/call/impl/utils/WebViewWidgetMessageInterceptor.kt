@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -26,6 +27,7 @@ import timber.log.Timber
 
 class WebViewWidgetMessageInterceptor(
     private val webView: WebView,
+    private val onUrlLoaded: (String) -> Unit,
     private val onError: (String?) -> Unit,
 ) : WidgetMessageInterceptor {
     companion object {
@@ -44,13 +46,13 @@ class WebViewWidgetMessageInterceptor(
             .build()
 
         webView.webViewClient = object : WebViewClient() {
-            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+            override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
 
                 // Due to https://github.com/element-hq/element-x-android/issues/4097
                 // we need to supply a logging implementation that correctly includes
                 // objects in log lines.
-                view?.evaluateJavascript(
+                view.evaluateJavascript(
                     """
                         function logFn(consoleLogFn, ...args) {
                             consoleLogFn(
@@ -72,7 +74,7 @@ class WebViewWidgetMessageInterceptor(
                 // This listener will receive both messages:
                 // - EC widget API -> Element X (message.data.api == "fromWidget")
                 // - Element X -> EC widget API (message.data.api == "toWidget"), we should ignore these
-                view?.evaluateJavascript(
+                view.evaluateJavascript(
                     """
                         window.addEventListener('message', function(event) {
                             let message = {data: event.data, origin: event.origin}
@@ -88,6 +90,10 @@ class WebViewWidgetMessageInterceptor(
                     """.trimIndent(),
                     null
                 )
+            }
+
+            override fun onPageFinished(view: WebView, url: String) {
+                onUrlLoaded(url)
             }
 
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
@@ -128,6 +134,7 @@ class WebViewWidgetMessageInterceptor(
                 return assetLoader.shouldInterceptRequest(request.url)
             }
 
+            @Suppress("OVERRIDE_DEPRECATION")
             override fun shouldInterceptRequest(view: WebView?, url: String): WebResourceResponse? {
                 return assetLoader.shouldInterceptRequest(url.toUri())
             }

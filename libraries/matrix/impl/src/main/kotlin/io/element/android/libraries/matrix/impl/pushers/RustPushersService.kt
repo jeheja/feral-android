@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,6 +10,7 @@ package io.element.android.libraries.matrix.impl.pushers
 
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.core.extensions.mapFailure
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.matrix.api.pusher.PushersService
 import io.element.android.libraries.matrix.api.pusher.SetHttpPusherData
 import io.element.android.libraries.matrix.api.pusher.UnsetHttpPusherData
@@ -26,7 +28,7 @@ class RustPushersService(
 ) : PushersService {
     override suspend fun setHttpPusher(setHttpPusherData: SetHttpPusherData): Result<Unit> {
         return withContext(dispatchers.io) {
-            runCatching {
+            runCatchingExceptions {
                 client.setPusher(
                     identifiers = PusherIdentifiers(
                         pushkey = setHttpPusherData.pushKey,
@@ -51,7 +53,7 @@ class RustPushersService(
 
     override suspend fun unsetHttpPusher(unsetHttpPusherData: UnsetHttpPusherData): Result<Unit> {
         return withContext(dispatchers.io) {
-            runCatching {
+            runCatchingExceptions {
                 client.deletePusher(
                     identifiers = PusherIdentifiers(
                         pushkey = unsetHttpPusherData.pushKey,

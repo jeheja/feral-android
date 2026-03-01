@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,14 +15,17 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.matrix.api.MatrixClient
+import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.encryption.BackupState
 import io.element.android.libraries.matrix.api.encryption.BackupUploadState
 import io.element.android.libraries.matrix.api.encryption.EncryptionService
 import io.element.android.libraries.matrix.api.encryption.RecoveryState
-import io.element.android.libraries.matrix.test.A_THROWABLE
+import io.element.android.libraries.matrix.test.AN_EXCEPTION
 import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.encryption.FakeEncryptionService
+import io.element.android.libraries.workmanager.test.FakeWorkManagerScheduler
 import io.element.android.tests.testutils.WarmUpRule
+import io.element.android.tests.testutils.lambda.lambdaRecorder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
@@ -145,7 +149,9 @@ class LogoutPresenterTest {
 
     @Test
     fun `present - logout then confirm`() = runTest {
-        val presenter = createLogoutPresenter()
+        val cancelWorkManagerJobsLambda = lambdaRecorder<SessionId, Unit> {}
+        val workManagerScheduler = FakeWorkManagerScheduler(cancelLambda = cancelWorkManagerJobsLambda)
+        val presenter = createLogoutPresenter(workManagerScheduler = workManagerScheduler)
         moleculeFlow(RecompositionMode.Immediate) {
             presenter.present()
         }.test {
@@ -158,6 +164,8 @@ class LogoutPresenterTest {
             assertThat(loadingState.logoutAction).isInstanceOf(AsyncAction.Loading::class.java)
             val successState = awaitItem()
             assertThat(successState.logoutAction).isInstanceOf(AsyncAction.Success::class.java)
+
+            cancelWorkManagerJobsLambda.assertions().isCalledOnce()
         }
     }
 
@@ -165,7 +173,7 @@ class LogoutPresenterTest {
     fun `present - logout with error then cancel`() = runTest {
         val matrixClient = FakeMatrixClient().apply {
             logoutLambda = { _, _ ->
-                throw A_THROWABLE
+                throw AN_EXCEPTION
             }
         }
         val presenter = createLogoutPresenter(
@@ -182,7 +190,7 @@ class LogoutPresenterTest {
             val loadingState = awaitItem()
             assertThat(loadingState.logoutAction).isInstanceOf(AsyncAction.Loading::class.java)
             val errorState = awaitItem()
-            assertThat(errorState.logoutAction).isEqualTo(AsyncAction.Failure(A_THROWABLE))
+            assertThat(errorState.logoutAction).isEqualTo(AsyncAction.Failure(AN_EXCEPTION))
             errorState.eventSink.invoke(LogoutEvents.CloseDialogs)
             val finalState = awaitItem()
             assertThat(finalState.logoutAction).isEqualTo(AsyncAction.Uninitialized)
@@ -194,9 +202,7 @@ class LogoutPresenterTest {
         val matrixClient = FakeMatrixClient().apply {
             logoutLambda = { ignoreSdkError, _ ->
                 if (!ignoreSdkError) {
-                    throw A_THROWABLE
-                } else {
-                    null
+                    throw AN_EXCEPTION
                 }
             }
         }
@@ -214,7 +220,7 @@ class LogoutPresenterTest {
             val loadingState = awaitItem()
             assertThat(loadingState.logoutAction).isInstanceOf(AsyncAction.Loading::class.java)
             val errorState = awaitItem()
-            assertThat(errorState.logoutAction).isEqualTo(AsyncAction.Failure(A_THROWABLE))
+            assertThat(errorState.logoutAction).isEqualTo(AsyncAction.Failure(AN_EXCEPTION))
             errorState.eventSink.invoke(LogoutEvents.Logout(ignoreSdkError = true))
             val loadingState2 = awaitItem()
             assertThat(loadingState2.logoutAction).isInstanceOf(AsyncAction.Loading::class.java)
@@ -227,12 +233,14 @@ class LogoutPresenterTest {
         skipItems(2)
         return awaitItem()
     }
-
-    private fun createLogoutPresenter(
-        matrixClient: MatrixClient = FakeMatrixClient(),
-        encryptionService: EncryptionService = FakeEncryptionService(),
-    ): LogoutPresenter = LogoutPresenter(
-        matrixClient = matrixClient,
-        encryptionService = encryptionService,
-    )
 }
+
+internal fun createLogoutPresenter(
+    matrixClient: MatrixClient = FakeMatrixClient(),
+    encryptionService: EncryptionService = FakeEncryptionService(),
+    workManagerScheduler: FakeWorkManagerScheduler = FakeWorkManagerScheduler(cancelLambda = {}),
+): LogoutPresenter = LogoutPresenter(
+    matrixClient = matrixClient,
+    encryptionService = encryptionService,
+    workManagerScheduler = workManagerScheduler,
+)

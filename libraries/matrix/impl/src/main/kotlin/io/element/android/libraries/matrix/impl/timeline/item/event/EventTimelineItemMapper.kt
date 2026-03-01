@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,7 +17,7 @@ import io.element.android.libraries.matrix.api.timeline.item.event.EventReaction
 import io.element.android.libraries.matrix.api.timeline.item.event.EventTimelineItem
 import io.element.android.libraries.matrix.api.timeline.item.event.LocalEventSendState
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageShield
-import io.element.android.libraries.matrix.api.timeline.item.event.ProfileTimelineDetails
+import io.element.android.libraries.matrix.api.timeline.item.event.ProfileDetails
 import io.element.android.libraries.matrix.api.timeline.item.event.ReactionSender
 import io.element.android.libraries.matrix.api.timeline.item.event.Receipt
 import io.element.android.libraries.matrix.api.timeline.item.event.TimelineItemEventOrigin
@@ -29,7 +30,7 @@ import org.matrix.rustcomponents.sdk.QueueWedgeError
 import org.matrix.rustcomponents.sdk.Reaction
 import org.matrix.rustcomponents.sdk.ShieldState
 import org.matrix.rustcomponents.sdk.TimelineItemContent
-import uniffi.matrix_sdk_common.ShieldStateCode
+import uniffi.matrix_sdk_ui.TimelineEventShieldStateCode
 import org.matrix.rustcomponents.sdk.EventSendState as RustEventSendState
 import org.matrix.rustcomponents.sdk.EventTimelineItem as RustEventTimelineItem
 import org.matrix.rustcomponents.sdk.EventTimelineItemDebugInfo as RustEventTimelineItemDebugInfo
@@ -57,18 +58,20 @@ class EventTimelineItemMapper(
             content = contentMapper.map(content),
             origin = origin?.map(),
             timelineItemDebugInfoProvider = { lazyProvider.debugInfo().map() },
-            messageShieldProvider = { strict -> lazyProvider.getShields(strict)?.map() },
-            sendHandleProvider = { lazyProvider.getSendHandle()?.let(::RustSendHandle) }
+            messageShieldProvider = { strict -> lazyProvider.getShields(strict).map() },
+            sendHandleProvider = { lazyProvider.getSendHandle()?.let(::RustSendHandle) },
+            forwarder = forwarder?.let { UserId(it) },
+            forwarderProfile = forwarderProfile?.map(),
         )
     }
 }
 
-fun RustProfileDetails.map(): ProfileTimelineDetails {
+fun RustProfileDetails.map(): ProfileDetails {
     return when (this) {
-        RustProfileDetails.Pending -> ProfileTimelineDetails.Pending
-        RustProfileDetails.Unavailable -> ProfileTimelineDetails.Unavailable
-        is RustProfileDetails.Error -> ProfileTimelineDetails.Error(message)
-        is RustProfileDetails.Ready -> ProfileTimelineDetails.Ready(
+        RustProfileDetails.Pending -> ProfileDetails.Pending
+        RustProfileDetails.Unavailable -> ProfileDetails.Unavailable
+        is RustProfileDetails.Error -> ProfileDetails.Error(message)
+        is RustProfileDetails.Ready -> ProfileDetails.Ready(
             displayName = displayName,
             displayNameAmbiguous = displayNameAmbiguous,
             avatarUrl = avatarUrl
@@ -79,7 +82,18 @@ fun RustProfileDetails.map(): ProfileTimelineDetails {
 fun RustEventSendState?.map(): LocalEventSendState? {
     return when (this) {
         null -> null
-        RustEventSendState.NotSentYet -> LocalEventSendState.Sending
+        is RustEventSendState.NotSentYet -> {
+            val mediaUploadProgress = this.progress
+            if (mediaUploadProgress != null) {
+                LocalEventSendState.Sending.MediaWithProgress(
+                    index = mediaUploadProgress.index.toLong(),
+                    progress = mediaUploadProgress.progress.current.toLong(),
+                    total = mediaUploadProgress.progress.total.toLong(),
+                )
+            } else {
+                LocalEventSendState.Sending.Event
+            }
+        }
         is RustEventSendState.SendingFailed -> {
             when (val queueWedgeError = error) {
                 QueueWedgeError.CrossVerificationRequired -> {
@@ -98,7 +112,7 @@ fun RustEventSendState?.map(): LocalEventSendState? {
                 }
                 is QueueWedgeError.GenericApiError -> {
                     if (isRecoverable) {
-                        LocalEventSendState.Sending
+                        LocalEventSendState.Sending.Event
                     } else {
                         LocalEventSendState.Failed.Unknown(queueWedgeError.msg)
                     }
@@ -170,12 +184,13 @@ private fun ShieldState?.map(): MessageShield? {
         is ShieldState.Red -> true
     }
     return when (shieldStateCode) {
-        ShieldStateCode.AUTHENTICITY_NOT_GUARANTEED -> MessageShield.AuthenticityNotGuaranteed(isCritical)
-        ShieldStateCode.UNKNOWN_DEVICE -> MessageShield.UnknownDevice(isCritical)
-        ShieldStateCode.UNSIGNED_DEVICE -> MessageShield.UnsignedDevice(isCritical)
-        ShieldStateCode.UNVERIFIED_IDENTITY -> MessageShield.UnverifiedIdentity(isCritical)
-        ShieldStateCode.SENT_IN_CLEAR -> MessageShield.SentInClear(isCritical)
-        ShieldStateCode.VERIFICATION_VIOLATION -> MessageShield.VerificationViolation(isCritical)
+        TimelineEventShieldStateCode.AUTHENTICITY_NOT_GUARANTEED -> MessageShield.AuthenticityNotGuaranteed(isCritical)
+        TimelineEventShieldStateCode.UNKNOWN_DEVICE -> MessageShield.UnknownDevice(isCritical)
+        TimelineEventShieldStateCode.UNSIGNED_DEVICE -> MessageShield.UnsignedDevice(isCritical)
+        TimelineEventShieldStateCode.UNVERIFIED_IDENTITY -> MessageShield.UnverifiedIdentity(isCritical)
+        TimelineEventShieldStateCode.SENT_IN_CLEAR -> MessageShield.SentInClear(isCritical)
+        TimelineEventShieldStateCode.VERIFICATION_VIOLATION -> MessageShield.VerificationViolation(isCritical)
+        TimelineEventShieldStateCode.MISMATCHED_SENDER -> MessageShield.MismatchedSender(isCritical)
     }
 }
 

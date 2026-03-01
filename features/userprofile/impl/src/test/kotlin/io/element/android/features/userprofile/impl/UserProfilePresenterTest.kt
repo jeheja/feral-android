@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,10 +14,10 @@ import app.cash.molecule.moleculeFlow
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
-import io.element.android.features.createroom.api.ConfirmingStartDmWithMatrixUser
-import io.element.android.features.createroom.api.StartDMAction
-import io.element.android.features.createroom.test.FakeStartDMAction
-import io.element.android.features.enterprise.test.FakeEnterpriseService
+import io.element.android.features.enterprise.test.FakeSessionEnterpriseService
+import io.element.android.features.invitepeople.test.FakeStartDMAction
+import io.element.android.features.startchat.api.ConfirmingStartDmWithMatrixUser
+import io.element.android.features.startchat.api.StartDMAction
 import io.element.android.features.userprofile.api.UserProfileEvents
 import io.element.android.features.userprofile.api.UserProfileState
 import io.element.android.features.userprofile.api.UserProfileVerificationState
@@ -27,18 +28,20 @@ import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
+import io.element.android.libraries.matrix.api.room.StateEventType
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.test.AN_EXCEPTION
 import io.element.android.libraries.matrix.test.A_ROOM_ID
-import io.element.android.libraries.matrix.test.A_THROWABLE
 import io.element.android.libraries.matrix.test.A_USER_ID
 import io.element.android.libraries.matrix.test.A_USER_ID_2
 import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.encryption.FakeEncryptionService
 import io.element.android.libraries.matrix.test.room.FakeBaseRoom
+import io.element.android.libraries.matrix.test.room.powerlevels.FakeRoomPermissions
 import io.element.android.libraries.matrix.ui.components.aMatrixUser
 import io.element.android.tests.testutils.WarmUpRule
 import io.element.android.tests.testutils.lambda.any
+import io.element.android.tests.testutils.lambda.lambdaError
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.lambda.value
 import io.element.android.tests.testutils.test
@@ -89,15 +92,7 @@ class UserProfilePresenterTest {
     @Test
     fun `present - canCall is false when canUserJoinCall returns false`() {
         testCanCall(
-            canUserJoinCallResult = Result.success(false),
-            expectedResult = false,
-        )
-    }
-
-    @Test
-    fun `present - canCall is false when canUserJoinCall fails`() {
-        testCanCall(
-            canUserJoinCallResult = Result.failure(AN_EXCEPTION),
+            canUserJoinCall = false,
             expectedResult = false,
         )
     }
@@ -128,7 +123,7 @@ class UserProfilePresenterTest {
 
     private fun testCanCall(
         isElementCallAvailable: Boolean = true,
-        canUserJoinCallResult: Result<Boolean> = Result.success(true),
+        canUserJoinCall: Boolean = true,
         dmRoom: RoomId? = A_ROOM_ID,
         canFindRoom: Boolean = true,
         expectedResult: Boolean,
@@ -136,13 +131,20 @@ class UserProfilePresenterTest {
         checkThatRoomIsDestroyed: Boolean = false,
     ) = runTest {
         val room = FakeBaseRoom(
-            canUserJoinCallResult = { canUserJoinCallResult },
+            roomPermissions = FakeRoomPermissions(
+                canSendState = { type ->
+                    when (type) {
+                        StateEventType.CallMember -> canUserJoinCall
+                        else -> lambdaError()
+                    }
+                }
+            ),
         )
         val client = createFakeMatrixClient().apply {
             if (canFindRoom) {
                 givenGetRoomResult(A_ROOM_ID, room)
             }
-            givenFindDmResult(dmRoom)
+            givenFindDmResult(Result.success(dmRoom))
         }
         val presenter = createUserProfilePresenter(
             userId = A_USER_ID_2,
@@ -215,7 +217,7 @@ class UserProfilePresenterTest {
     @Test
     fun `present - BlockUser with error`() = runTest {
         val matrixClient = createFakeMatrixClient(
-            ignoreUserResult = { Result.failure(A_THROWABLE) }
+            ignoreUserResult = { Result.failure(AN_EXCEPTION) }
         )
         val presenter = createUserProfilePresenter(client = matrixClient)
         presenter.test {
@@ -223,7 +225,7 @@ class UserProfilePresenterTest {
             initialState.eventSink(UserProfileEvents.BlockUser(needsConfirmation = false))
             assertThat(awaitItem().isBlocked.isLoading()).isTrue()
             val errorState = awaitItem()
-            assertThat(errorState.isBlocked.errorOrNull()).isEqualTo(A_THROWABLE)
+            assertThat(errorState.isBlocked.errorOrNull()).isEqualTo(AN_EXCEPTION)
             // Clear error
             initialState.eventSink(UserProfileEvents.ClearBlockUserError)
             assertThat(awaitItem().isBlocked).isEqualTo(AsyncData.Success(false))
@@ -233,7 +235,7 @@ class UserProfilePresenterTest {
     @Test
     fun `present - UnblockUser with error`() = runTest {
         val matrixClient = createFakeMatrixClient(
-            unIgnoreUserResult = { Result.failure(A_THROWABLE) }
+            unIgnoreUserResult = { Result.failure(AN_EXCEPTION) }
         )
         val presenter = createUserProfilePresenter(client = matrixClient)
         presenter.test {
@@ -241,7 +243,7 @@ class UserProfilePresenterTest {
             initialState.eventSink(UserProfileEvents.UnblockUser(needsConfirmation = false))
             assertThat(awaitItem().isBlocked.isLoading()).isTrue()
             val errorState = awaitItem()
-            assertThat(errorState.isBlocked.errorOrNull()).isEqualTo(A_THROWABLE)
+            assertThat(errorState.isBlocked.errorOrNull()).isEqualTo(AN_EXCEPTION)
             // Clear error
             initialState.eventSink(UserProfileEvents.ClearBlockUserError)
             assertThat(awaitItem().isBlocked).isEqualTo(AsyncData.Success(true))
@@ -265,7 +267,7 @@ class UserProfilePresenterTest {
 
     @Test
     fun `present - start DM action failure scenario`() = runTest {
-        val startDMFailureResult = AsyncAction.Failure(A_THROWABLE)
+        val startDMFailureResult = AsyncAction.Failure(AN_EXCEPTION)
         val executeResult = lambdaRecorder<MatrixUser, Boolean, MutableState<AsyncAction<RoomId>>, Unit> { _, _, actionState ->
             actionState.value = startDMFailureResult
         }
@@ -386,14 +388,12 @@ class UserProfilePresenterTest {
     }
 
     private fun createFakeMatrixClient(
-        isUserVerified: Boolean = true,
         userIdentityState: IdentityState? = null,
         ignoreUserResult: (UserId) -> Result<Unit> = { Result.success(Unit) },
         unIgnoreUserResult: (UserId) -> Result<Unit> = { Result.success(Unit) },
         ignoredUsersFlow: StateFlow<ImmutableList<UserId>> = MutableStateFlow(persistentListOf())
     ) = FakeMatrixClient(
         encryptionService = FakeEncryptionService(
-            isUserVerifiedResult = { Result.success(isUserVerified) },
             getUserIdentityResult = { Result.success(userIdentityState) }
         ),
         ignoreUserResult = ignoreUserResult,
@@ -411,7 +411,7 @@ class UserProfilePresenterTest {
             userId = userId,
             client = client,
             startDMAction = startDMAction,
-            enterpriseService = FakeEnterpriseService(
+            sessionEnterpriseService = FakeSessionEnterpriseService(
                 isElementCallAvailableResult = { isElementCallAvailable },
             ),
         )

@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -18,10 +19,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runUpdatingStateNoSuccess
+import io.element.android.libraries.core.extensions.runCatchingExceptions
+import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.fullscreenintent.api.FullScreenIntentPermissionsState
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.notificationsettings.NotificationSettingsService
@@ -38,16 +42,18 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
-class NotificationSettingsPresenter @Inject constructor(
+@Inject
+class NotificationSettingsPresenter(
     private val notificationSettingsService: NotificationSettingsService,
     private val userPushStoreFactory: UserPushStoreFactory,
     private val matrixClient: MatrixClient,
     private val pushService: PushService,
     private val systemNotificationsEnabledProvider: SystemNotificationsEnabledProvider,
     private val fullScreenIntentPermissionsPresenter: Presenter<FullScreenIntentPermissionsState>,
+    @SessionCoroutineScope
+    private val sessionCoroutineScope: CoroutineScope,
 ) : Presenter<NotificationSettingsState> {
     @Composable
     override fun present(): NotificationSettingsState {
@@ -92,7 +98,7 @@ class NotificationSettingsPresenter @Inject constructor(
         var refreshPushProvider by remember { mutableIntStateOf(0) }
 
         LaunchedEffect(refreshPushProvider) {
-            val p = pushService.getCurrentPushProvider()
+            val p = pushService.getCurrentPushProvider(matrixClient.sessionId)
             val distributor = p?.getCurrentDistributor(matrixClient.sessionId)
             currentDistributor = if (distributor != null) {
                 AsyncData.Success(distributor)
@@ -127,7 +133,7 @@ class NotificationSettingsPresenter @Inject constructor(
                 )
         }
 
-        fun handleEvents(event: NotificationSettingsEvents) {
+        fun handleEvent(event: NotificationSettingsEvents) {
             when (event) {
                 is NotificationSettingsEvents.SetAtRoomNotificationsEnabled -> {
                     localCoroutineScope.setAtRoomNotificationsEnabled(event.enabled, changeNotificationSettingAction)
@@ -138,7 +144,7 @@ class NotificationSettingsPresenter @Inject constructor(
                 is NotificationSettingsEvents.SetInviteForMeNotificationsEnabled -> {
                     localCoroutineScope.setInviteForMeNotificationsEnabled(event.enabled, changeNotificationSettingAction)
                 }
-                is NotificationSettingsEvents.SetNotificationsEnabled -> localCoroutineScope.setNotificationsEnabled(userPushStore, event.enabled)
+                is NotificationSettingsEvents.SetNotificationsEnabled -> sessionCoroutineScope.setNotificationsEnabled(userPushStore, event.enabled)
                 NotificationSettingsEvents.ClearConfigurationMismatchError -> {
                     matrixSettings.value = NotificationSettingsState.MatrixSettings.Invalid(fixFailed = false)
                 }
@@ -165,7 +171,7 @@ class NotificationSettingsPresenter @Inject constructor(
             availablePushDistributors = availableDistributors,
             showChangePushProviderDialog = showChangePushProviderDialog,
             fullScreenIntentPermissionsState = key(refreshFullScreenIntentSettings) { fullScreenIntentPermissionsPresenter.present() },
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 
@@ -209,7 +215,7 @@ class NotificationSettingsPresenter @Inject constructor(
     }
 
     private fun CoroutineScope.fixConfigurationMismatch(target: MutableState<NotificationSettingsState.MatrixSettings>) = launch {
-        runCatching {
+        runCatchingExceptions {
             val groupDefaultMode = notificationSettingsService.getDefaultRoomNotificationMode(isEncrypted = false, isOneToOne = false).getOrThrow()
             val encryptedGroupDefaultMode = notificationSettingsService.getDefaultRoomNotificationMode(isEncrypted = true, isOneToOne = false).getOrThrow()
 
@@ -259,5 +265,10 @@ class NotificationSettingsPresenter @Inject constructor(
 
     private fun CoroutineScope.setNotificationsEnabled(userPushStore: UserPushStore, enabled: Boolean) = launch {
         userPushStore.setNotificationEnabledForDevice(enabled)
+        if (enabled) {
+            pushService.ensurePusherIsRegistered(matrixClient)
+        } else {
+            pushService.getCurrentPushProvider(matrixClient.sessionId)?.unregister(matrixClient)
+        }
     }
 }

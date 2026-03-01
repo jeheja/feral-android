@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 package io.element.android.libraries.push.impl.notifications.model
@@ -14,10 +15,6 @@ import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.core.ThreadId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.timeline.item.event.EventType
-import io.element.android.services.appnavstate.api.AppNavigationState
-import io.element.android.services.appnavstate.api.currentRoomId
-import io.element.android.services.appnavstate.api.currentSessionId
-import io.element.android.services.appnavstate.api.currentThreadId
 
 data class NotifiableMessageEvent(
     override val sessionId: SessionId,
@@ -54,25 +51,4 @@ data class NotifiableMessageEvent(
     // content://io.element.android.x.debug.notifications.fileprovider/downloads/temp/notif/matrix.org/XGItzSDOnSyXjYtOPfiKexDJ
     val imageUri: Uri?
         get() = imageUriString?.toUri()
-}
-
-/**
- * Used to check if a notification should be ignored based on the current app and navigation state.
- */
-fun NotifiableEvent.shouldIgnoreEventInRoom(appNavigationState: AppNavigationState): Boolean {
-    val currentSessionId = appNavigationState.navigationState.currentSessionId() ?: return false
-    return when (val currentRoomId = appNavigationState.navigationState.currentRoomId()) {
-        null -> false
-        else -> {
-            // Never ignore ringing call notifications
-            if (this is NotifiableRingingCallEvent) {
-                false
-            } else {
-                appNavigationState.isInForeground &&
-                    sessionId == currentSessionId &&
-                    roomId == currentRoomId &&
-                    (this as? NotifiableMessageEvent)?.threadId == appNavigationState.navigationState.currentThreadId()
-            }
-        }
-    }
 }

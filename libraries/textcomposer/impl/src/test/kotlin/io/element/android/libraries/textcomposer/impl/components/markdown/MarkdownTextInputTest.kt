@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.core.text.getSpans
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import io.element.android.compound.theme.ElementTheme
 import io.element.android.libraries.matrix.api.permalink.PermalinkData
 import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.libraries.matrix.test.permalink.FakePermalinkParser
@@ -167,7 +169,6 @@ class MarkdownTextInputTest {
 
     private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setMarkdownTextInput(
         state: MarkdownTextEditorState = aMarkdownTextEditorState(),
-        subcomposing: Boolean = false,
         onTyping: (Boolean) -> Unit = {},
         onSuggestionReceived: (Suggestion?) -> Unit = {},
     ) {
@@ -175,7 +176,8 @@ class MarkdownTextInputTest {
             val style = ElementRichTextEditorStyle.composerStyle(hasFocus = state.hasFocus)
             MarkdownTextInput(
                 state = state,
-                subcomposing = subcomposing,
+                placeholder = "Placeholder",
+                placeholderColor = ElementTheme.colors.textSecondary,
                 onTyping = onTyping,
                 onReceiveSuggestion = onSuggestionReceived,
                 richTextEditorStyle = style,

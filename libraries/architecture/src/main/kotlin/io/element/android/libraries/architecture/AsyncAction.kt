@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,6 +10,8 @@ package io.element.android.libraries.architecture
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
+import io.element.android.libraries.core.extensions.runCatchingExceptions
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -29,6 +32,11 @@ sealed interface AsyncAction<out T> {
     interface Confirming : AsyncAction<Nothing>
 
     data object ConfirmingNoParams : Confirming
+
+    /**
+     * User cancels the action, use this object to ask for confirmation.
+     */
+    data object ConfirmingCancellation : Confirming
 
     /**
      * Represents an operation that is currently ongoing.
@@ -90,7 +98,7 @@ suspend inline fun <T> MutableState<AsyncAction<T>>.runCatchingUpdatingState(
     state = this,
     errorTransform = errorTransform,
     resultBlock = {
-        runCatching {
+        runCatchingExceptions {
             block()
         }
     },
@@ -103,7 +111,7 @@ suspend inline fun <T> (suspend () -> T).runCatchingUpdatingState(
     state = state,
     errorTransform = errorTransform,
     resultBlock = {
-        runCatching {
+        runCatchingExceptions {
             this()
         }
     },
@@ -147,27 +155,30 @@ inline fun <T> MutableState<AsyncAction<T>>.runUpdatingStateNoSuccess(
  * @param resultBlock a suspending function that returns a [Result].
  * @return the [Result] returned by [resultBlock].
  */
-@OptIn(ExperimentalContracts::class)
 @Suppress("REDUNDANT_INLINE_SUSPEND_FUNCTION_TYPE")
 suspend inline fun <T> runUpdatingState(
     state: MutableState<AsyncAction<T>>,
     errorTransform: (Throwable) -> Throwable = { it },
     resultBlock: suspend () -> Result<T>,
 ): Result<T> {
-    contract {
-        callsInPlace(resultBlock, InvocationKind.EXACTLY_ONCE)
-    }
+    // Restore when the issue with contracts and AGP 8.13.x is fixed
+//    contract {
+//        callsInPlace(resultBlock, InvocationKind.EXACTLY_ONCE)
+//    }
     state.value = AsyncAction.Loading
-    return resultBlock().fold(
+    return try {
+        resultBlock()
+    } catch (e: TimeoutCancellationException) {
+        state.value = AsyncAction.Failure(errorTransform(e))
+        throw e
+    }.fold(
         onSuccess = {
             state.value = AsyncAction.Success(it)
             Result.success(it)
         },
         onFailure = {
             val error = errorTransform(it)
-            state.value = AsyncAction.Failure(
-                error = error,
-            )
+            state.value = AsyncAction.Failure(error)
             Result.failure(error)
         }
     )

@@ -1,12 +1,14 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.impl.encryption
 
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.encryption.IdentityOidcResetHandle
 import io.element.android.libraries.matrix.api.encryption.IdentityPasswordResetHandle
@@ -20,7 +22,7 @@ object RustIdentityResetHandleFactory {
         userId: UserId,
         identityResetHandle: org.matrix.rustcomponents.sdk.IdentityResetHandle?
     ): Result<IdentityResetHandle?> {
-        return runCatching {
+        return runCatchingExceptions {
             identityResetHandle?.let {
                 when (val authType = identityResetHandle.authType()) {
                     is CrossSigningResetAuthType.Oidc -> RustOidcIdentityResetHandle(identityResetHandle, authType.info.approvalUrl)
@@ -37,7 +39,7 @@ class RustPasswordIdentityResetHandle(
     private val identityResetHandle: org.matrix.rustcomponents.sdk.IdentityResetHandle,
 ) : IdentityPasswordResetHandle {
     override suspend fun resetPassword(password: String): Result<Unit> {
-        return runCatching { identityResetHandle.reset(AuthData.Password(AuthDataPasswordDetails(userId.value, password))) }
+        return runCatchingExceptions { identityResetHandle.reset(AuthData.Password(AuthDataPasswordDetails(userId.value, password))) }
     }
 
     override suspend fun cancel() {
@@ -50,7 +52,7 @@ class RustOidcIdentityResetHandle(
     override val url: String,
 ) : IdentityOidcResetHandle {
     override suspend fun resetOidc(): Result<Unit> {
-        return runCatching { identityResetHandle.reset(null) }
+        return runCatchingExceptions { identityResetHandle.reset(null) }
     }
 
     override suspend fun cancel() {

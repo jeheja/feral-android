@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,17 +15,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-class ViewFilePresenter @AssistedInject constructor(
-    @Assisted("path") val path: String,
-    @Assisted("name") val name: String,
+@AssistedInject
+class ViewFilePresenter(
+    @Assisted val path: String,
+    @Assisted val name: String,
     private val fileContentReader: FileContentReader,
     private val fileShare: FileShare,
     private val fileSave: FileSave,
@@ -32,8 +34,8 @@ class ViewFilePresenter @AssistedInject constructor(
     @AssistedFactory
     interface Factory {
         fun create(
-            @Assisted("path") path: String,
-            @Assisted("name") name: String,
+            path: String,
+            name: String,
         ): ViewFilePresenter
     }
 

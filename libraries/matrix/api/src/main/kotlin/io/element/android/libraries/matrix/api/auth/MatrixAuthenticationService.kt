@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,22 +14,20 @@ import io.element.android.libraries.matrix.api.auth.external.ExternalSession
 import io.element.android.libraries.matrix.api.auth.qrlogin.MatrixQrCodeLoginData
 import io.element.android.libraries.matrix.api.auth.qrlogin.QrCodeLoginStep
 import io.element.android.libraries.matrix.api.core.SessionId
-import io.element.android.libraries.sessionstorage.api.LoggedInState
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.StateFlow
 
 interface MatrixAuthenticationService {
-    fun loggedInStateFlow(): Flow<LoggedInState>
-    suspend fun getLatestSessionId(): SessionId?
-
     /**
      * Restore a session from a [sessionId].
      * Do not restore anything it the access token is not valid anymore.
      * Generally this method should not be used directly, prefer using [MatrixClientProvider.getOrRestore] instead.
      */
     suspend fun restoreSession(sessionId: SessionId): Result<MatrixClient>
-    fun getHomeserverDetails(): StateFlow<MatrixHomeServerDetails?>
-    suspend fun setHomeserver(homeserver: String): Result<Unit>
+
+    /**
+     * Set the homeserver to use for authentication, and return its details.
+     */
+    suspend fun setHomeserver(homeserver: String): Result<MatrixHomeServerDetails>
+
     suspend fun login(username: String, password: String): Result<SessionId>
 
     /**

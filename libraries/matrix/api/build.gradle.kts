@@ -1,11 +1,12 @@
 import config.BuildTimeConfig
 import extension.buildConfigFieldStr
-import extension.setupAnvil
+import extension.testCommonDependencies
 
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2022-2024 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -42,11 +43,8 @@ android {
     }
 }
 
-setupAnvil()
-
 dependencies {
     implementation(projects.libraries.di)
-    implementation(libs.dagger)
     implementation(projects.libraries.androidutils)
     implementation(projects.libraries.core)
     implementation(projects.services.analytics.api)
@@ -55,7 +53,6 @@ dependencies {
     implementation(libs.coroutines.core)
     api(projects.libraries.architecture)
 
-    testImplementation(libs.test.junit)
-    testImplementation(libs.test.truth)
+    testCommonDependencies(libs)
     testImplementation(projects.libraries.matrix.test)
 }

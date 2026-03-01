@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,8 +12,9 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import io.element.android.features.login.impl.R
 import io.element.android.features.login.impl.qrcode.QrCodeErrorScreenType
+import io.element.android.libraries.ui.strings.CommonStrings
+import io.element.android.tests.testutils.EnsureNeverCalled
 import io.element.android.tests.testutils.clickOn
 import io.element.android.tests.testutils.ensureCalledOnce
 import io.element.android.tests.testutils.pressBackKey
@@ -27,10 +29,10 @@ class QrCodeErrorViewTest {
     val rule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun `on back pressed - calls the onRetry callback`() {
+    fun `on back pressed - calls the onCancel callback`() {
         ensureCalledOnce { callback ->
             rule.setQrCodeErrorView(
-                onRetry = callback
+                onCancel = callback,
             )
             rule.pressBackKey()
         }
@@ -40,14 +42,25 @@ class QrCodeErrorViewTest {
     fun `on try again button clicked - calls the expected callback`() {
         ensureCalledOnce { callback ->
             rule.setQrCodeErrorView(
-                onRetry = callback
+                onRetry = callback,
             )
-            rule.clickOn(R.string.screen_qr_code_login_start_over_button)
+            rule.clickOn(CommonStrings.action_try_again)
+        }
+    }
+
+    @Test
+    fun `on cancel button clicked - calls the expected callback`() {
+        ensureCalledOnce { callback ->
+            rule.setQrCodeErrorView(
+                onCancel = callback,
+            )
+            rule.clickOn(CommonStrings.action_cancel)
         }
     }
 
     private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setQrCodeErrorView(
-        onRetry: () -> Unit,
+        onRetry: () -> Unit = EnsureNeverCalled(),
+        onCancel: () -> Unit = EnsureNeverCalled(),
         errorScreenType: QrCodeErrorScreenType = QrCodeErrorScreenType.UnknownError,
         appName: String = "Element X",
     ) {
@@ -55,7 +68,8 @@ class QrCodeErrorViewTest {
             QrCodeErrorView(
                 errorScreenType = errorScreenType,
                 appName = appName,
-                onRetry = onRetry
+                onRetry = onRetry,
+                onCancel = onCancel,
             )
         }
     }

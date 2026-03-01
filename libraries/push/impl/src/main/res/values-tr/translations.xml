@@ -13,7 +13,7 @@
     <item quantity="one">"%d bildirim"</item>
     <item quantity="other">"%d bildirim"</item>
   </plurals>
-  <string name="notification_fallback_content">"Bildirim"</string>
+  <string name="notification_fallback_content">"Yeni mesajlarınız var"</string>
   <string name="notification_incoming_call">"📹 Gelen çağrı"</string>
   <string name="notification_inline_reply_failed">"** Gönderilemedi - lütfen odayı açın"</string>
   <string name="notification_invitation_action_join">"Katıl"</string>
@@ -54,6 +54,7 @@
   <string name="push_distributor_background_sync_android">"Arkaplan senkronizasyonu"</string>
   <string name="push_distributor_firebase_android">"Google Hizmetleri"</string>
   <string name="push_no_valid_google_play_services_apk_android">"Geçerli bir Google Play Hizmeti bulunamadı. Bildirimler düzgün çalışmayabilir."</string>
+  <string name="troubleshoot_notifications_test_blocked_users_title">"Engellenen kullanıcılar"</string>
   <string name="troubleshoot_notifications_test_current_push_provider_description">"Geçerli sağlayıcının adını al."</string>
   <string name="troubleshoot_notifications_test_current_push_provider_failure">"Hiçbir gönderme sağlayıcısı seçilmedi."</string>
   <string name="troubleshoot_notifications_test_current_push_provider_success">"Geçerli gönderme sağlayıcısı: %1$s."</string>

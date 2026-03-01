@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,6 +14,7 @@ import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.core.ThreadId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.room.RoomMembershipState
+import io.element.android.libraries.matrix.api.room.join.JoinRule
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageType
 
 data class NotificationData(
@@ -29,11 +31,13 @@ data class NotificationData(
     val roomDisplayName: String?,
     val isDirect: Boolean,
     val isDm: Boolean,
+    val isSpace: Boolean,
     val isEncrypted: Boolean,
     val isNoisy: Boolean,
     val timestamp: Long,
     val content: NotificationContent,
     val hasMention: Boolean,
+    val roomJoinRule: JoinRule?,
 ) {
     fun getDisambiguatedDisplayName(userId: UserId): String = when {
         senderDisplayName.isNullOrBlank() -> userId.value
@@ -49,9 +53,10 @@ sealed interface NotificationContent {
             val senderId: UserId,
         ) : MessageLike
 
-        data class CallNotify(
+        data class RtcNotification(
             val senderId: UserId,
-            val type: CallNotifyType,
+            val type: RtcNotificationType,
+            val expirationTimestampMillis: Long
         ) : MessageLike
 
         data object CallHangup : MessageLike
@@ -118,7 +123,7 @@ sealed interface NotificationContent {
     ) : NotificationContent
 }
 
-enum class CallNotifyType {
+enum class RtcNotificationType {
     RING,
     NOTIFY
 }

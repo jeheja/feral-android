@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -20,8 +21,10 @@ import io.element.android.features.location.impl.common.permissions.PermissionsE
 import io.element.android.features.location.impl.common.permissions.PermissionsPresenter
 import io.element.android.features.location.impl.common.permissions.PermissionsState
 import io.element.android.features.messages.test.FakeMessageComposerContext
+import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.room.location.AssetType
+import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.item.event.toEventOrTransactionId
 import io.element.android.libraries.matrix.test.AN_EVENT_ID
 import io.element.android.libraries.matrix.test.core.aBuildMeta
@@ -54,6 +57,7 @@ class SendLocationPresenterTest {
             override fun create(permissions: List<String>): PermissionsPresenter = fakePermissionsPresenter
         },
         room = joinedRoom,
+        timelineMode = Timeline.Mode.Live,
         analyticsService = fakeAnalyticsService,
         messageComposerContext = fakeMessageComposerContext,
         locationActions = fakeLocationActions,
@@ -263,7 +267,7 @@ class SendLocationPresenterTest {
 
     @Test
     fun `share sender location`() = runTest {
-        val sendLocationResult = lambdaRecorder<String, String, String?, Int?, AssetType?, Result<Unit>> { _, _, _, _, _ ->
+        val sendLocationResult = lambdaRecorder<String, String, String?, Int?, AssetType?, EventId?, Result<Unit>> { _, _, _, _, _, _ ->
             Result.success(Unit)
         }
         val joinedRoom = FakeJoinedRoom(
@@ -310,6 +314,7 @@ class SendLocationPresenterTest {
                     value(null),
                     value(15),
                     value(AssetType.SENDER),
+                    value(null),
                 )
 
             assertThat(fakeAnalyticsService.capturedEvents.size).isEqualTo(1)
@@ -326,7 +331,7 @@ class SendLocationPresenterTest {
 
     @Test
     fun `share pin location`() = runTest {
-        val sendLocationResult = lambdaRecorder<String, String, String?, Int?, AssetType?, Result<Unit>> { _, _, _, _, _ ->
+        val sendLocationResult = lambdaRecorder<String, String, String?, Int?, AssetType?, EventId?, Result<Unit>> { _, _, _, _, _, _ ->
             Result.success(Unit)
         }
         val joinedRoom = FakeJoinedRoom(
@@ -373,6 +378,7 @@ class SendLocationPresenterTest {
                     value(null),
                     value(15),
                     value(AssetType.PIN),
+                    value(null),
                 )
 
             assertThat(fakeAnalyticsService.capturedEvents.size).isEqualTo(1)
@@ -389,7 +395,7 @@ class SendLocationPresenterTest {
 
     @Test
     fun `composer context passes through analytics`() = runTest {
-        val sendLocationResult = lambdaRecorder<String, String, String?, Int?, AssetType?, Result<Unit>> { _, _, _, _, _ ->
+        val sendLocationResult = lambdaRecorder<String, String, String?, Int?, AssetType?, EventId?, Result<Unit>> { _, _, _, _, _, _ ->
             Result.success(Unit)
         }
         val joinedRoom = FakeJoinedRoom(

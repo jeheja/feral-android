@@ -1,29 +1,32 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.cachecleaner.impl
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.features.cachecleaner.api.CacheCleaner
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
-import io.element.android.libraries.di.AppScope
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.di.CacheDirectory
+import io.element.android.libraries.di.annotations.AppCoroutineScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
-import javax.inject.Inject
 
 /**
  * Default implementation of [CacheCleaner].
  */
 @ContributesBinding(AppScope::class)
-class DefaultCacheCleaner @Inject constructor(
-    private val scope: CoroutineScope,
+class DefaultCacheCleaner(
+    @AppCoroutineScope
+    private val coroutineScope: CoroutineScope,
     private val dispatchers: CoroutineDispatchers,
     @CacheDirectory private val cacheDir: File,
 ) : CacheCleaner {
@@ -32,8 +35,8 @@ class DefaultCacheCleaner @Inject constructor(
     }
 
     override fun clearCache() {
-        scope.launch(dispatchers.io) {
-            runCatching {
+        coroutineScope.launch(dispatchers.io) {
+            runCatchingExceptions {
                 SUBDIRS_TO_CLEANUP.forEach {
                     File(cacheDir.path, it).apply {
                         if (exists()) {

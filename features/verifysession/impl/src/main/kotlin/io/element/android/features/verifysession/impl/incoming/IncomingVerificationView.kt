@@ -1,13 +1,15 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.verifysession.impl.incoming
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,7 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.focused
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
@@ -30,14 +36,13 @@ import io.element.android.features.verifysession.impl.incoming.ui.SessionDetails
 import io.element.android.features.verifysession.impl.ui.VerificationBottomMenu
 import io.element.android.features.verifysession.impl.ui.VerificationContentVerifying
 import io.element.android.features.verifysession.impl.ui.VerificationUserProfileContent
+import io.element.android.libraries.designsystem.atomic.molecules.IconTitleSubtitleMolecule
 import io.element.android.libraries.designsystem.atomic.pages.HeaderFooterPage
 import io.element.android.libraries.designsystem.components.BigIcon
-import io.element.android.libraries.designsystem.components.PageTitle
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Button
-import io.element.android.libraries.designsystem.theme.components.InvisibleButton
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TextButton
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
@@ -65,11 +70,7 @@ fun IncomingVerificationView(
             TopAppBar(
                 title = {},
                 navigationIcon = {
-                    when {
-                        step is Step.Initial && !step.isWaiting -> Unit
-                        step is Step.Completed -> Unit
-                        else -> BackButton(onClick = { state.eventSink(IncomingVerificationViewEvents.GoBack) })
-                    }
+                    BackButton(onClick = { state.eventSink(IncomingVerificationViewEvents.GoBack) })
                 },
                 colors = topAppBarColors(containerColor = Color.Transparent),
             )
@@ -95,19 +96,11 @@ fun IncomingVerificationView(
 private fun IncomingVerificationHeader(step: Step, request: VerificationRequest.Incoming) {
     val iconStyle = when (step) {
         Step.Canceled -> BigIcon.Style.AlertSolid
-        is Step.Initial -> if (step.isWaiting) {
-            BigIcon.Style.Loading
-        } else {
-            when (request) {
-                is VerificationRequest.Incoming.OtherSession -> BigIcon.Style.Default(CompoundIcons.LockSolid())
-                is VerificationRequest.Incoming.User -> BigIcon.Style.Default(CompoundIcons.UserProfileSolid())
-            }
+        is Step.Initial -> when (request) {
+            is VerificationRequest.Incoming.OtherSession -> BigIcon.Style.Default(CompoundIcons.Devices())
+            is VerificationRequest.Incoming.User -> BigIcon.Style.Default(CompoundIcons.UserProfileSolid())
         }
-        is Step.Verifying -> if (step.isWaiting) {
-            BigIcon.Style.Loading
-        } else {
-            BigIcon.Style.Default(CompoundIcons.ReactionSolid())
-        }
+        is Step.Verifying -> BigIcon.Style.Default(CompoundIcons.ReactionSolid())
         Step.Completed -> BigIcon.Style.SuccessSolid
         Step.Failure -> BigIcon.Style.AlertSolid
     }
@@ -140,10 +133,22 @@ private fun IncomingVerificationHeader(step: Step, request: VerificationRequest.
         }
         Step.Failure -> R.string.screen_session_verification_request_failure_subtitle
     }
-    PageTitle(
+    val timeLimitMessage = if (step.isTimeLimited) {
+        stringResource(CommonStrings.a11y_session_verification_time_limited_action_required)
+    } else {
+        ""
+    }
+    IconTitleSubtitleMolecule(
+        modifier = Modifier
+            .padding(bottom = 16.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = timeLimitMessage
+                focused = true
+            }
+            .focusable(),
         iconStyle = iconStyle,
         title = stringResource(id = titleTextId),
-        subtitle = stringResource(id = subtitleTextId)
+        subTitle = stringResource(id = subtitleTextId),
     )
 }
 
@@ -161,7 +166,7 @@ private fun IncomingVerificationContent(
 
 @Composable
 private fun ContentInitial(
-    initialIncoming: Step.Initial,
+    stepInitial: Step.Initial,
     request: VerificationRequest.Incoming,
 ) {
     when (request) {
@@ -171,9 +176,9 @@ private fun ContentInitial(
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
                 SessionDetailsView(
-                    deviceName = initialIncoming.deviceDisplayName,
-                    deviceId = initialIncoming.deviceId,
-                    signInFormattedTimestamp = initialIncoming.formattedSignInTime,
+                    deviceName = stepInitial.deviceDisplayName,
+                    deviceId = stepInitial.deviceId,
+                    signInFormattedTimestamp = stepInitial.formattedSignInTime,
                 )
                 Text(
                     modifier = Modifier
@@ -187,12 +192,12 @@ private fun ContentInitial(
         }
         is VerificationRequest.Incoming.User -> {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 24.dp),
             ) {
                 VerificationUserProfileContent(
-                    userId = request.details.senderProfile.userId,
-                    displayName = request.details.senderProfile.displayName,
-                    avatarUrl = request.details.senderProfile.avatarUrl,
+                    user = request.details.senderProfile,
                 )
             }
         }
@@ -203,48 +208,42 @@ private fun ContentInitial(
 private fun IncomingVerificationBottomMenu(
     state: IncomingVerificationState,
 ) {
-    val step = state.step
     val eventSink = state.eventSink
-
-    when (step) {
+    when (val step = state.step) {
         is Step.Initial -> {
-            if (step.isWaiting) {
-                // Show nothing
-            } else {
-                VerificationBottomMenu {
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = stringResource(CommonStrings.action_start),
-                        onClick = { eventSink(IncomingVerificationViewEvents.StartVerification) },
-                    )
-                    TextButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = stringResource(CommonStrings.action_ignore),
-                        onClick = { eventSink(IncomingVerificationViewEvents.IgnoreVerification) },
-                    )
-                }
+            VerificationBottomMenu {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(CommonStrings.action_start_verification),
+                    enabled = !step.isWaiting,
+                    showProgress = step.isWaiting,
+                    onClick = { eventSink(IncomingVerificationViewEvents.StartVerification) },
+                )
+                TextButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(CommonStrings.action_ignore),
+                    enabled = !step.isWaiting,
+                    onClick = { eventSink(IncomingVerificationViewEvents.IgnoreVerification) },
+                )
             }
         }
         is Step.Verifying -> {
-            if (step.isWaiting) {
-                // Add invisible buttons to keep the same screen layout
-                VerificationBottomMenu {
-                    InvisibleButton()
-                    InvisibleButton()
-                }
-            } else {
-                VerificationBottomMenu {
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = stringResource(R.string.screen_session_verification_they_match),
-                        onClick = { eventSink(IncomingVerificationViewEvents.ConfirmVerification) },
-                    )
-                    TextButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = stringResource(R.string.screen_session_verification_they_dont_match),
-                        onClick = { eventSink(IncomingVerificationViewEvents.DeclineVerification) },
-                    )
-                }
+            VerificationBottomMenu {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.screen_session_verification_they_match),
+                    enabled = !step.isWaiting,
+                    showProgress = step.isWaiting,
+                    onClick = {
+                        eventSink(IncomingVerificationViewEvents.ConfirmVerification)
+                    },
+                )
+                TextButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.screen_session_verification_they_dont_match),
+                    enabled = !step.isWaiting,
+                    onClick = { eventSink(IncomingVerificationViewEvents.DeclineVerification) },
+                )
             }
         }
         Step.Canceled,
@@ -254,7 +253,9 @@ private fun IncomingVerificationBottomMenu(
                 Button(
                     modifier = Modifier.fillMaxWidth(),
                     text = stringResource(CommonStrings.action_done),
-                    onClick = { eventSink(IncomingVerificationViewEvents.GoBack) },
+                    onClick = {
+                        eventSink(IncomingVerificationViewEvents.GoBack)
+                    },
                 )
             }
         }
@@ -266,5 +267,13 @@ private fun IncomingVerificationBottomMenu(
 internal fun IncomingVerificationViewPreview(@PreviewParameter(IncomingVerificationStateProvider::class) state: IncomingVerificationState) = ElementPreview {
     IncomingVerificationView(
         state = state,
+    )
+}
+
+@Preview
+@Composable
+internal fun IncomingVerificationViewA11yPreview() = ElementPreview {
+    IncomingVerificationView(
+        state = anIncomingVerificationState(),
     )
 }

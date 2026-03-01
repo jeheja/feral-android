@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,8 +10,8 @@ package io.element.android.libraries.matrix.impl.notificationsettings
 
 import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
-import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeRustClient
-import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeRustNotificationSettings
+import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeFfiClient
+import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeFfiNotificationSettings
 import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.tests.testutils.testCoroutineDispatchers
 import kotlinx.coroutines.test.TestScope
@@ -32,9 +33,9 @@ class RustNotificationSettingsServiceTest {
     }
 
     private fun TestScope.createRustNotificationSettingsService(
-        notificationSettings: NotificationSettings = FakeRustNotificationSettings(),
+        notificationSettings: NotificationSettings = FakeFfiNotificationSettings(),
     ) = RustNotificationSettingsService(
-        client = FakeRustClient(
+        client = FakeFfiClient(
             notificationSettings = notificationSettings,
         ),
         sessionCoroutineScope = this,

@@ -1,108 +1,116 @@
 /*
- * Copyright 2021-2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2021-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.push.impl.notifications
 
 import android.app.Notification
-import android.graphics.Typeface
-import android.text.style.StyleSpan
-import androidx.core.text.buildSpannedString
-import androidx.core.text.inSpans
 import coil3.ImageLoader
-import com.squareup.anvil.annotations.ContributesBinding
-import io.element.android.libraries.di.AppScope
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.SessionId
-import io.element.android.libraries.matrix.api.user.MatrixUser
-import io.element.android.libraries.push.impl.R
+import io.element.android.libraries.matrix.api.core.ThreadId
+import io.element.android.libraries.push.impl.notifications.factories.NotificationAccountParams
 import io.element.android.libraries.push.impl.notifications.factories.NotificationCreator
 import io.element.android.libraries.push.impl.notifications.model.FallbackNotifiableEvent
 import io.element.android.libraries.push.impl.notifications.model.InviteNotifiableEvent
 import io.element.android.libraries.push.impl.notifications.model.NotifiableMessageEvent
 import io.element.android.libraries.push.impl.notifications.model.SimpleNotifiableEvent
-import io.element.android.services.toolbox.api.strings.StringProvider
-import javax.inject.Inject
 
 interface NotificationDataFactory {
     suspend fun toNotifications(
         messages: List<NotifiableMessageEvent>,
-        currentUser: MatrixUser,
         imageLoader: ImageLoader,
+        notificationAccountParams: NotificationAccountParams,
     ): List<RoomNotification>
 
     @JvmName("toNotificationInvites")
     @Suppress("INAPPLICABLE_JVM_NAME")
-    fun toNotifications(invites: List<InviteNotifiableEvent>): List<OneShotNotification>
+    fun toNotifications(
+        invites: List<InviteNotifiableEvent>,
+        notificationAccountParams: NotificationAccountParams,
+    ): List<OneShotNotification>
+
     @JvmName("toNotificationSimpleEvents")
     @Suppress("INAPPLICABLE_JVM_NAME")
-    fun toNotifications(simpleEvents: List<SimpleNotifiableEvent>): List<OneShotNotification>
+    fun toNotifications(
+        simpleEvents: List<SimpleNotifiableEvent>,
+        notificationAccountParams: NotificationAccountParams,
+    ): List<OneShotNotification>
+
     @JvmName("toNotificationFallbackEvents")
     @Suppress("INAPPLICABLE_JVM_NAME")
-    fun toNotifications(fallback: List<FallbackNotifiableEvent>): List<OneShotNotification>
+    fun toNotification(
+        fallback: List<FallbackNotifiableEvent>,
+        notificationAccountParams: NotificationAccountParams,
+    ): OneShotNotification?
 
     fun createSummaryNotification(
-        currentUser: MatrixUser,
         roomNotifications: List<RoomNotification>,
         invitationNotifications: List<OneShotNotification>,
         simpleNotifications: List<OneShotNotification>,
-        fallbackNotifications: List<OneShotNotification>,
+        notificationAccountParams: NotificationAccountParams,
     ): SummaryNotification
 }
 
 @ContributesBinding(AppScope::class)
-class DefaultNotificationDataFactory @Inject constructor(
+class DefaultNotificationDataFactory(
     private val notificationCreator: NotificationCreator,
     private val roomGroupMessageCreator: RoomGroupMessageCreator,
     private val summaryGroupMessageCreator: SummaryGroupMessageCreator,
     private val activeNotificationsProvider: ActiveNotificationsProvider,
-    private val stringProvider: StringProvider,
 ) : NotificationDataFactory {
     override suspend fun toNotifications(
         messages: List<NotifiableMessageEvent>,
-        currentUser: MatrixUser,
         imageLoader: ImageLoader,
+        notificationAccountParams: NotificationAccountParams,
     ): List<RoomNotification> {
         val messagesToDisplay = messages.filterNot { it.canNotBeDisplayed() }
             .groupBy { it.roomId }
-        return messagesToDisplay.map { (roomId, events) ->
-            val roomName = events.lastOrNull()?.roomName ?: roomId.value
-            val isDm = events.lastOrNull()?.roomIsDm ?: false
-            val notification = roomGroupMessageCreator.createRoomMessage(
-                currentUser = currentUser,
-                events = events,
-                roomId = roomId,
-                imageLoader = imageLoader,
-                existingNotification = getExistingNotificationForMessages(currentUser.userId, roomId),
-            )
-            RoomNotification(
-                notification = notification,
-                roomId = roomId,
-                summaryLine = createRoomMessagesGroupSummaryLine(events, roomName, isDm),
-                messageCount = events.size,
-                latestTimestamp = events.maxOf { it.timestamp },
-                shouldBing = events.any { it.noisy }
-            )
+        return messagesToDisplay.flatMap { (roomId, events) ->
+            val eventsByThreadId = events.groupBy { it.threadId }
+            eventsByThreadId.map { (threadId, events) ->
+                val notification = roomGroupMessageCreator.createRoomMessage(
+                    events = events,
+                    roomId = roomId,
+                    threadId = threadId,
+                    imageLoader = imageLoader,
+                    existingNotification = getExistingNotificationForMessages(notificationAccountParams.user.userId, roomId, threadId),
+                    notificationAccountParams = notificationAccountParams,
+                )
+                RoomNotification(
+                    notification = notification,
+                    roomId = roomId,
+                    threadId = threadId,
+                    messageCount = events.size,
+                    latestTimestamp = events.maxOf { it.timestamp },
+                    shouldBing = events.any { it.noisy }
+                )
+            }
         }
     }
 
     private fun NotifiableMessageEvent.canNotBeDisplayed() = isRedacted
 
-    private fun getExistingNotificationForMessages(sessionId: SessionId, roomId: RoomId): Notification? {
-        return activeNotificationsProvider.getMessageNotificationsForRoom(sessionId, roomId).firstOrNull()?.notification
+    private fun getExistingNotificationForMessages(sessionId: SessionId, roomId: RoomId, threadId: ThreadId?): Notification? {
+        return activeNotificationsProvider.getMessageNotificationsForRoom(sessionId, roomId, threadId).firstOrNull()?.notification
     }
 
     @JvmName("toNotificationInvites")
     @Suppress("INAPPLICABLE_JVM_NAME")
-    override fun toNotifications(invites: List<InviteNotifiableEvent>): List<OneShotNotification> {
+    override fun toNotifications(
+        invites: List<InviteNotifiableEvent>,
+        notificationAccountParams: NotificationAccountParams,
+    ): List<OneShotNotification> {
         return invites.map { event ->
             OneShotNotification(
-                key = event.roomId.value,
-                notification = notificationCreator.createRoomInvitationNotification(event),
-                summaryLine = event.description,
+                tag = event.roomId.value,
+                notification = notificationCreator.createRoomInvitationNotification(notificationAccountParams, event),
                 isNoisy = event.noisy,
                 timestamp = event.timestamp
             )
@@ -111,12 +119,14 @@ class DefaultNotificationDataFactory @Inject constructor(
 
     @JvmName("toNotificationSimpleEvents")
     @Suppress("INAPPLICABLE_JVM_NAME")
-    override fun toNotifications(simpleEvents: List<SimpleNotifiableEvent>): List<OneShotNotification> {
+    override fun toNotifications(
+        simpleEvents: List<SimpleNotifiableEvent>,
+        notificationAccountParams: NotificationAccountParams,
+    ): List<OneShotNotification> {
         return simpleEvents.map { event ->
             OneShotNotification(
-                key = event.eventId.value,
-                notification = notificationCreator.createSimpleEventNotification(event),
-                summaryLine = event.description,
+                tag = event.eventId.value,
+                notification = notificationCreator.createSimpleEventNotification(notificationAccountParams, event),
                 isNoisy = event.noisy,
                 timestamp = event.timestamp
             )
@@ -125,84 +135,55 @@ class DefaultNotificationDataFactory @Inject constructor(
 
     @JvmName("toNotificationFallbackEvents")
     @Suppress("INAPPLICABLE_JVM_NAME")
-    override fun toNotifications(fallback: List<FallbackNotifiableEvent>): List<OneShotNotification> {
-        return fallback.map { event ->
-            OneShotNotification(
-                key = event.eventId.value,
-                notification = notificationCreator.createFallbackNotification(event),
-                summaryLine = event.description.orEmpty(),
-                isNoisy = false,
-                timestamp = event.timestamp
-            )
-        }
+    override fun toNotification(
+        fallback: List<FallbackNotifiableEvent>,
+        notificationAccountParams: NotificationAccountParams,
+    ): OneShotNotification? {
+        if (fallback.isEmpty()) return null
+        val existingNotification = activeNotificationsProvider
+            .getFallbackNotification(notificationAccountParams.user.userId)
+            ?.notification
+        val notification = notificationCreator.createFallbackNotification(
+            existingNotification = existingNotification,
+            notificationAccountParams = notificationAccountParams,
+            fallbackNotifiableEvents = fallback,
+        )
+        return OneShotNotification(
+            tag = FALLBACK_NOTIFICATION_TAG,
+            notification = notification,
+            isNoisy = false,
+            timestamp = fallback.first().timestamp
+        )
     }
 
     override fun createSummaryNotification(
-        currentUser: MatrixUser,
         roomNotifications: List<RoomNotification>,
         invitationNotifications: List<OneShotNotification>,
         simpleNotifications: List<OneShotNotification>,
-        fallbackNotifications: List<OneShotNotification>,
+        notificationAccountParams: NotificationAccountParams,
     ): SummaryNotification {
         return when {
             roomNotifications.isEmpty() && invitationNotifications.isEmpty() && simpleNotifications.isEmpty() -> SummaryNotification.Removed
             else -> SummaryNotification.Update(
                 summaryGroupMessageCreator.createSummaryNotification(
-                    currentUser = currentUser,
                     roomNotifications = roomNotifications,
                     invitationNotifications = invitationNotifications,
                     simpleNotifications = simpleNotifications,
-                    fallbackNotifications = fallbackNotifications,
+                    notificationAccountParams = notificationAccountParams,
                 )
             )
         }
     }
 
-    private fun createRoomMessagesGroupSummaryLine(events: List<NotifiableMessageEvent>, roomName: String, roomIsDm: Boolean): CharSequence {
-        return when (events.size) {
-            1 -> createFirstMessageSummaryLine(events.first(), roomName, roomIsDm)
-            else -> {
-                stringProvider.getQuantityString(
-                    R.plurals.notification_compat_summary_line_for_room,
-                    events.size,
-                    roomName,
-                    events.size
-                )
-            }
-        }
-    }
-
-    private fun createFirstMessageSummaryLine(event: NotifiableMessageEvent, roomName: String, roomIsDm: Boolean): CharSequence {
-        return if (roomIsDm) {
-            buildSpannedString {
-                event.senderDisambiguatedDisplayName?.let {
-                    inSpans(StyleSpan(Typeface.BOLD)) {
-                        append(it)
-                        append(": ")
-                    }
-                }
-                append(event.description)
-            }
-        } else {
-            buildSpannedString {
-                inSpans(StyleSpan(Typeface.BOLD)) {
-                    append(roomName)
-                    append(": ")
-                    event.senderDisambiguatedDisplayName?.let {
-                        append(it)
-                        append(" ")
-                    }
-                }
-                append(event.description)
-            }
-        }
+    companion object {
+        const val FALLBACK_NOTIFICATION_TAG = "FALLBACK"
     }
 }
 
 data class RoomNotification(
     val notification: Notification,
     val roomId: RoomId,
-    val summaryLine: CharSequence,
+    val threadId: ThreadId?,
     val messageCount: Int,
     val latestTimestamp: Long,
     val shouldBing: Boolean,
@@ -210,7 +191,7 @@ data class RoomNotification(
     fun isDataEqualTo(other: RoomNotification): Boolean {
         return notification == other.notification &&
             roomId == other.roomId &&
-            summaryLine.toString() == other.summaryLine.toString() &&
+            threadId == other.threadId &&
             messageCount == other.messageCount &&
             latestTimestamp == other.latestTimestamp &&
             shouldBing == other.shouldBing
@@ -219,8 +200,7 @@ data class RoomNotification(
 
 data class OneShotNotification(
     val notification: Notification,
-    val key: String,
-    val summaryLine: CharSequence,
+    val tag: String,
     val isNoisy: Boolean,
     val timestamp: Long,
 )

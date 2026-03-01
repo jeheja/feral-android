@@ -1,15 +1,13 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.roomdetails.impl.members.details
 
-import app.cash.molecule.RecompositionMode
-import app.cash.molecule.moleculeFlow
-import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.element.android.features.roomdetails.impl.aJoinedRoom
 import io.element.android.features.roomdetails.impl.members.aRoomMember
@@ -78,8 +76,8 @@ class RoomMemberDetailsPresenterTest {
             avatarUrl = "Alice Avatar url",
         )
         val room = aJoinedRoom(
-            userDisplayNameResult = { Result.failure(Throwable()) },
-            userAvatarUrlResult = { Result.failure(Throwable()) },
+            userDisplayNameResult = { Result.failure(RuntimeException()) },
+            userAvatarUrlResult = { Result.failure(RuntimeException()) },
             getUpdatedMemberResult = { Result.failure(AN_EXCEPTION) },
         ).apply {
             givenRoomMembersState(RoomMembersState.Ready(persistentListOf(roomMember)))
@@ -88,9 +86,7 @@ class RoomMemberDetailsPresenterTest {
         val presenter = createRoomMemberDetailsPresenter(
             room = room,
         )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             assertThat(initialState.userName).isEqualTo("Alice")
             assertThat(initialState.avatarUrl).isEqualTo("Alice Avatar url")
@@ -110,9 +106,7 @@ class RoomMemberDetailsPresenterTest {
         val presenter = createRoomMemberDetailsPresenter(
             room = room,
         )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             assertThat(initialState.userName).isEqualTo("Alice")
             assertThat(initialState.avatarUrl).isEqualTo("Profile avatar url")
@@ -129,9 +123,7 @@ class RoomMemberDetailsPresenterTest {
         val presenter = createRoomMemberDetailsPresenter(
             room = room,
         )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             assertThat(initialState.userName).isEqualTo("Profile user name")
             assertThat(initialState.avatarUrl).isEqualTo("Profile avatar url")
@@ -160,9 +152,7 @@ class RoomMemberDetailsPresenterTest {
                 }
             },
         )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             assertThat(initialState.userName).isNull()
             assertThat(initialState.avatarUrl).isNull()

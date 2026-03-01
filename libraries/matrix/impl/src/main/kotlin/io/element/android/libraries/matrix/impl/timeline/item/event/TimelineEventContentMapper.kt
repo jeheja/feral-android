@@ -1,13 +1,19 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.impl.timeline.item.event
 
+import io.element.android.libraries.architecture.AsyncData
+import io.element.android.libraries.matrix.api.core.ThreadId
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.timeline.item.EmbeddedEventInfo
+import io.element.android.libraries.matrix.api.timeline.item.EventThreadInfo
+import io.element.android.libraries.matrix.api.timeline.item.ThreadSummary
 import io.element.android.libraries.matrix.api.timeline.item.event.CallNotifyContent
 import io.element.android.libraries.matrix.api.timeline.item.event.EventContent
 import io.element.android.libraries.matrix.api.timeline.item.event.FailedToParseMessageLikeContent
@@ -22,11 +28,15 @@ import io.element.android.libraries.matrix.api.timeline.item.event.RoomMembershi
 import io.element.android.libraries.matrix.api.timeline.item.event.StateContent
 import io.element.android.libraries.matrix.api.timeline.item.event.StickerContent
 import io.element.android.libraries.matrix.api.timeline.item.event.UnableToDecryptContent
+import io.element.android.libraries.matrix.api.timeline.item.event.UnknownContent
 import io.element.android.libraries.matrix.api.timeline.item.event.UtdCause
 import io.element.android.libraries.matrix.impl.media.map
 import io.element.android.libraries.matrix.impl.poll.map
+import io.element.android.libraries.matrix.impl.room.join.map
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
+import org.matrix.rustcomponents.sdk.EmbeddedEventDetails
+import org.matrix.rustcomponents.sdk.MsgLikeContent
 import org.matrix.rustcomponents.sdk.MsgLikeKind
 import org.matrix.rustcomponents.sdk.TimelineItemContent
 import org.matrix.rustcomponents.sdk.use
@@ -59,8 +69,11 @@ class TimelineEventContentMapper(
                     when (val kind = it.content.kind) {
                         is MsgLikeKind.Message -> {
                             val inReplyTo = it.content.inReplyTo
-                            val isThreaded = it.content.threadRoot != null
-                            eventMessageMapper.map(kind, inReplyTo, isThreaded)
+                            eventMessageMapper.map(
+                                message = kind,
+                                inReplyTo = inReplyTo,
+                                threadInfo = extractThreadInfo(it.content)
+                            )
                         }
                         is MsgLikeKind.Redacted -> {
                             RedactedContent
@@ -76,11 +89,13 @@ class TimelineEventContentMapper(
                                 }.toImmutableMap(),
                                 endTime = kind.endTime,
                                 isEdited = kind.hasBeenEdited,
+                                threadInfo = extractThreadInfo(it.content),
                             )
                         }
                         is MsgLikeKind.UnableToDecrypt -> {
                             UnableToDecryptContent(
-                                data = kind.msg.map()
+                                data = kind.msg.map(),
+                                threadInfo = extractThreadInfo(it.content),
                             )
                         }
                         is MsgLikeKind.Sticker -> {
@@ -89,8 +104,10 @@ class TimelineEventContentMapper(
                                 body = null,
                                 info = kind.info.map(),
                                 source = kind.source.map(),
+                                threadInfo = extractThreadInfo(it.content),
                             )
                         }
+                        is MsgLikeKind.Other -> UnknownContent
                     }
                 }
                 is TimelineItemContent.ProfileChange -> {
@@ -116,8 +133,45 @@ class TimelineEventContentMapper(
                     )
                 }
                 is TimelineItemContent.CallInvite -> LegacyCallInviteContent
-                is TimelineItemContent.CallNotify -> CallNotifyContent
+                is TimelineItemContent.RtcNotification -> CallNotifyContent
             }
+        }
+    }
+
+    private fun extractThreadInfo(content: MsgLikeContent): EventThreadInfo? {
+        val threadSummary = extractThreadSummary(content.threadSummary)
+        val threadRootId = content.threadRoot?.let(::ThreadId)
+        return when {
+            threadSummary != null -> EventThreadInfo.ThreadRoot(threadSummary)
+            threadRootId != null -> EventThreadInfo.ThreadResponse(threadRootId)
+            else -> null
+        }
+    }
+
+    private fun extractThreadSummary(threadSummary: org.matrix.rustcomponents.sdk.ThreadSummary?): ThreadSummary? {
+        return threadSummary?.use { summary ->
+            val numberOfReplies = summary.numReplies().toLong()
+            val latestEvent = summary.latestEvent()
+            val details = when (latestEvent) {
+                is EmbeddedEventDetails.Unavailable -> AsyncData.Uninitialized
+                is EmbeddedEventDetails.Pending -> AsyncData.Loading()
+                is EmbeddedEventDetails.Error -> AsyncData.Failure(IllegalStateException(latestEvent.message))
+                is EmbeddedEventDetails.Ready -> {
+                    AsyncData.Success(
+                        EmbeddedEventInfo(
+                            eventOrTransactionId = latestEvent.eventOrTransactionId.map(),
+                            content = map(latestEvent.content),
+                            senderId = UserId(latestEvent.sender),
+                            senderProfile = latestEvent.senderProfile.map(),
+                            timestamp = latestEvent.timestamp.toLong(),
+                        )
+                    )
+                }
+            }
+            ThreadSummary(
+                latestEvent = details,
+                numberOfReplies = numberOfReplies,
+            )
         }
     }
 }
@@ -172,7 +226,7 @@ private fun RustOtherState.map(): OtherState {
         RustOtherState.RoomEncryption -> OtherState.RoomEncryption
         RustOtherState.RoomGuestAccess -> OtherState.RoomGuestAccess
         RustOtherState.RoomHistoryVisibility -> OtherState.RoomHistoryVisibility
-        RustOtherState.RoomJoinRules -> OtherState.RoomJoinRules
+        is RustOtherState.RoomJoinRules -> OtherState.RoomJoinRules(joinRule?.map())
         is RustOtherState.RoomName -> OtherState.RoomName(name)
         is RustOtherState.RoomPinnedEvents -> OtherState.RoomPinnedEvents(change.map())
         is RustOtherState.RoomPowerLevels -> OtherState.RoomUserPowerLevels(users)
@@ -182,6 +236,8 @@ private fun RustOtherState.map(): OtherState {
         is RustOtherState.RoomTopic -> OtherState.RoomTopic(topic)
         RustOtherState.SpaceChild -> OtherState.SpaceChild
         RustOtherState.SpaceParent -> OtherState.SpaceParent
+        is RustOtherState.RoomCreate -> OtherState.RoomCreate
+        is RustOtherState.RoomHistoryVisibility -> OtherState.RoomHistoryVisibility
     }
 }
 

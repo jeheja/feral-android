@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -59,7 +60,7 @@ fun UserDefinedRoomNotificationSettingsView(
                     enabled = !state.displayIsDefault.orTrue(),
                     displayMentionsOnlyDisclaimer = state.displayMentionsOnlyDisclaimer,
                     onSelectOption = {
-                        state.eventSink(RoomNotificationSettingsEvents.ChangeRoomNotificationMode(it.mode))
+                        state.eventSink(RoomNotificationSettingsEvent.ChangeRoomNotificationMode(it.mode))
                     },
                 )
             }
@@ -68,7 +69,7 @@ fun UserDefinedRoomNotificationSettingsView(
                 headlineContent = { Text(stringResource(R.string.screen_room_notification_settings_edit_remove_setting)) },
                 style = ListItemStyle.Destructive,
                 onClick = {
-                    state.eventSink(RoomNotificationSettingsEvents.DeleteCustomNotification)
+                    state.eventSink(RoomNotificationSettingsEvent.DeleteCustomNotification)
                 }
             )
 
@@ -76,14 +77,14 @@ fun UserDefinedRoomNotificationSettingsView(
                 async = state.setNotificationSettingAction,
                 onSuccess = {},
                 errorMessage = { stringResource(R.string.screen_notification_settings_edit_failed_updating_default_mode) },
-                onErrorDismiss = { state.eventSink(RoomNotificationSettingsEvents.ClearSetNotificationError) },
+                onErrorDismiss = { state.eventSink(RoomNotificationSettingsEvent.ClearSetNotificationError) },
             )
 
             AsyncActionView(
                 async = state.restoreDefaultAction,
                 onSuccess = { onBackClick() },
                 errorMessage = { stringResource(R.string.screen_notification_settings_edit_failed_updating_default_mode) },
-                onErrorDismiss = { state.eventSink(RoomNotificationSettingsEvents.ClearRestoreDefaultError) },
+                onErrorDismiss = { state.eventSink(RoomNotificationSettingsEvent.ClearRestoreDefaultError) },
             )
         }
     }
@@ -96,11 +97,7 @@ private fun UserDefinedRoomNotificationSettingsTopBar(
     onBackClick: () -> Unit,
 ) {
     TopAppBar(
-        title = {
-            Text(
-                text = roomName,
-            )
-        },
+        titleStr = roomName,
         navigationIcon = { BackButton(onClick = onBackClick) },
     )
 }

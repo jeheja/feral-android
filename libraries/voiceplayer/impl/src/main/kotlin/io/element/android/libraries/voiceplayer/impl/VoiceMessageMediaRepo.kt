@@ -1,16 +1,18 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.voiceplayer.impl
 
-import com.squareup.anvil.annotations.ContributesBinding
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
+import dev.zacsweers.metro.ContributesBinding
+import io.element.android.libraries.core.extensions.mapCatchingExceptions
 import io.element.android.libraries.di.CacheDirectory
 import io.element.android.libraries.di.RoomScope
 import io.element.android.libraries.matrix.api.media.MatrixMediaLoader
@@ -55,21 +57,22 @@ interface VoiceMessageMediaRepo {
     suspend fun getMediaFile(): Result<File>
 }
 
-class DefaultVoiceMessageMediaRepo @AssistedInject constructor(
+@AssistedInject
+class DefaultVoiceMessageMediaRepo(
     @CacheDirectory private val cacheDir: File,
     mxcTools: MxcTools,
     private val matrixMediaLoader: MatrixMediaLoader,
     @Assisted private val mediaSource: MediaSource,
-    @Assisted("mimeType") private val mimeType: String?,
-    @Assisted("filename") private val filename: String?,
+    @Assisted private val mimeType: String?,
+    @Assisted private val filename: String?,
 ) : VoiceMessageMediaRepo {
     @ContributesBinding(RoomScope::class)
     @AssistedFactory
     fun interface Factory : VoiceMessageMediaRepo.Factory {
         override fun create(
             mediaSource: MediaSource,
-            @Assisted("mimeType") mimeType: String?,
-            @Assisted("filename") filename: String?,
+            @Assisted mimeType: String?,
+            @Assisted filename: String?,
         ): DefaultVoiceMessageMediaRepo
     }
 
@@ -80,7 +83,7 @@ class DefaultVoiceMessageMediaRepo @AssistedInject constructor(
             source = mediaSource,
             mimeType = mimeType,
             filename = filename,
-        ).mapCatching {
+        ).mapCatchingExceptions {
             it.use { mediaFile ->
                 val dest = cachedFile.apply { parentFile?.mkdirs() }
                 if (mediaFile.persist(dest.path)) {

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -12,7 +13,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import io.element.android.features.messages.impl.timeline.TimelineEvents
+import io.element.android.features.messages.impl.timeline.TimelineEvent
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemPollContent
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.ui.strings.CommonStrings
@@ -38,7 +39,7 @@ class TimelineItemPollViewTest {
     }
 
     private fun testAnswer(answerIndex: Int) {
-        val eventsRecorder = EventsRecorder<TimelineEvents.TimelineItemPollEvents>()
+        val eventsRecorder = EventsRecorder<TimelineEvent.TimelineItemPollEvent>()
         val content = aTimelineItemPollContent()
         rule.setContent {
             TimelineItemPollView(
@@ -47,13 +48,16 @@ class TimelineItemPollViewTest {
             )
         }
         val answer = content.answerItems[answerIndex].answer
-        rule.onNode(hasText(answer.text)).performClick()
-        eventsRecorder.assertSingle(TimelineEvents.SelectPollAnswer(content.eventId!!, answer.id))
+        rule.onNode(
+            matcher = hasText(answer.text),
+            useUnmergedTree = true,
+        ).performClick()
+        eventsRecorder.assertSingle(TimelineEvent.SelectPollAnswer(content.eventId!!, answer.id))
     }
 
     @Test
     fun `editing a poll should emit a PollEditClicked event`() {
-        val eventsRecorder = EventsRecorder<TimelineEvents.TimelineItemPollEvents>()
+        val eventsRecorder = EventsRecorder<TimelineEvent.TimelineItemPollEvent>()
         val content = aTimelineItemPollContent(
             isMine = true,
             isEditable = true,
@@ -65,12 +69,12 @@ class TimelineItemPollViewTest {
             )
         }
         rule.clickOn(CommonStrings.action_edit_poll)
-        eventsRecorder.assertSingle(TimelineEvents.EditPoll(content.eventId!!))
+        eventsRecorder.assertSingle(TimelineEvent.EditPoll(content.eventId!!))
     }
 
     @Test
     fun `closing a poll should emit a PollEndClicked event`() {
-        val eventsRecorder = EventsRecorder<TimelineEvents.TimelineItemPollEvents>()
+        val eventsRecorder = EventsRecorder<TimelineEvent.TimelineItemPollEvent>()
         val content = aTimelineItemPollContent(
             isMine = true,
         )
@@ -84,6 +88,6 @@ class TimelineItemPollViewTest {
         // A confirmation dialog should be shown
         eventsRecorder.assertEmpty()
         rule.pressTag(TestTags.dialogPositive.value)
-        eventsRecorder.assertSingle(TimelineEvents.EndPoll(content.eventId!!))
+        eventsRecorder.assertSingle(TimelineEvent.EndPoll(content.eventId!!))
     }
 }

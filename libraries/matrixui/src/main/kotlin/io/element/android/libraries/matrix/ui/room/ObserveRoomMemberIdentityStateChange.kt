@@ -1,13 +1,13 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.ui.room
 
-import androidx.compose.runtime.ProduceStateScope
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.matrix.api.core.UserId
@@ -17,25 +17,25 @@ import io.element.android.libraries.matrix.api.room.RoomMember
 import io.element.android.libraries.matrix.api.room.roomMembers
 import io.element.android.libraries.matrix.ui.model.getAvatarData
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.flow
 
 @OptIn(ExperimentalCoroutinesApi::class)
-fun JoinedRoom.roomMemberIdentityStateChange(): Flow<ImmutableList<RoomMemberIdentityStateChange>> {
-    return roomInfoFlow
-        .filter {
-            // Room cannot become unencrypted, so we can just apply a filter here.
-            it.isEncrypted == true
+fun JoinedRoom.roomMemberIdentityStateChange(waitForEncryption: Boolean): Flow<ImmutableList<RoomMemberIdentityStateChange>> {
+    val encryptionChangeFlow = flow {
+        if (waitForEncryption) {
+            // Room cannot become unencrypted, so it's ok to use first here
+            roomInfoFlow.first { roomInfo -> roomInfo.isEncrypted == true }
         }
-        .distinctUntilChanged()
+        emit(Unit)
+    }
+    return encryptionChangeFlow
         .flatMapLatest {
             combine(identityStateChangesFlow, membersStateFlow) { identityStateChanges, membersState ->
                 identityStateChanges.map { identityStateChange ->
@@ -47,17 +47,9 @@ fun JoinedRoom.roomMemberIdentityStateChange(): Flow<ImmutableList<RoomMemberIde
                         identityRoomMember = member,
                         identityState = identityStateChange.identityState,
                     )
-                }.toPersistentList()
+                }.toImmutableList()
             }.distinctUntilChanged()
         }
-}
-
-fun ProduceStateScope<PersistentList<RoomMemberIdentityStateChange>>.observeRoomMemberIdentityStateChange(room: JoinedRoom) {
-    room.roomMemberIdentityStateChange()
-        .onEach { roomMemberIdentityStateChanges ->
-            value = roomMemberIdentityStateChanges.toPersistentList()
-        }
-        .launchIn(this)
 }
 
 private fun RoomMember.toIdentityRoomMember() = IdentityRoomMember(

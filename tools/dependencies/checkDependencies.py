@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-# Copyright 2024 New Vector Ltd.
+# Copyright (c) 2025 Element Creations Ltd.
+# Copyright 2024, 2025 New Vector Ltd.
 #
-# SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+# SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 # Please see LICENSE files in the repository root for full details.
 
 import os
@@ -56,7 +57,7 @@ def checkThatThereIsNoTestDependency(dependencies):
                 continue
             else:
                 subProject = line.split(" ")[-1]
-                if subProject.endswith(":test") or ":tests:" in subProject:
+                if subProject.endswith(":test") or ":tests:" in subProject and "detekt-rules" not in subProject:
                     error = "Error: '" + currentProject + "' depends on the test project '" + subProject + "'\n"
                     error += "    Please replace occurrence(s) of 'implementation(projects" + subProject.replace(":", ".") + ")'"
                     error += " with 'testImplementation(projects" + subProject.replace(":", ".") + ")'."

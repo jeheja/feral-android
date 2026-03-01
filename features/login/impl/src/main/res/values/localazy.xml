@@ -13,6 +13,9 @@
   <string name="screen_change_account_provider_other">"Other"</string>
   <string name="screen_change_account_provider_subtitle">"Use a different account provider, such as your own private server or a work account."</string>
   <string name="screen_change_account_provider_title">"Change account provider"</string>
+  <string name="screen_change_server_error_element_pro_required_action_android">"Google Play"</string>
+  <string name="screen_change_server_error_element_pro_required_message">"The Element Pro app is required on %1$s. Please download it from the store."</string>
+  <string name="screen_change_server_error_element_pro_required_title">"Element Pro required"</string>
   <string name="screen_change_server_error_invalid_homeserver">"We couldn\'t reach this homeserver. Please check that you have entered the homeserver URL correctly. If the URL is correct, contact your homeserver administrator for further help."</string>
   <string name="screen_change_server_error_invalid_well_known">"Server isn\'t available due to an issue in the .well-known file:
 %1$s"</string>
@@ -34,6 +37,7 @@
   <string name="screen_login_subtitle">""</string>
   <string name="screen_login_title">"Welcome back!"</string>
   <string name="screen_login_title_with_homeserver">"Sign in to %1$s"</string>
+  <string name="screen_onboarding_app_version">"Version %1$s"</string>
   <string name="screen_onboarding_sign_in_manually">"Sign in manually"</string>
   <string name="screen_onboarding_sign_in_to">"Sign in to %1$s"</string>
   <string name="screen_onboarding_sign_in_with_qr_code">"Sign in with QR code"</string>
@@ -57,6 +61,8 @@
   <string name="screen_qr_code_login_error_cancelled_title">"Sign in request cancelled"</string>
   <string name="screen_qr_code_login_error_declined_subtitle">"The sign in was declined on the other device."</string>
   <string name="screen_qr_code_login_error_declined_title">"Sign in declined"</string>
+  <string name="screen_qr_code_login_error_device_already_signed_in_subtitle">"You don’t need to do anything else."</string>
+  <string name="screen_qr_code_login_error_device_already_signed_in_title">"Your other device is already signed in"</string>
   <string name="screen_qr_code_login_error_expired_subtitle">"Sign in expired. Please try again."</string>
   <string name="screen_qr_code_login_error_expired_title">"The sign in was not completed in time"</string>
   <string name="screen_qr_code_login_error_linking_not_suported_subtitle">"Your other device does not support signing in to %s with a QR code.

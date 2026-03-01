@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,8 +18,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class InMemoryAppPreferencesStore(
     isDeveloperModeEnabled: Boolean = false,
     customElementCallBaseUrl: String? = null,
-    hideInviteAvatars: Boolean = false,
-    timelineMediaPreviewValue: MediaPreviewValue = MediaPreviewValue.On,
+    hideInviteAvatars: Boolean? = null,
+    timelineMediaPreviewValue: MediaPreviewValue? = null,
     theme: String? = null,
     logLevel: LogLevel = LogLevel.INFO,
     traceLockPacks: Set<TraceLogPack> = emptySet(),
@@ -55,20 +56,24 @@ class InMemoryAppPreferencesStore(
         return theme
     }
 
-    override suspend fun setHideInviteAvatars(value: Boolean) {
-        hideInviteAvatars.value = value
-    }
-
-    override fun getHideInviteAvatarsFlow(): Flow<Boolean> {
+    @Deprecated("Use MediaPreviewService instead. Kept only for migration.")
+    override fun getHideInviteAvatarsFlow(): Flow<Boolean?> {
         return hideInviteAvatars
     }
 
-    override suspend fun setTimelineMediaPreviewValue(value: MediaPreviewValue) {
-        timelineMediaPreviewValue.value = value
+    @Deprecated("Use MediaPreviewService instead. Kept only for migration.")
+    override fun getTimelineMediaPreviewValueFlow(): Flow<MediaPreviewValue?> {
+        return timelineMediaPreviewValue
     }
 
-    override fun getTimelineMediaPreviewValueFlow(): Flow<MediaPreviewValue> {
-        return timelineMediaPreviewValue
+    @Deprecated("Use MediaPreviewService instead. Kept only for migration.")
+    override suspend fun setHideInviteAvatars(hide: Boolean?) {
+        hideInviteAvatars.value = hide
+    }
+
+    @Deprecated("Use MediaPreviewService instead. Kept only for migration.")
+    override suspend fun setTimelineMediaPreviewValue(mediaPreviewValue: MediaPreviewValue?) {
+        timelineMediaPreviewValue.value = mediaPreviewValue
     }
 
     override suspend fun setTracingLogLevel(logLevel: LogLevel) {

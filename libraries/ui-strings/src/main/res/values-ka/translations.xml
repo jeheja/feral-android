@@ -24,7 +24,7 @@
   </plurals>
   <string name="a11y_read_receipts_single">"წაიკითხეს: %s"</string>
   <string name="a11y_read_receipts_tap_to_show_all">"შეეხეთ ყველაფრის საჩვენებლად"</string>
-  <string name="a11y_remove_reaction_with">"%1$s რეაქციის წაშლა"</string>
+  <string name="a11y_remove_reaction">"%1$s რეაქციის წაშლა"</string>
   <string name="a11y_send_files">"ფაილების გაგზავნა"</string>
   <string name="a11y_show_password">"პაროლის ჩვენება"</string>
   <string name="a11y_start_call">"დარეკვა"</string>
@@ -46,7 +46,7 @@
   <string name="action_copy_link">"ბმულის კოპირება"</string>
   <string name="action_copy_link_to_message">"დააკოპირეთ შეტყობინების ბმული"</string>
   <string name="action_create">"შექმნა"</string>
-  <string name="action_create_a_room">"ოთახის შექმნა"</string>
+  <string name="action_create_room">"ოთახის შექმნა"</string>
   <string name="action_decline">"უარყოფა"</string>
   <string name="action_delete_poll">"გამოკითხვის წაშლა"</string>
   <string name="action_disable">"გამორთვა"</string>
@@ -113,6 +113,7 @@
   <string name="common_acceptable_use_policy">"მისაღები გამოყენების პოლიტიკა"</string>
   <string name="common_advanced_settings">"გაფართოებული პარამეტრები"</string>
   <string name="common_analytics">"ანალიტიკა"</string>
+  <string name="common_android_shortcuts_remove_reason_left_room">"თქვენ დატოვეთ ოთახი"</string>
   <string name="common_appearance">"გარეგნობა"</string>
   <string name="common_audio">"აუდიო"</string>
   <string name="common_blocked_users">"დაბლოკილი მომხმარებლები"</string>
@@ -177,6 +178,7 @@
     <item quantity="other">"%d ხმა"</item>
   </plurals>
   <string name="common_privacy_policy">"კონფიდენციალურობის პოლიტიკა"</string>
+  <string name="common_private_room">"კერძო ოთახი"</string>
   <string name="common_reaction">"რეაქცია"</string>
   <string name="common_reactions">"რეაქციები"</string>
   <string name="common_recovery_key">
@@ -235,6 +237,7 @@
   <string name="dialog_title_error">"შეცდომა"</string>
   <string name="dialog_title_success">"წარმატება"</string>
   <string name="dialog_title_warning">"გაფრთხილება"</string>
+  <string name="dialog_unsaved_changes_description">"თქვენ გაქვთ შეუნახავი ცვლილებები"</string>
   <string name="dialog_unsaved_changes_description_android">"თქვენი ცვლილებები არაა შენახული. დარწმუნებული ხართ დაბრუნებაში?"</string>
   <string name="dialog_unsaved_changes_title">"შენახვა?"</string>
   <string name="error_failed_creating_the_permalink">"მუდმივი ბმულის შექმნა ვერ მოხერხდა"</string>
@@ -251,18 +254,7 @@
   <string name="invite_friends_text">"გაგიმარჯოს! მესაუბრე %1$s-ზე: %2$s"</string>
   <string name="login_initial_device_name_android">"%1$s Android"</string>
   <string name="preference_rageshake">"შეცდომის შესატყობინებლად ტელეფონის შენჯღრევა"</string>
-  <string name="screen_bottom_sheet_manage_room_member_ban">"წევრის წაშლა და დაბლოკვა"</string>
-  <string name="screen_bottom_sheet_manage_room_member_ban_member_confirmation_action">"დაბლოკვა"</string>
-  <string name="screen_bottom_sheet_manage_room_member_ban_member_confirmation_description">"მოწვევის შემთხვევაში ამ ოთახში კვლავ გაწევრიანებას ვერ შეძლებენ."</string>
-  <string name="screen_bottom_sheet_manage_room_member_ban_member_confirmation_title">"დარწმუნებული ხართ, რომ ამ წევრის დაბლოკვა გსურთ?"</string>
-  <string name="screen_bottom_sheet_manage_room_member_banning_user">"%1$s-ს დაბლოკვა"</string>
-  <string name="screen_bottom_sheet_manage_room_member_member_user_info">"პროფილის ნახვა"</string>
-  <string name="screen_bottom_sheet_manage_room_member_remove">"ოთახიდან გაგდება"</string>
-  <string name="screen_bottom_sheet_manage_room_member_remove_confirmation_title">"გსურთ წევრის გაგდება და მომავალში გაწევრიანების აკრძალვა?"</string>
-  <string name="screen_bottom_sheet_manage_room_member_removing_user">"%1$s-ს გაგდება…"</string>
   <string name="screen_media_picker_error_failed_selection">"მედიის შერჩევა ვერ მოხერხდა, გთხოვთ, სცადოთ ხელახლა."</string>
-  <string name="screen_media_upload_preview_error_failed_processing">"მედიის ატვირთვა ვერ მოხერხდა. გთხოვთ, სცადოთ ხელახლა."</string>
-  <string name="screen_media_upload_preview_error_failed_sending">"მედიის ატვირთვა ვერ მოხერხდა, გთხოვთ, სცადოთ ხელახლა."</string>
   <string name="screen_room_error_failed_processing_media">"მედიის ატვირთვა ვერ მოხერხდა. გთხოვთ, სცადოთ ხელახლა."</string>
   <string name="screen_room_error_failed_retrieving_user_details">"მომხმარებლის მონაცემების მოძიება ვერ მოხერხდა"</string>
   <string name="screen_share_location_title">"მდებარეობის გაზიარება"</string>

@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,8 +10,10 @@ package io.element.android.libraries.pushproviders.unifiedpush
 
 import android.content.Context
 import android.content.Intent
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.architecture.bindings
 import io.element.android.libraries.core.log.logger.LoggerTag
+import io.element.android.libraries.di.annotations.AppCoroutineScope
 import io.element.android.libraries.pushproviders.api.PushHandler
 import io.element.android.libraries.pushproviders.unifiedpush.registration.EndpointRegistrationHandler
 import io.element.android.libraries.pushproviders.unifiedpush.registration.RegistrationResult
@@ -21,7 +24,6 @@ import org.unifiedpush.android.connector.MessagingReceiver
 import org.unifiedpush.android.connector.data.PushEndpoint
 import org.unifiedpush.android.connector.data.PushMessage
 import timber.log.Timber
-import javax.inject.Inject
 
 private val loggerTag = LoggerTag("VectorUnifiedPushMessagingReceiver", LoggerTag.PushLoggerTag)
 
@@ -33,11 +35,14 @@ class VectorUnifiedPushMessagingReceiver : MessagingReceiver() {
     @Inject lateinit var unifiedPushGatewayResolver: UnifiedPushGatewayResolver
     @Inject lateinit var unifiedPushGatewayUrlResolver: UnifiedPushGatewayUrlResolver
     @Inject lateinit var newGatewayHandler: UnifiedPushNewGatewayHandler
+    @Inject lateinit var removedGatewayHandler: UnifiedPushRemovedGatewayHandler
     @Inject lateinit var endpointRegistrationHandler: EndpointRegistrationHandler
+
+    @AppCoroutineScope
     @Inject lateinit var coroutineScope: CoroutineScope
 
     override fun onReceive(context: Context, intent: Intent) {
-        context.applicationContext.bindings<VectorUnifiedPushMessagingReceiverBindings>().inject(this)
+        context.bindings<VectorUnifiedPushMessagingReceiverBindings>().inject(this)
         super.onReceive(context, intent)
     }
 
@@ -101,30 +106,23 @@ class VectorUnifiedPushMessagingReceiver : MessagingReceiver() {
      */
     override fun onRegistrationFailed(context: Context, reason: FailedReason, instance: String) {
         Timber.tag(loggerTag.value).e("onRegistrationFailed for $instance, reason: $reason")
-        /*
-        Toast.makeText(context, "Push service registration failed", Toast.LENGTH_SHORT).show()
-        val mode = BackgroundSyncMode.FDROID_BACKGROUND_SYNC_MODE_FOR_REALTIME
-        pushDataStore.setFdroidSyncBackgroundMode(mode)
-        guardServiceStarter.start()
-         */
+        coroutineScope.launch {
+            endpointRegistrationHandler.registrationDone(
+                RegistrationResult(
+                    clientSecret = instance,
+                    result = Result.failure(Exception("Registration failed. Reason: $reason")),
+                )
+            )
+        }
     }
 
     /**
      * Called when this application is unregistered from receiving push messages.
      */
     override fun onUnregistered(context: Context, instance: String) {
-        Timber.tag(loggerTag.value).w("UnifiedPush: Unregistered")
-        /*
-        val mode = BackgroundSyncMode.FDROID_BACKGROUND_SYNC_MODE_FOR_REALTIME
-        pushDataStore.setFdroidSyncBackgroundMode(mode)
-        guardServiceStarter.start()
-        runBlocking {
-            try {
-                pushersManager.unregisterPusher(unifiedPushHelper.getEndpointOrToken().orEmpty())
-            } catch (e: Exception) {
-                Timber.tag(loggerTag.value).d("Probably unregistering a non existing pusher")
-            }
+        Timber.tag(loggerTag.value).w("onUnregistered $instance")
+        coroutineScope.launch {
+            removedGatewayHandler.handle(instance)
         }
-         */
     }
 }

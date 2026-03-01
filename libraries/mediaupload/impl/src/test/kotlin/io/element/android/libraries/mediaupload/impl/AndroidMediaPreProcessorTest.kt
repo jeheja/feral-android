@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -20,8 +21,10 @@ import io.element.android.libraries.matrix.api.media.FileInfo
 import io.element.android.libraries.matrix.api.media.ImageInfo
 import io.element.android.libraries.matrix.api.media.ThumbnailInfo
 import io.element.android.libraries.matrix.api.media.VideoInfo
+import io.element.android.libraries.mediaupload.api.MediaOptimizationConfig
 import io.element.android.libraries.mediaupload.api.MediaPreProcessor
 import io.element.android.libraries.mediaupload.api.MediaUploadInfo
+import io.element.android.libraries.preferences.api.store.VideoCompressionPreset
 import io.element.android.services.toolbox.test.sdk.FakeBuildVersionSdkIntProvider
 import io.element.android.tests.testutils.fake.FakeTemporaryUriDeleter
 import io.element.android.tests.testutils.lambda.lambdaRecorder
@@ -41,7 +44,7 @@ import kotlin.time.Duration
 class AndroidMediaPreProcessorTest {
     private suspend fun TestScope.process(
         asset: Asset,
-        compressIfPossible: Boolean,
+        mediaOptimizationConfig: MediaOptimizationConfig,
         sdkIntVersion: Int = Build.VERSION_CODES.P,
         deleteOriginal: Boolean = false,
     ): MediaUploadInfo {
@@ -57,7 +60,7 @@ class AndroidMediaPreProcessorTest {
             uri = file.toUri(),
             mimeType = asset.mimeType,
             deleteOriginal = deleteOriginal,
-            compressIfPossible = compressIfPossible,
+            mediaOptimizationConfig = mediaOptimizationConfig,
         )
         val data = result.getOrThrow()
         assertThat(data.file.path).endsWith(asset.filename)
@@ -66,10 +69,14 @@ class AndroidMediaPreProcessorTest {
     }
 
     @Test
+    @Ignore("Ignore now that min API for enterprise is 33")
     fun `test processing png`() = runTest {
         val mediaUploadInfo = process(
             asset = assetImagePng,
-            compressIfPossible = true,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = true,
+                videoCompressionPreset = VideoCompressionPreset.STANDARD,
+            ),
         )
         val info = mediaUploadInfo as MediaUploadInfo.Image
         assertThat(info.thumbnailFile).isNotNull()
@@ -90,7 +97,10 @@ class AndroidMediaPreProcessorTest {
     fun `test processing png api Q`() = runTest {
         val mediaUploadInfo = process(
             asset = assetImagePng,
-            compressIfPossible = true,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = true,
+                videoCompressionPreset = VideoCompressionPreset.STANDARD,
+            ),
             sdkIntVersion = Build.VERSION_CODES.Q,
         )
         val info = mediaUploadInfo as MediaUploadInfo.Image
@@ -109,10 +119,14 @@ class AndroidMediaPreProcessorTest {
     }
 
     @Test
+    @Ignore("Ignore now that min API for enterprise is 33")
     fun `test processing png no compression`() = runTest {
         val mediaUploadInfo = process(
             asset = assetImagePng,
-            compressIfPossible = false,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = false,
+                videoCompressionPreset = VideoCompressionPreset.STANDARD,
+            ),
         )
         val info = mediaUploadInfo as MediaUploadInfo.Image
         assertThat(info.thumbnailFile).isNotNull()
@@ -130,10 +144,14 @@ class AndroidMediaPreProcessorTest {
     }
 
     @Test
+    @Ignore("Ignore now that min API for enterprise is 33")
     fun `test processing png and delete`() = runTest {
         val mediaUploadInfo = process(
             asset = assetImagePng,
-            compressIfPossible = false,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = false,
+                videoCompressionPreset = VideoCompressionPreset.STANDARD,
+            ),
             deleteOriginal = true,
         )
         val info = mediaUploadInfo as MediaUploadInfo.Image
@@ -154,10 +172,14 @@ class AndroidMediaPreProcessorTest {
     }
 
     @Test
+    @Ignore("Ignore now that min API for enterprise is 33")
     fun `test processing jpeg`() = runTest {
         val mediaUploadInfo = process(
             asset = assetImageJpeg,
-            compressIfPossible = true,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = true,
+                videoCompressionPreset = VideoCompressionPreset.STANDARD,
+            ),
         )
         val info = mediaUploadInfo as MediaUploadInfo.Image
         assertThat(info.thumbnailFile).isNotNull()
@@ -178,7 +200,10 @@ class AndroidMediaPreProcessorTest {
     fun `test processing jpeg api Q`() = runTest {
         val mediaUploadInfo = process(
             asset = assetImageJpeg,
-            compressIfPossible = true,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = true,
+                videoCompressionPreset = VideoCompressionPreset.STANDARD,
+            ),
             sdkIntVersion = Build.VERSION_CODES.Q,
         )
         val info = mediaUploadInfo as MediaUploadInfo.Image
@@ -197,10 +222,14 @@ class AndroidMediaPreProcessorTest {
     }
 
     @Test
+    @Ignore("Ignore now that min API for enterprise is 33")
     fun `test processing jpeg no compression`() = runTest {
         val mediaUploadInfo = process(
             asset = assetImageJpeg,
-            compressIfPossible = false,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = false,
+                videoCompressionPreset = VideoCompressionPreset.STANDARD,
+            ),
         )
         val info = mediaUploadInfo as MediaUploadInfo.Image
         assertThat(info.thumbnailFile).isNotNull()
@@ -218,10 +247,14 @@ class AndroidMediaPreProcessorTest {
     }
 
     @Test
+    @Ignore("Ignore now that min API for enterprise is 33")
     fun `test processing jpeg and delete`() = runTest {
         val mediaUploadInfo = process(
             asset = assetImageJpeg,
-            compressIfPossible = false,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = false,
+                videoCompressionPreset = VideoCompressionPreset.STANDARD,
+            ),
             deleteOriginal = true,
         )
         val info = mediaUploadInfo as MediaUploadInfo.Image
@@ -242,10 +275,14 @@ class AndroidMediaPreProcessorTest {
     }
 
     @Test
+    @Ignore("Ignore now that min API for enterprise is 33")
     fun `test processing gif`() = runTest {
         val mediaUploadInfo = process(
             asset = assetAnimatedGif,
-            compressIfPossible = true,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = true,
+                videoCompressionPreset = VideoCompressionPreset.STANDARD,
+            ),
         )
         val info = mediaUploadInfo as MediaUploadInfo.Image
         assertThat(info.thumbnailFile).isNotNull()
@@ -266,7 +303,10 @@ class AndroidMediaPreProcessorTest {
     fun `test processing file`() = runTest {
         val mediaUploadInfo = process(
             asset = assetText,
-            compressIfPossible = true,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = true,
+                videoCompressionPreset = VideoCompressionPreset.STANDARD,
+            ),
         )
         val info = mediaUploadInfo as MediaUploadInfo.AnyFile
         assertThat(info.fileInfo).isEqualTo(
@@ -284,7 +324,10 @@ class AndroidMediaPreProcessorTest {
     fun `test processing video`() = runTest {
         val mediaUploadInfo = process(
             asset = assetVideo,
-            compressIfPossible = true,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = true,
+                videoCompressionPreset = VideoCompressionPreset.STANDARD,
+            ),
         )
         val info = mediaUploadInfo as MediaUploadInfo.Video
         assertThat(info.thumbnailFile).isNotNull()
@@ -308,7 +351,10 @@ class AndroidMediaPreProcessorTest {
     fun `test processing video no compression`() = runTest {
         val mediaUploadInfo = process(
             asset = assetVideo,
-            compressIfPossible = false,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = true,
+                videoCompressionPreset = VideoCompressionPreset.HIGH,
+            ),
         )
         val info = mediaUploadInfo as MediaUploadInfo.Video
         // Computing thumbnailFile is failing with Robolectric
@@ -334,7 +380,10 @@ class AndroidMediaPreProcessorTest {
     fun `test processing audio`() = runTest {
         val mediaUploadInfo = process(
             asset = assetAudio,
-            compressIfPossible = true,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = true,
+                videoCompressionPreset = VideoCompressionPreset.STANDARD,
+            ),
         )
         val info = mediaUploadInfo as MediaUploadInfo.Audio
         assertThat(info.audioInfo).isEqualTo(
@@ -356,7 +405,10 @@ class AndroidMediaPreProcessorTest {
             uri = file.toUri(),
             mimeType = MimeTypes.PlainText,
             deleteOriginal = false,
-            compressIfPossible = true,
+            mediaOptimizationConfig = MediaOptimizationConfig(
+                compressImages = true,
+                videoCompressionPreset = VideoCompressionPreset.STANDARD,
+            ),
         )
         assertThat(result.isFailure).isTrue()
         val failure = result.exceptionOrNull()

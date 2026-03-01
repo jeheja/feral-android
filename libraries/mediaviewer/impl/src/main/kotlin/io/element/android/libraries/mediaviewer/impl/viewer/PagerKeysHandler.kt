@@ -1,15 +1,16 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.mediaviewer.impl.viewer
 
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.mediaviewer.impl.model.MediaItem
 import io.element.android.libraries.mediaviewer.impl.model.eventId
-import javax.inject.Inject
 
 /**
  * x and y are loading items.
@@ -35,7 +36,8 @@ import javax.inject.Inject
  *  -1  0  1  2  3  4  5  6
  * (keyOffset = -1)
  */
-class PagerKeysHandler @Inject constructor() {
+@Inject
+class PagerKeysHandler {
     private data class Data(
         val mediaItems: List<MediaItem>,
         val keyOffset: Long,

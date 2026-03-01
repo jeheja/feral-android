@@ -1,16 +1,21 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.messages.impl
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import io.element.android.features.messages.api.timeline.voicemessages.composer.VoiceMessageComposerState
+import io.element.android.features.messages.api.timeline.voicemessages.composer.aVoiceMessageComposerState
+import io.element.android.features.messages.api.timeline.voicemessages.composer.aVoiceMessagePreviewState
 import io.element.android.features.messages.impl.actionlist.ActionListState
 import io.element.android.features.messages.impl.actionlist.anActionListState
 import io.element.android.features.messages.impl.crypto.identity.IdentityChangeState
+import io.element.android.features.messages.impl.crypto.identity.aRoomMemberIdentityStateChange
 import io.element.android.features.messages.impl.crypto.identity.anIdentityChangeState
 import io.element.android.features.messages.impl.link.LinkState
 import io.element.android.features.messages.impl.link.aLinkState
@@ -21,29 +26,33 @@ import io.element.android.features.messages.impl.pinned.banner.aLoadedPinnedMess
 import io.element.android.features.messages.impl.timeline.TimelineState
 import io.element.android.features.messages.impl.timeline.aTimelineItemList
 import io.element.android.features.messages.impl.timeline.aTimelineState
-import io.element.android.features.messages.impl.timeline.components.customreaction.CustomReactionEvents
+import io.element.android.features.messages.impl.timeline.components.customreaction.CustomReactionEvent
 import io.element.android.features.messages.impl.timeline.components.customreaction.CustomReactionState
-import io.element.android.features.messages.impl.timeline.components.reactionsummary.ReactionSummaryEvents
+import io.element.android.features.messages.impl.timeline.components.reactionsummary.ReactionSummaryEvent
 import io.element.android.features.messages.impl.timeline.components.reactionsummary.ReactionSummaryState
-import io.element.android.features.messages.impl.timeline.components.receipt.bottomsheet.ReadReceiptBottomSheetEvents
+import io.element.android.features.messages.impl.timeline.components.receipt.bottomsheet.ReadReceiptBottomSheetEvent
 import io.element.android.features.messages.impl.timeline.components.receipt.bottomsheet.ReadReceiptBottomSheetState
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemTextContent
 import io.element.android.features.messages.impl.timeline.protection.TimelineProtectionState
 import io.element.android.features.messages.impl.timeline.protection.aTimelineProtectionState
-import io.element.android.features.messages.impl.voicemessages.composer.VoiceMessageComposerState
-import io.element.android.features.messages.impl.voicemessages.composer.aVoiceMessageComposerState
-import io.element.android.features.messages.impl.voicemessages.composer.aVoiceMessagePreviewState
 import io.element.android.features.roomcall.api.RoomCallState
 import io.element.android.features.roomcall.api.aStandByCallState
-import io.element.android.features.roomcall.api.anOngoingCallState
+import io.element.android.features.roommembermoderation.api.RoomMemberModerationEvents
+import io.element.android.features.roommembermoderation.api.RoomMemberModerationPermissions
+import io.element.android.features.roommembermoderation.api.RoomMemberModerationState
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.ThreadId
 import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
+import io.element.android.libraries.matrix.api.room.tombstone.SuccessorRoom
+import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
+import io.element.android.libraries.textcomposer.model.aTextEditorStateMarkdown
 import io.element.android.libraries.textcomposer.model.aTextEditorStateRich
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 
@@ -51,31 +60,18 @@ open class MessagesStateProvider : PreviewParameterProvider<MessagesState> {
     override val values: Sequence<MessagesState>
         get() = sequenceOf(
             aMessagesState(),
-            aMessagesState(hasNetworkConnection = false),
             aMessagesState(composerState = aMessageComposerState(showAttachmentSourcePicker = true)),
             aMessagesState(userEventPermissions = aUserEventPermissions(canSendMessage = false)),
             aMessagesState(showReinvitePrompt = true),
-            aMessagesState(
-                roomName = AsyncData.Uninitialized,
-                roomAvatar = AsyncData.Uninitialized,
-            ),
             aMessagesState(composerState = aMessageComposerState(showTextFormatting = true)),
             aMessagesState(
-                enableVoiceMessages = true,
                 voiceMessageComposerState = aVoiceMessageComposerState(showPermissionRationaleDialog = true),
             ),
             aMessagesState(
-                roomCallState = anOngoingCallState(),
-            ),
-            aMessagesState(
-                enableVoiceMessages = true,
                 voiceMessageComposerState = aVoiceMessageComposerState(
                     voiceMessageState = aVoiceMessagePreviewState(),
                     showSendFailureDialog = true
                 ),
-            ),
-            aMessagesState(
-                roomCallState = aStandByCallState(canStartCall = false),
             ),
             aMessagesState(
                 pinnedMessagesBannerState = aLoadedPinnedMessagesBannerState(
@@ -83,14 +79,23 @@ open class MessagesStateProvider : PreviewParameterProvider<MessagesState> {
                     currentPinnedMessageIndex = 0,
                 ),
             ),
-            aMessagesState(roomName = AsyncData.Success("A DM with a very looong name"), dmUserVerificationState = IdentityState.Verified),
-            aMessagesState(roomName = AsyncData.Success("A DM with a very looong name"), dmUserVerificationState = IdentityState.VerificationViolation),
+            aMessagesState(successorRoom = SuccessorRoom(RoomId("!id:domain"), null)),
+            aMessagesState(
+                timelineState = aTimelineState(
+                    timelineMode = Timeline.Mode.Thread(threadRootId = ThreadId("\$a-thread-id")),
+                    timelineItems = aTimelineItemList(aTimelineItemTextContent()),
+                )
+            ),
+            aMessagesState(
+                composerState = aMessageComposerState(textEditorState = aTextEditorStateMarkdown()),
+                identityChangeState = anIdentityChangeState(listOf(aRoomMemberIdentityStateChange()))
+            ),
         )
 }
 
 fun aMessagesState(
-    roomName: AsyncData<String> = AsyncData.Success("Room name"),
-    roomAvatar: AsyncData<AvatarData> = AsyncData.Success(AvatarData("!id:domain", "Room name", size = AvatarSize.TimelineRoom)),
+    roomName: String? = "Room name",
+    roomAvatar: AvatarData = AvatarData("!id:domain", "Room name", size = AvatarSize.TimelineRoom),
     userEventPermissions: UserEventPermissions = aUserEventPermissions(),
     composerState: MessageComposerState = aMessageComposerState(
         textEditorState = aTextEditorStateRich(initialText = "Hello", initialFocus = true),
@@ -110,13 +115,14 @@ fun aMessagesState(
     actionListState: ActionListState = anActionListState(),
     customReactionState: CustomReactionState = aCustomReactionState(),
     reactionSummaryState: ReactionSummaryState = aReactionSummaryState(),
-    hasNetworkConnection: Boolean = true,
     showReinvitePrompt: Boolean = false,
-    enableVoiceMessages: Boolean = true,
     roomCallState: RoomCallState = aStandByCallState(),
     pinnedMessagesBannerState: PinnedMessagesBannerState = aLoadedPinnedMessagesBannerState(),
     dmUserVerificationState: IdentityState? = null,
-    eventSink: (MessagesEvents) -> Unit = {},
+    roomMemberModerationState: RoomMemberModerationState = aRoomMemberModerationState(),
+    topBarSharedHistoryIcon: SharedHistoryIcon = SharedHistoryIcon.NONE,
+    successorRoom: SuccessorRoom? = null,
+    eventSink: (MessagesEvent) -> Unit = {},
 ) = MessagesState(
     roomId = RoomId("!id:domain"),
     roomName = roomName,
@@ -133,18 +139,26 @@ fun aMessagesState(
     actionListState = actionListState,
     customReactionState = customReactionState,
     reactionSummaryState = reactionSummaryState,
-    hasNetworkConnection = hasNetworkConnection,
     snackbarMessage = null,
     inviteProgress = AsyncData.Uninitialized,
     showReinvitePrompt = showReinvitePrompt,
     enableTextFormatting = true,
-    enableVoiceMessages = enableVoiceMessages,
     roomCallState = roomCallState,
     appName = "Element",
     pinnedMessagesBannerState = pinnedMessagesBannerState,
     dmUserVerificationState = dmUserVerificationState,
+    roomMemberModerationState = roomMemberModerationState,
+    topBarSharedHistoryIcon = topBarSharedHistoryIcon,
+    successorRoom = successorRoom,
     eventSink = eventSink,
 )
+
+fun aRoomMemberModerationState(
+    permissions: RoomMemberModerationPermissions = RoomMemberModerationPermissions.DEFAULT,
+) = object : RoomMemberModerationState {
+    override val permissions: RoomMemberModerationPermissions = permissions
+    override val eventSink: (RoomMemberModerationEvents) -> Unit = {}
+}
 
 fun aUserEventPermissions(
     canRedactOwn: Boolean = false,
@@ -162,7 +176,7 @@ fun aUserEventPermissions(
 
 fun aReactionSummaryState(
     target: ReactionSummaryState.Summary? = null,
-    eventSink: (ReactionSummaryEvents) -> Unit = {}
+    eventSink: (ReactionSummaryEvent) -> Unit = {}
 ) = ReactionSummaryState(
     target = target,
     eventSink = eventSink,
@@ -170,16 +184,18 @@ fun aReactionSummaryState(
 
 fun aCustomReactionState(
     target: CustomReactionState.Target = CustomReactionState.Target.None,
-    eventSink: (CustomReactionEvents) -> Unit = {},
+    recentEmojis: ImmutableList<String> = persistentListOf(),
+    eventSink: (CustomReactionEvent) -> Unit = {},
 ) = CustomReactionState(
     target = target,
+    recentEmojis = recentEmojis,
     selectedEmoji = persistentSetOf(),
     eventSink = eventSink,
 )
 
 fun aReadReceiptBottomSheetState(
     selectedEvent: TimelineItem.Event? = null,
-    eventSink: (ReadReceiptBottomSheetEvents) -> Unit = {},
+    eventSink: (ReadReceiptBottomSheetEvent) -> Unit = {},
 ) = ReadReceiptBottomSheetState(
     selectedEvent = selectedEvent,
     eventSink = eventSink,

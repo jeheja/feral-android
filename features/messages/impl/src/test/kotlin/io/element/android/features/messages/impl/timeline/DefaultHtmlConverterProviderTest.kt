@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -12,6 +13,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.google.common.truth.Truth.assertThat
 import io.element.android.features.messages.impl.utils.FakeMentionSpanFormatter
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.matrix.test.A_USER_ID
 import io.element.android.libraries.matrix.test.permalink.FakePermalinkParser
 import io.element.android.libraries.textcomposer.mentions.MentionSpanProvider
@@ -35,7 +37,7 @@ class DefaultHtmlConverterProviderTest {
 
     @Test
     fun `calling provide without calling Update first should throw an exception`() {
-        val exception = runCatching { provider.provide() }.exceptionOrNull()
+        val exception = runCatchingExceptions { provider.provide() }.exceptionOrNull()
 
         assertThat(exception).isInstanceOf(IllegalStateException::class.java)
     }
@@ -47,7 +49,7 @@ class DefaultHtmlConverterProviderTest {
                 provider.Update()
             }
         }
-        val htmlConverter = runCatching { provider.provide() }.getOrNull()
+        val htmlConverter = runCatchingExceptions { provider.provide() }.getOrNull()
 
         assertThat(htmlConverter).isNotNull()
     }

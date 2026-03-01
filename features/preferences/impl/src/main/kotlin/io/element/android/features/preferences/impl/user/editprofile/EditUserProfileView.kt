@@ -1,12 +1,14 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.preferences.impl.user.editprofile
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,21 +31,25 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.features.preferences.impl.R
+import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.designsystem.components.async.AsyncActionView
 import io.element.android.libraries.designsystem.components.async.AsyncActionViewDefaults
+import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.components.button.BackButton
+import io.element.android.libraries.designsystem.components.dialogs.SaveChangesDialog
 import io.element.android.libraries.designsystem.modifiers.clearFocusOnTap
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.aliasScreenTitle
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TextButton
 import io.element.android.libraries.designsystem.theme.components.TextField
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
 import io.element.android.libraries.matrix.ui.components.AvatarActionBottomSheet
-import io.element.android.libraries.matrix.ui.components.EditableAvatarView
+import io.element.android.libraries.matrix.ui.components.AvatarPickerState
+import io.element.android.libraries.matrix.ui.components.AvatarPickerView
 import io.element.android.libraries.permissions.api.PermissionsView
 import io.element.android.libraries.ui.strings.CommonStrings
 
@@ -51,7 +57,6 @@ import io.element.android.libraries.ui.strings.CommonStrings
 @Composable
 fun EditUserProfileView(
     state: EditUserProfileState,
-    onBackClick: () -> Unit,
     onEditProfileSuccess: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -63,24 +68,28 @@ fun EditUserProfileView(
         isAvatarActionsSheetVisible.value = true
     }
 
+    fun onBackClick() {
+        focusManager.clearFocus()
+        state.eventSink(EditUserProfileEvent.Exit)
+    }
+
+    BackHandler(
+        enabled = true,
+        ::onBackClick,
+    )
     Scaffold(
         modifier = modifier.clearFocusOnTap(focusManager),
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.screen_edit_profile_title),
-                        style = ElementTheme.typography.aliasScreenTitle,
-                    )
-                },
-                navigationIcon = { BackButton(onClick = onBackClick) },
+                titleStr = stringResource(R.string.screen_edit_profile_title),
+                navigationIcon = { BackButton(::onBackClick) },
                 actions = {
                     TextButton(
                         text = stringResource(CommonStrings.action_save),
                         enabled = state.saveButtonEnabled,
                         onClick = {
                             focusManager.clearFocus()
-                            state.eventSink(EditUserProfileEvents.Save)
+                            state.eventSink(EditUserProfileEvent.Save)
                         },
                     )
                 }
@@ -96,12 +105,17 @@ fun EditUserProfileView(
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(24.dp))
-            EditableAvatarView(
-                matrixId = state.userId.value,
-                displayName = state.displayName,
-                avatarUrl = state.userAvatarUrl,
-                avatarSize = AvatarSize.EditProfileDetails,
-                onAvatarClick = { onAvatarClick() },
+            val avatarPickerState = remember(state.userAvatarUrl) {
+                val size = AvatarSize.EditProfileDetails
+                val type = AvatarType.User
+                AvatarPickerState.Selected(
+                    avatarData = AvatarData(id = state.userId.value, name = state.displayName, size = size, url = state.userAvatarUrl),
+                    type = type
+                )
+            }
+            AvatarPickerView(
+                state = avatarPickerState,
+                onClick = ::onAvatarClick,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -117,7 +131,7 @@ fun EditUserProfileView(
                 value = state.displayName,
                 placeholder = stringResource(CommonStrings.common_room_name_placeholder),
                 singleLine = true,
-                onValueChange = { state.eventSink(EditUserProfileEvents.UpdateDisplayName(it)) },
+                onValueChange = { state.eventSink(EditUserProfileEvent.UpdateDisplayName(it)) },
             )
         }
 
@@ -125,7 +139,7 @@ fun EditUserProfileView(
             actions = state.avatarActions,
             isVisible = isAvatarActionsSheetVisible.value,
             onDismiss = { isAvatarActionsSheetVisible.value = false },
-            onSelectAction = { state.eventSink(EditUserProfileEvents.HandleAvatarAction(it)) }
+            onSelectAction = { state.eventSink(EditUserProfileEvent.HandleAvatarAction(it)) }
         )
 
         AsyncActionView(
@@ -135,10 +149,21 @@ fun EditUserProfileView(
                     progressText = stringResource(R.string.screen_edit_profile_updating_details),
                 )
             },
+            confirmationDialog = { confirming ->
+                when (confirming) {
+                    is AsyncAction.ConfirmingCancellation -> {
+                        SaveChangesDialog(
+                            onSaveClick = { state.eventSink(EditUserProfileEvent.Save) },
+                            onDiscardClick = { state.eventSink(EditUserProfileEvent.Exit) },
+                            onDismiss = { state.eventSink(EditUserProfileEvent.CloseDialog) },
+                        )
+                    }
+                }
+            },
             onSuccess = { onEditProfileSuccess() },
             errorTitle = { stringResource(R.string.screen_edit_profile_error_title) },
             errorMessage = { stringResource(R.string.screen_edit_profile_error) },
-            onErrorDismiss = { state.eventSink(EditUserProfileEvents.CancelSaveChanges) },
+            onErrorDismiss = { state.eventSink(EditUserProfileEvent.CloseDialog) },
         )
     }
     PermissionsView(
@@ -151,7 +176,6 @@ fun EditUserProfileView(
 internal fun EditUserProfileViewPreview(@PreviewParameter(EditUserProfileStateProvider::class) state: EditUserProfileState) =
     ElementPreview {
         EditUserProfileView(
-            onBackClick = {},
             onEditProfileSuccess = {},
             state = state,
         )

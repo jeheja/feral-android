@@ -1,7 +1,8 @@
 /*
- * Copyright 2022-2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2022-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 plugins {
@@ -22,7 +23,7 @@ dependencies {
     implementation(libs.firebase.appdistribution.gradle)
     implementation(files(libs.javaClass.superclass.protectionDomain.codeSource.location))
     implementation(libs.autonomousapps.dependencyanalysis.plugin)
-    implementation(libs.anvil.gradle.plugin)
+    implementation(libs.metro.gradle.plugin)
     implementation(libs.ksp.gradle.plugin)
     implementation(libs.compose.compiler.plugin)
 }

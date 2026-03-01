@@ -1,9 +1,11 @@
-import extension.setupAnvil
+import extension.setupDependencyInjection
+import extension.testCommonDependencies
 
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2024 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 plugins {
@@ -14,7 +16,7 @@ android {
     namespace = "io.element.android.libraries.voiceplayer.impl"
 }
 
-setupAnvil()
+setupDependencyInjection()
 
 dependencies {
     api(projects.libraries.voiceplayer.api)
@@ -24,21 +26,17 @@ dependencies {
     implementation(projects.libraries.di)
     implementation(projects.libraries.matrix.api)
     implementation(projects.libraries.mediaplayer.api)
+    implementation(projects.libraries.preferences.api)
     implementation(projects.libraries.uiUtils)
     implementation(projects.services.analytics.api)
 
     implementation(libs.androidx.annotationjvm)
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.coroutines.core)
 
-    testImplementation(libs.molecule.runtime)
-    testImplementation(libs.test.junit)
-    testImplementation(libs.test.truth)
-    testImplementation(libs.test.mockk)
-    testImplementation(libs.test.turbine)
+    testCommonDependencies(libs)
     testImplementation(libs.coroutines.core)
-    testImplementation(libs.coroutines.test)
     testImplementation(projects.libraries.matrix.test)
     testImplementation(projects.libraries.mediaplayer.test)
     testImplementation(projects.services.analytics.test)
-    testImplementation(projects.tests.testutils)
 }

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -10,15 +11,16 @@
 package io.element.android.features.verifysession.impl.incoming
 
 import com.freeletics.flowredux.dsl.FlowReduxStateMachine
+import dev.zacsweers.metro.Inject
 import io.element.android.features.verifysession.impl.util.andLogStateChange
 import io.element.android.features.verifysession.impl.util.logReceivedEvents
 import io.element.android.libraries.matrix.api.verification.SessionVerificationData
 import io.element.android.libraries.matrix.api.verification.SessionVerificationService
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import javax.inject.Inject
 import com.freeletics.flowredux.dsl.State as MachineState
 
-class IncomingVerificationStateMachine @Inject constructor(
+@Inject
+class IncomingVerificationStateMachine(
     private val sessionVerificationService: SessionVerificationService,
 ) : FlowReduxStateMachine<IncomingVerificationStateMachine.State, IncomingVerificationStateMachine.Event>(
     initialState = State.Initial(isCancelled = false)

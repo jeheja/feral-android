@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,11 +12,12 @@
 package io.element.android.features.securebackup.impl.setup
 
 import com.freeletics.flowredux.dsl.FlowReduxStateMachine
+import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import javax.inject.Inject
 import com.freeletics.flowredux.dsl.State as MachineState
 
-class SecureBackupSetupStateMachine @Inject constructor() : FlowReduxStateMachine<SecureBackupSetupStateMachine.State, SecureBackupSetupStateMachine.Event>(
+@Inject
+class SecureBackupSetupStateMachine : FlowReduxStateMachine<SecureBackupSetupStateMachine.State, SecureBackupSetupStateMachine.Event>(
     initialState = State.Initial
 ) {
     init {
@@ -26,8 +28,8 @@ class SecureBackupSetupStateMachine @Inject constructor() : FlowReduxStateMachin
                 }
             }
             inState<State.CreatingKey> {
-                on { _: Event.SdkError, state: MachineState<State.CreatingKey> ->
-                    state.override { State.Initial }
+                on { event: Event.SdkError, state: MachineState<State.CreatingKey> ->
+                    state.override { State.Error(event.exception) }
                 }
                 on { event: Event.SdkHasCreatedKey, state: MachineState<State.CreatingKey> ->
                     state.override { State.KeyCreated(event.key) }
@@ -36,6 +38,11 @@ class SecureBackupSetupStateMachine @Inject constructor() : FlowReduxStateMachin
             inState<State.KeyCreated> {
                 on { _: Event.UserSavedKey, state: MachineState<State.KeyCreated> ->
                     state.override { State.KeyCreatedAndSaved(state.snapshot.key) }
+                }
+            }
+            inState<State.Error> {
+                on { _: Event.ClearError, state: MachineState<State.Error> ->
+                    state.override { State.Initial }
                 }
             }
             inState<State.KeyCreatedAndSaved> {
@@ -48,12 +55,14 @@ class SecureBackupSetupStateMachine @Inject constructor() : FlowReduxStateMachin
         data object CreatingKey : State
         data class KeyCreated(val key: String) : State
         data class KeyCreatedAndSaved(val key: String) : State
+        data class Error(val exception: Exception) : State
     }
 
     sealed interface Event {
         data object UserCreatesKey : Event
         data class SdkHasCreatedKey(val key: String) : Event
-        data class SdkError(val throwable: Throwable) : Event
+        data class SdkError(val exception: Exception) : Event
         data object UserSavedKey : Event
+        data object ClearError : Event
     }
 }

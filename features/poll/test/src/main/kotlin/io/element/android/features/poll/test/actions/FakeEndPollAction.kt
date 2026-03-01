@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,6 +10,7 @@ package io.element.android.features.poll.test.actions
 
 import io.element.android.features.poll.api.actions.EndPollAction
 import io.element.android.libraries.matrix.api.core.EventId
+import io.element.android.libraries.matrix.api.timeline.Timeline
 
 class FakeEndPollAction : EndPollAction {
     private var executionCount = 0
@@ -17,7 +19,7 @@ class FakeEndPollAction : EndPollAction {
         assert(executionCount == count)
     }
 
-    override suspend fun execute(pollStartId: EventId): Result<Unit> {
+    override suspend fun execute(timeline: Timeline, pollStartId: EventId): Result<Unit> {
         executionCount++
         return Result.success(Unit)
     }

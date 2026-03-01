@@ -1,13 +1,13 @@
 /*
- * Copyright 2022-2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2022-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.rageshake.impl.crash
 
-import android.content.Context
 import android.os.Build
 import io.element.android.libraries.core.data.tryOrNull
 import timber.log.Timber
@@ -15,9 +15,8 @@ import java.io.PrintWriter
 import java.io.StringWriter
 
 class VectorUncaughtExceptionHandler(
-    context: Context
+    private val preferencesCrashDataStore: PreferencesCrashDataStore,
 ) : Thread.UncaughtExceptionHandler {
-    private val crashDataStore = PreferencesCrashDataStore(context)
     private var previousHandler: Thread.UncaughtExceptionHandler? = null
 
     /**
@@ -65,7 +64,7 @@ class VectorUncaughtExceptionHandler(
             append(sw.buffer.toString())
         }
         Timber.e("FATAL EXCEPTION $bugDescription")
-        crashDataStore.setCrashData(bugDescription)
+        preferencesCrashDataStore.setCrashData(bugDescription)
         // Show the classical system popup
         previousHandler?.uncaughtException(thread, throwable)
     }

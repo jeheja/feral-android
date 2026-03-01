@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,9 +15,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.features.location.api.Location
 import io.element.android.features.location.impl.common.MapDefaults
 import io.element.android.features.location.impl.common.actions.LocationActions
@@ -26,15 +27,16 @@ import io.element.android.features.location.impl.common.permissions.PermissionsS
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.core.meta.BuildMeta
 
-class ShowLocationPresenter @AssistedInject constructor(
+@AssistedInject
+class ShowLocationPresenter(
+    @Assisted private val location: Location,
+    @Assisted private val description: String?,
     permissionsPresenterFactory: PermissionsPresenter.Factory,
     private val locationActions: LocationActions,
     private val buildMeta: BuildMeta,
-    @Assisted private val location: Location,
-    @Assisted private val description: String?
 ) : Presenter<ShowLocationState> {
     @AssistedFactory
-    interface Factory {
+    fun interface Factory {
         fun create(location: Location, description: String?): ShowLocationPresenter
     }
 
@@ -55,7 +57,7 @@ class ShowLocationPresenter @AssistedInject constructor(
             }
         }
 
-        fun handleEvents(event: ShowLocationEvents) {
+        fun handleEvent(event: ShowLocationEvents) {
             when (event) {
                 ShowLocationEvents.Share -> locationActions.share(location, description)
                 is ShowLocationEvents.TrackMyLocation -> {
@@ -85,7 +87,7 @@ class ShowLocationPresenter @AssistedInject constructor(
             hasLocationPermission = permissionsState.isAnyGranted,
             isTrackMyLocation = isTrackMyLocation,
             appName = appName,
-            eventSink = ::handleEvents,
+            eventSink = ::handleEvent,
         )
     }
 }

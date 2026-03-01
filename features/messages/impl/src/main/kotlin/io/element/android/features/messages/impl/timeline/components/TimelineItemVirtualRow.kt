@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,7 +15,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import io.element.android.features.messages.impl.timeline.TimelineEvents
+import io.element.android.features.messages.impl.timeline.TimelineEvent
 import io.element.android.features.messages.impl.timeline.TimelineRoomInfo
 import io.element.android.features.messages.impl.timeline.components.virtual.TimelineItemDaySeparatorView
 import io.element.android.features.messages.impl.timeline.components.virtual.TimelineItemReadMarkerView
@@ -34,20 +35,29 @@ import timber.log.Timber
 fun TimelineItemVirtualRow(
     virtual: TimelineItem.Virtual,
     timelineRoomInfo: TimelineRoomInfo,
-    eventSink: (TimelineEvents.EventFromTimelineItem) -> Unit,
+    eventSink: (TimelineEvent.TimelineItemEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier) {
         when (virtual.model) {
             is TimelineItemDaySeparatorModel -> TimelineItemDaySeparatorView(virtual.model)
             TimelineItemReadMarkerModel -> TimelineItemReadMarkerView()
-            TimelineItemRoomBeginningModel -> TimelineItemRoomBeginningView(roomName = timelineRoomInfo.name)
+            TimelineItemRoomBeginningModel -> {
+                TimelineItemRoomBeginningView(
+                    predecessorRoom = timelineRoomInfo.predecessorRoom,
+                    roomName = timelineRoomInfo.name,
+                    isDm = timelineRoomInfo.isDm,
+                    onPredecessorRoomClick = { roomId ->
+                        eventSink(TimelineEvent.NavigateToPredecessorOrSuccessorRoom(roomId))
+                    },
+                )
+            }
             is TimelineItemLoadingIndicatorModel -> {
                 TimelineLoadingMoreIndicator(virtual.model.direction)
                 val latestEventSink by rememberUpdatedState(eventSink)
                 LaunchedEffect(virtual.model.timestamp) {
                     Timber.d("Pagination triggered by load more indicator")
-                    latestEventSink(TimelineEvents.LoadMore(virtual.model.direction))
+                    latestEventSink(TimelineEvent.LoadMore(virtual.model.direction))
                 }
             }
             // Empty model trick to avoid timeline jumping during forward pagination.

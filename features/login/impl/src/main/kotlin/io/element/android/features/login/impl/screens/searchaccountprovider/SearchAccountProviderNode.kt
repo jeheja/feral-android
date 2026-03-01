@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,15 +14,16 @@ import androidx.compose.ui.platform.LocalContext
 import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.core.node.Node
 import com.bumble.appyx.core.plugin.Plugin
-import com.bumble.appyx.core.plugin.plugins
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
-import io.element.android.anvilannotations.ContributesNode
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
+import io.element.android.annotations.ContributesNode
 import io.element.android.features.login.impl.util.openLearnMorePage
-import io.element.android.libraries.di.AppScope
+import io.element.android.libraries.architecture.callback
 
 @ContributesNode(AppScope::class)
-class SearchAccountProviderNode @AssistedInject constructor(
+@AssistedInject
+class SearchAccountProviderNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
     private val presenter: SearchAccountProviderPresenter,
@@ -30,9 +32,7 @@ class SearchAccountProviderNode @AssistedInject constructor(
         fun onDone()
     }
 
-    private fun onDone() {
-        plugins<Callback>().forEach { it.onDone() }
-    }
+    private val callback: Callback = callback()
 
     @Composable
     override fun View(modifier: Modifier) {
@@ -43,7 +43,7 @@ class SearchAccountProviderNode @AssistedInject constructor(
             modifier = modifier,
             onBackClick = ::navigateUp,
             onLearnMoreClick = { openLearnMorePage(context) },
-            onSuccess = ::onDone,
+            onSuccess = callback::onDone,
         )
     }
 }

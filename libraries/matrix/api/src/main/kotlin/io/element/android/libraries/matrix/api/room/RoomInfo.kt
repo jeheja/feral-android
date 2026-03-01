@@ -1,24 +1,24 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.api.room
 
-import androidx.compose.runtime.Immutable
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomAlias
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.room.history.RoomHistoryVisibility
 import io.element.android.libraries.matrix.api.room.join.JoinRule
+import io.element.android.libraries.matrix.api.room.powerlevels.RoomPowerLevels
+import io.element.android.libraries.matrix.api.room.tombstone.SuccessorRoom
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.ImmutableMap
 
-@Immutable
 data class RoomInfo(
     val id: RoomId,
     /** The room's name from the room state event if received from sync, or one that's been computed otherwise. */
@@ -27,12 +27,11 @@ data class RoomInfo(
     val rawName: String?,
     val topic: String?,
     val avatarUrl: String?,
-    val isPublic: Boolean,
+    val isPublic: Boolean?,
     val isDirect: Boolean,
     val isEncrypted: Boolean?,
     val joinRule: JoinRule?,
     val isSpace: Boolean,
-    val tombstone: RoomTombstone?,
     val isFavorite: Boolean,
     val canonicalAlias: RoomAlias?,
     val alternativeAliases: ImmutableList<RoomAlias>,
@@ -48,7 +47,7 @@ data class RoomInfo(
     val activeMembersCount: Long,
     val invitedMembersCount: Long,
     val joinedMembersCount: Long,
-    val userPowerLevels: ImmutableMap<UserId, Long>,
+    val roomPowerLevels: RoomPowerLevels?,
     val highlightCount: Long,
     val notificationCount: Long,
     val userDefinedNotificationMode: RoomNotificationMode?,
@@ -72,14 +71,13 @@ data class RoomInfo(
     val numUnreadMentions: Long,
     val heroes: ImmutableList<MatrixUser>,
     val pinnedEventIds: ImmutableList<EventId>,
-    val creator: UserId?,
+    val creators: ImmutableList<UserId>,
     val historyVisibility: RoomHistoryVisibility,
+    val successorRoom: SuccessorRoom?,
+    val roomVersion: String?,
+    val privilegedCreatorRole: Boolean,
+    val isLowPriority: Boolean,
 ) {
     val aliases: List<RoomAlias>
         get() = listOfNotNull(canonicalAlias) + alternativeAliases
 }
-
-data class RoomTombstone(
-    val body: String,
-    val replacementRoomId: RoomId,
-)

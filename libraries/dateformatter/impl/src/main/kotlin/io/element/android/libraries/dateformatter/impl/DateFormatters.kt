@@ -1,16 +1,17 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.dateformatter.impl
 
 import android.text.format.DateUtils
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.SingleIn
-import kotlinx.datetime.Clock
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toJavaLocalDate
@@ -18,11 +19,12 @@ import kotlinx.datetime.toJavaLocalDateTime
 import timber.log.Timber
 import java.time.Period
 import java.util.Locale
-import javax.inject.Inject
 import kotlin.math.absoluteValue
+import kotlin.time.Clock
 
 @SingleIn(AppScope::class)
-class DateFormatters @Inject constructor(
+@Inject
+class DateFormatters(
     localeChangeObserver: LocaleChangeObserver,
     private val clock: Clock,
     private val timeZoneProvider: TimezoneProvider,

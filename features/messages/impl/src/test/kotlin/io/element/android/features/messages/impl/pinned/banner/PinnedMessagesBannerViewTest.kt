@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -32,7 +33,7 @@ class PinnedMessagesBannerViewTest {
 
     @Test
     fun `clicking on the banner invoke expected callback`() {
-        val eventsRecorder = EventsRecorder<PinnedMessagesBannerEvents>()
+        val eventsRecorder = EventsRecorder<PinnedMessagesBannerEvent>()
         val state = aLoadedPinnedMessagesBannerState(
             eventSink = eventsRecorder
         )
@@ -43,13 +44,13 @@ class PinnedMessagesBannerViewTest {
                 onClick = callback
             )
             rule.onRoot().performClick()
-            eventsRecorder.assertSingle(PinnedMessagesBannerEvents.MoveToNextPinned)
+            eventsRecorder.assertSingle(PinnedMessagesBannerEvent.MoveToNextPinned)
         }
     }
 
     @Test
     fun `clicking on view all emit the expected event`() {
-        val eventsRecorder = EventsRecorder<PinnedMessagesBannerEvents>(expectEvents = true)
+        val eventsRecorder = EventsRecorder<PinnedMessagesBannerEvent>(expectEvents = true)
         val state = aLoadedPinnedMessagesBannerState(
             eventSink = eventsRecorder
         )

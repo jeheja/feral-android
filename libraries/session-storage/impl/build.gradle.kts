@@ -1,9 +1,11 @@
-import extension.setupAnvil
+import extension.setupDependencyInjection
+import extension.testCommonDependencies
 
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2023, 2024 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 plugins {
@@ -15,10 +17,9 @@ android {
     namespace = "io.element.android.libraries.sessionstorage.impl"
 }
 
-setupAnvil()
+setupDependencyInjection()
 
 dependencies {
-    implementation(libs.dagger)
     implementation(projects.libraries.androidutils)
     implementation(projects.libraries.core)
     implementation(projects.libraries.encryptedDb)
@@ -29,18 +30,14 @@ dependencies {
     implementation(projects.libraries.di)
     implementation(libs.sqldelight.coroutines)
 
-    testImplementation(libs.test.junit)
-    testImplementation(libs.test.truth)
-    testImplementation(libs.test.turbine)
-    testImplementation(libs.coroutines.test)
+    testCommonDependencies(libs)
     testImplementation(libs.sqldelight.driver.jvm)
-    testImplementation(projects.tests.testutils)
 }
 
 sqldelight {
     databases {
         create("SessionDatabase") {
-            // https://cashapp.github.io/sqldelight/2.0.0/android_sqlite/migrations/
+            // https://sqldelight.github.io/sqldelight/2.1.0/android_sqlite/migrations/
             // To generate a .db file from your latest schema, run this task
             // ./gradlew generateDebugSessionDatabaseSchema
             // Test migration by running

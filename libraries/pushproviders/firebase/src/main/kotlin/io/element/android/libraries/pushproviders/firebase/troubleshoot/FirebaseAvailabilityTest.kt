@@ -1,14 +1,15 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.pushproviders.firebase.troubleshoot
 
-import com.squareup.anvil.annotations.ContributesMultibinding
-import io.element.android.libraries.di.AppScope
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoSet
 import io.element.android.libraries.pushproviders.firebase.FirebaseConfig
 import io.element.android.libraries.pushproviders.firebase.IsPlayServiceAvailable
 import io.element.android.libraries.pushproviders.firebase.R
@@ -19,10 +20,9 @@ import io.element.android.libraries.troubleshoot.api.test.TestFilterData
 import io.element.android.services.toolbox.api.strings.StringProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
-import javax.inject.Inject
 
-@ContributesMultibinding(AppScope::class)
-class FirebaseAvailabilityTest @Inject constructor(
+@ContributesIntoSet(AppScope::class)
+class FirebaseAvailabilityTest(
     private val isPlayServiceAvailable: IsPlayServiceAvailable,
     private val stringProvider: StringProvider,
 ) : NotificationTroubleshootTest {
@@ -50,7 +50,7 @@ class FirebaseAvailabilityTest @Inject constructor(
         } else {
             delegate.updateState(
                 description = stringProvider.getString(R.string.troubleshoot_notifications_test_firebase_availability_failure),
-                status = NotificationTroubleshootTestState.Status.Failure(false)
+                status = NotificationTroubleshootTestState.Status.Failure()
             )
         }
     }

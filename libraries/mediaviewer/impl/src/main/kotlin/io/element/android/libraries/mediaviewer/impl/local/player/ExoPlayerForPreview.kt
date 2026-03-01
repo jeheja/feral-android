@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -37,11 +38,14 @@ import androidx.media3.common.VideoSize
 import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.Clock
 import androidx.media3.common.util.Size
+import androidx.media3.exoplayer.CodecParameters
+import androidx.media3.exoplayer.CodecParametersChangeListener
 import androidx.media3.exoplayer.DecoderCounters
 import androidx.media3.exoplayer.ExoPlaybackException
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.PlayerMessage
 import androidx.media3.exoplayer.Renderer
+import androidx.media3.exoplayer.ScrubbingModeParameters
 import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.analytics.AnalyticsCollector
 import androidx.media3.exoplayer.analytics.AnalyticsListener
@@ -108,15 +112,10 @@ class ExoPlayerForPreview(
     override fun getSeekForwardIncrement(): Long = throw NotImplementedError()
     override fun seekForward() {}
     override fun hasPreviousMediaItem(): Boolean = throw NotImplementedError()
-    override fun seekToPreviousWindow() {}
     override fun seekToPreviousMediaItem() {}
     override fun getMaxSeekToPreviousPosition(): Long = throw NotImplementedError()
     override fun seekToPrevious() {}
-    override fun hasNext(): Boolean = throw NotImplementedError()
-    override fun hasNextWindow(): Boolean = throw NotImplementedError()
     override fun hasNextMediaItem(): Boolean = throw NotImplementedError()
-    override fun next() {}
-    override fun seekToNextWindow() {}
     override fun seekToNextMediaItem() {}
     override fun seekToNext() {}
     override fun setPlaybackParameters(playbackParameters: PlaybackParameters) {}
@@ -143,7 +142,9 @@ class ExoPlayerForPreview(
     override fun getMediaItemCount(): Int = throw NotImplementedError()
     override fun getMediaItemAt(index: Int): MediaItem = throw NotImplementedError()
     override fun getDuration(): Long = throw NotImplementedError()
-    override fun getCurrentPosition(): Long = throw NotImplementedError()
+
+    // Cannot throw, this method is invoked when recording Paparazzi screenshots.
+    override fun getCurrentPosition(): Long = 0L
     override fun getBufferedPosition(): Long = throw NotImplementedError()
     override fun getBufferedPercentage(): Int = throw NotImplementedError()
     override fun getTotalBufferedDuration(): Long = throw NotImplementedError()
@@ -163,6 +164,8 @@ class ExoPlayerForPreview(
     override fun getAudioAttributes(): AudioAttributes = throw NotImplementedError()
     override fun setVolume(volume: Float) = throw NotImplementedError()
     override fun getVolume(): Float = throw NotImplementedError()
+    override fun mute() {}
+    override fun unmute() {}
     override fun clearVideoSurface() {}
     override fun clearVideoSurface(surface: Surface?) {}
     override fun setVideoSurface(surface: Surface?) {}
@@ -195,6 +198,7 @@ class ExoPlayerForPreview(
     override fun getRendererCount(): Int = throw NotImplementedError()
     override fun getRendererType(index: Int): Int = throw NotImplementedError()
     override fun getRenderer(index: Int): Renderer = throw NotImplementedError()
+    override fun getSecondaryRenderer(index: Int): Renderer? = throw NotImplementedError()
     override fun getTrackSelector(): TrackSelector? = throw NotImplementedError()
     override fun getCurrentTrackGroups(): TrackGroupArray = throw NotImplementedError()
     override fun getCurrentTrackSelections(): TrackSelectionArray = throw NotImplementedError()
@@ -211,6 +215,7 @@ class ExoPlayerForPreview(
     override fun addMediaSources(mediaSources: MutableList<MediaSource>) {}
     override fun addMediaSources(index: Int, mediaSources: MutableList<MediaSource>) {}
     override fun setShuffleOrder(shuffleOrder: ShuffleOrder) {}
+    override fun getShuffleOrder(): ShuffleOrder = ShuffleOrder.DefaultShuffleOrder(0)
     override fun setPreloadConfiguration(preloadConfiguration: ExoPlayer.PreloadConfiguration) {}
     override fun getPreloadConfiguration(): ExoPlayer.PreloadConfiguration = throw NotImplementedError()
     override fun setAudioSessionId(audioSessionId: Int) {}
@@ -218,8 +223,13 @@ class ExoPlayerForPreview(
     override fun setAuxEffectInfo(auxEffectInfo: AuxEffectInfo) {}
     override fun clearAuxEffectInfo() {}
     override fun setPreferredAudioDevice(audioDeviceInfo: AudioDeviceInfo?) {}
+    override fun setVirtualDeviceId(virtualDeviceId: Int) {}
     override fun setSkipSilenceEnabled(skipSilenceEnabled: Boolean) {}
     override fun getSkipSilenceEnabled(): Boolean = throw NotImplementedError()
+    override fun setScrubbingModeEnabled(scrubbingModeEnabled: Boolean) {}
+    override fun isScrubbingModeEnabled(): Boolean = false
+    override fun setScrubbingModeParameters(scrubbingModeParameters: ScrubbingModeParameters) {}
+    override fun getScrubbingModeParameters(): ScrubbingModeParameters = ScrubbingModeParameters.DEFAULT
     override fun setVideoEffects(videoEffects: MutableList<Effect>) {}
     override fun setVideoScalingMode(videoScalingMode: Int) {}
     override fun getVideoScalingMode(): Int = throw NotImplementedError()
@@ -232,6 +242,9 @@ class ExoPlayerForPreview(
     override fun createMessage(target: PlayerMessage.Target): PlayerMessage = throw NotImplementedError()
     override fun setSeekParameters(seekParameters: SeekParameters?) {}
     override fun getSeekParameters(): SeekParameters = throw NotImplementedError()
+    override fun setSeekBackIncrementMs(seekBackIncrementMs: Long) {}
+    override fun setSeekForwardIncrementMs(seekForwardIncrementMs: Long) {}
+    override fun setMaxSeekToPreviousPositionMs(maxSeekToPreviousPositionMs: Long) {}
     override fun setForegroundMode(foregroundMode: Boolean) {}
     override fun setPauseAtEndOfMediaItems(pauseAtEndOfMediaItems: Boolean) {}
     override fun getPauseAtEndOfMediaItems(): Boolean = throw NotImplementedError()
@@ -247,4 +260,10 @@ class ExoPlayerForPreview(
     override fun isTunnelingEnabled(): Boolean = throw NotImplementedError()
     override fun isReleased(): Boolean = throw NotImplementedError()
     override fun setImageOutput(imageOutput: ImageOutput?) {}
+    override fun setAudioCodecParameters(codecParameters: CodecParameters) {}
+    override fun addAudioCodecParametersChangeListener(listener: CodecParametersChangeListener, keys: List<String>) {}
+    override fun removeAudioCodecParametersChangeListener(listener: CodecParametersChangeListener) {}
+    override fun setVideoCodecParameters(codecParameters: CodecParameters) {}
+    override fun addVideoCodecParametersChangeListener(listener: CodecParametersChangeListener, keys: List<String>) {}
+    override fun removeVideoCodecParametersChangeListener(listener: CodecParametersChangeListener) {}
 }

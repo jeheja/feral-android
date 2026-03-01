@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,10 +15,10 @@ import com.bumble.appyx.core.lifecycle.subscribe
 import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.core.node.Node
 import com.bumble.appyx.core.plugin.Plugin
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
 import im.vector.app.features.analytics.plan.MobileScreen
-import io.element.android.anvilannotations.ContributesNode
+import io.element.android.annotations.ContributesNode
 import io.element.android.features.userprofile.shared.UserProfileNodeHelper
 import io.element.android.features.userprofile.shared.UserProfileView
 import io.element.android.libraries.architecture.NodeInputs
@@ -29,7 +30,8 @@ import io.element.android.libraries.matrix.api.permalink.PermalinkBuilder
 import io.element.android.services.analytics.api.AnalyticsService
 
 @ContributesNode(RoomScope::class)
-class RoomMemberDetailsNode @AssistedInject constructor(
+@AssistedInject
+class RoomMemberDetailsNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
     private val analyticsService: AnalyticsService,
@@ -61,12 +63,12 @@ class RoomMemberDetailsNode @AssistedInject constructor(
             userProfileNodeHelper.onShareUser(context, permalinkBuilder)
         }
 
-        fun onStartDM(roomId: RoomId) {
-            callback.onStartDM(roomId)
+        fun navigateToRoom(roomId: RoomId) {
+            callback.navigateToRoom(roomId)
         }
 
         fun onStartCall(roomId: RoomId) {
-            callback.onStartCall(roomId)
+            callback.startCall(roomId)
         }
 
         val state = presenter.present()
@@ -76,10 +78,10 @@ class RoomMemberDetailsNode @AssistedInject constructor(
             modifier = modifier,
             goBack = this::navigateUp,
             onShareUser = ::onShareUser,
-            onOpenDm = ::onStartDM,
+            onOpenDm = ::navigateToRoom,
             onStartCall = ::onStartCall,
-            openAvatarPreview = callback::openAvatarPreview,
-            onVerifyClick = callback::onVerifyUser,
+            openAvatarPreview = callback::navigateToAvatarPreview,
+            onVerifyClick = callback::startVerifyUserFlow,
         )
     }
 }

@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -45,10 +46,10 @@ fun LinkView(
                     ),
                     submitText = stringResource(CommonStrings.action_continue),
                     onSubmitClick = {
-                        state.eventSink(LinkEvents.Confirm)
+                        state.eventSink(LinkEvent.Confirm)
                     },
                     onDismiss = {
-                        state.eventSink(LinkEvents.Cancel)
+                        state.eventSink(LinkEvent.Cancel)
                     },
                 )
             }
@@ -57,7 +58,7 @@ fun LinkView(
             val latestOnLinkValid by rememberUpdatedState(onLinkValid)
             LaunchedEffect(state.linkClick.data) {
                 latestOnLinkValid(state.linkClick.data)
-                state.eventSink(LinkEvents.Cancel)
+                state.eventSink(LinkEvent.Cancel)
             }
         }
     }

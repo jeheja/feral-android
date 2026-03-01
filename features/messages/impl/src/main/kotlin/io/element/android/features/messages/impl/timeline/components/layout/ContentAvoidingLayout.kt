@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -112,12 +113,11 @@ fun ContentAvoidingLayout(
  * @param nonOverlappingContentWidth The width of the part of the content that can't overlap with the timestamp.
  * @param nonOverlappingContentHeight The height of the part of the content that can't overlap with the timestamp.
  */
-@Suppress("DataClassShouldBeImmutable")
 data class ContentAvoidingLayoutData(
-    var contentWidth: Int = 0,
-    var contentHeight: Int = 0,
-    var nonOverlappingContentWidth: Int = contentWidth,
-    var nonOverlappingContentHeight: Int = contentHeight,
+    val contentWidth: Int = 0,
+    val contentHeight: Int = 0,
+    val nonOverlappingContentWidth: Int = contentWidth,
+    val nonOverlappingContentHeight: Int = contentHeight,
 )
 
 /**

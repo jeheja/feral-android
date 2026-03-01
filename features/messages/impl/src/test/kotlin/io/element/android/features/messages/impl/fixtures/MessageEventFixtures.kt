@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -12,6 +13,7 @@ import io.element.android.features.messages.impl.timeline.aTimelineItemReactions
 import io.element.android.features.messages.impl.timeline.model.ReadReceiptData
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.TimelineItemReadReceipts
+import io.element.android.features.messages.impl.timeline.model.TimelineItemThreadInfo
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemEventContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemTextContent
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
@@ -40,7 +42,7 @@ internal fun aMessageEvent(
     canBeRepliedTo: Boolean = true,
     content: TimelineItemEventContent = TimelineItemTextContent(body = A_MESSAGE, htmlDocument = null, formattedBody = A_MESSAGE, isEdited = false),
     inReplyTo: InReplyToDetails? = null,
-    isThreaded: Boolean = false,
+    threadInfo: TimelineItemThreadInfo? = null,
     sendState: LocalEventSendState = LocalEventSendState.Sent(AN_EVENT_ID),
     debugInfoProvider: TimelineItemDebugInfoProvider = TimelineItemDebugInfoProvider { aTimelineItemDebugInfo() },
     messageShieldProvider: MessageShieldProvider = MessageShieldProvider { null },
@@ -61,9 +63,11 @@ internal fun aMessageEvent(
     readReceiptState = TimelineItemReadReceipts(emptyList<ReadReceiptData>().toImmutableList()),
     localSendState = sendState,
     inReplyTo = inReplyTo,
-    isThreaded = isThreaded,
+    threadInfo = threadInfo,
     origin = null,
     timelineItemDebugInfoProvider = debugInfoProvider,
     messageShieldProvider = messageShieldProvider,
     sendHandleProvider = sendHandleProvider,
+    forwarder = null,
+    forwarderProfile = null,
 )

@@ -1,36 +1,32 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.featureflag.impl
 
-import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.core.meta.BuildMeta
-import io.element.android.libraries.di.ApplicationContext
 import io.element.android.libraries.featureflag.api.Feature
+import io.element.android.libraries.preferences.api.store.PreferenceDataStoreFactory
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "elementx_featureflag")
 
 /**
  * Note: this will be used only in the nightly and in the debug build.
  */
-class PreferencesFeatureFlagProvider @Inject constructor(
-    @ApplicationContext context: Context,
+@Inject
+class PreferencesFeatureFlagProvider(
     private val buildMeta: BuildMeta,
+    preferenceDataStoreFactory: PreferenceDataStoreFactory,
 ) : MutableFeatureFlagProvider {
-    private val store = context.dataStore
+    private val store = preferenceDataStoreFactory.create("elementx_featureflag")
 
     override val priority = MEDIUM_PRIORITY
 

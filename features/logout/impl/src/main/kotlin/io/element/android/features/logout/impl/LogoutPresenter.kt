@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
@@ -25,14 +27,16 @@ import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.encryption.BackupState
 import io.element.android.libraries.matrix.api.encryption.BackupUploadState
 import io.element.android.libraries.matrix.api.encryption.EncryptionService
+import io.element.android.libraries.workmanager.api.WorkManagerScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-class LogoutPresenter @Inject constructor(
+@Inject
+class LogoutPresenter(
     private val matrixClient: MatrixClient,
     private val encryptionService: EncryptionService,
+    private val workManagerScheduler: WorkManagerScheduler,
 ) : Presenter<LogoutState> {
     @Composable
     override fun present(): LogoutState {
@@ -70,7 +74,7 @@ class LogoutPresenter @Inject constructor(
             }
         }
 
-        fun handleEvents(event: LogoutEvents) {
+        fun handleEvent(event: LogoutEvents) {
             when (event) {
                 is LogoutEvents.Logout -> {
                     if (logoutAction.value.isConfirming() || event.ignoreSdkError) {
@@ -93,7 +97,7 @@ class LogoutPresenter @Inject constructor(
             backupUploadState = backupUploadState,
             waitingForALongTime = waitingForALongTime,
             logoutAction = logoutAction.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 
@@ -108,6 +112,9 @@ class LogoutPresenter @Inject constructor(
         ignoreSdkError: Boolean,
     ) = launch {
         suspend {
+            // Cancel any pending work (e.g. notification sync)
+            workManagerScheduler.cancel(matrixClient.sessionId)
+
             matrixClient.logout(userInitiated = true, ignoreSdkError)
         }.runCatchingUpdatingState(logoutAction)
     }

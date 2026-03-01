@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,6 +15,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.zacsweers.metro.Inject
 import io.element.android.features.messages.impl.crypto.sendfailure.VerifiedUserSendFailure
 import io.element.android.features.messages.impl.crypto.sendfailure.VerifiedUserSendFailureFactory
 import io.element.android.libraries.architecture.AsyncAction
@@ -22,9 +24,9 @@ import io.element.android.libraries.architecture.runUpdatingState
 import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.timeline.item.event.LocalEventSendState
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-class ResolveVerifiedUserSendFailurePresenter @Inject constructor(
+@Inject
+class ResolveVerifiedUserSendFailurePresenter(
     private val room: JoinedRoom,
     private val verifiedUserSendFailureFactory: VerifiedUserSendFailureFactory,
 ) : Presenter<ResolveVerifiedUserSendFailureState> {
@@ -46,9 +48,9 @@ class ResolveVerifiedUserSendFailurePresenter @Inject constructor(
         }
         val coroutineScope = rememberCoroutineScope()
 
-        fun handleEvents(event: ResolveVerifiedUserSendFailureEvents) {
+        fun handleEvent(event: ResolveVerifiedUserSendFailureEvent) {
             when (event) {
-                is ResolveVerifiedUserSendFailureEvents.ComputeForMessage -> {
+                is ResolveVerifiedUserSendFailureEvent.ComputeForMessage -> {
                     val sendState = event.messageEvent.localSendState as? LocalEventSendState.Failed.VerifiedUser
                     val transactionId = event.messageEvent.transactionId
                     val sendHandle = event.messageEvent.sendhandle
@@ -63,10 +65,10 @@ class ResolveVerifiedUserSendFailurePresenter @Inject constructor(
                         null
                     }
                 }
-                ResolveVerifiedUserSendFailureEvents.Dismiss -> {
+                ResolveVerifiedUserSendFailureEvent.Dismiss -> {
                     resolver = null
                 }
-                ResolveVerifiedUserSendFailureEvents.Retry -> {
+                ResolveVerifiedUserSendFailureEvent.Retry -> {
                     coroutineScope.launch {
                         resolver?.run {
                             runUpdatingState(retryAction) {
@@ -75,7 +77,7 @@ class ResolveVerifiedUserSendFailurePresenter @Inject constructor(
                         }
                     }
                 }
-                ResolveVerifiedUserSendFailureEvents.ResolveAndResend -> {
+                ResolveVerifiedUserSendFailureEvent.ResolveAndResend -> {
                     coroutineScope.launch {
                         resolver?.run {
                             runUpdatingState(resolveAction) {
@@ -91,7 +93,7 @@ class ResolveVerifiedUserSendFailurePresenter @Inject constructor(
             verifiedUserSendFailure = verifiedUserSendFailure,
             resolveAction = resolveAction.value,
             retryAction = retryAction.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 }

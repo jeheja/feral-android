@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,9 +18,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import im.vector.app.features.analytics.plan.MobileScreen
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.features.call.api.CallType
@@ -32,26 +33,25 @@ import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runCatchingUpdatingState
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
-import io.element.android.libraries.matrix.api.MatrixClient
+import io.element.android.libraries.di.annotations.AppCoroutineScope
 import io.element.android.libraries.matrix.api.MatrixClientProvider
-import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.sync.SyncState
 import io.element.android.libraries.matrix.api.widget.MatrixWidgetDriver
 import io.element.android.libraries.network.useragent.UserAgentProvider
 import io.element.android.services.analytics.api.ScreenTracker
-import io.element.android.services.appnavstate.api.ActiveRoomsHolder
 import io.element.android.services.appnavstate.api.AppForegroundStateService
 import io.element.android.services.toolbox.api.systemclock.SystemClock
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
+import timber.log.Timber
 import java.util.UUID
+import kotlin.time.Duration.Companion.seconds
 
-class CallScreenPresenter @AssistedInject constructor(
+@AssistedInject
+class CallScreenPresenter(
     @Assisted private val callType: CallType,
     @Assisted private val navigator: CallScreenNavigator,
     private val callWidgetProvider: CallWidgetProvider,
@@ -63,8 +63,9 @@ class CallScreenPresenter @AssistedInject constructor(
     private val activeCallManager: ActiveCallManager,
     private val languageTagProvider: LanguageTagProvider,
     private val appForegroundStateService: AppForegroundStateService,
-    private val activeRoomsHolder: ActiveRoomsHolder,
+    @AppCoroutineScope
     private val appCoroutineScope: CoroutineScope,
+    private val widgetMessageSerializer: WidgetMessageSerializer,
 ) : Presenter<CallScreenState> {
     @AssistedFactory
     interface Factory {
@@ -73,7 +74,6 @@ class CallScreenPresenter @AssistedInject constructor(
 
     private val isInWidgetMode = callType is CallType.RoomCall
     private val userAgent = userAgentProvider.provide()
-    private var notifiedCallStart = false
 
     @Composable
     override fun present(): CallScreenState {
@@ -81,11 +81,12 @@ class CallScreenPresenter @AssistedInject constructor(
         val urlState = remember { mutableStateOf<AsyncData<String>>(AsyncData.Uninitialized) }
         val callWidgetDriver = remember { mutableStateOf<MatrixWidgetDriver?>(null) }
         val messageInterceptor = remember { mutableStateOf<WidgetMessageInterceptor?>(null) }
-        var isJoinedCall by rememberSaveable { mutableStateOf(false) }
+        var isWidgetLoaded by rememberSaveable { mutableStateOf(false) }
         var ignoreWebViewError by rememberSaveable { mutableStateOf(false) }
         var webViewError by remember { mutableStateOf<String?>(null) }
         val languageTag = languageTagProvider.provideLanguageTag()
         val theme = if (ElementTheme.isLightTheme) "light" else "dark"
+
         DisposableEffect(Unit) {
             coroutineScope.launch {
                 // Sets the call as joined
@@ -99,7 +100,7 @@ class CallScreenPresenter @AssistedInject constructor(
                 )
             }
             onDispose {
-                appCoroutineScope.launch { activeCallManager.hungUpCall(callType) }
+                appCoroutineScope.launch { activeCallManager.hangUpCall(callType) }
             }
         }
 
@@ -140,28 +141,46 @@ class CallScreenPresenter @AssistedInject constructor(
                         if (parsedMessage?.direction == WidgetMessage.Direction.FromWidget) {
                             if (parsedMessage.action == WidgetMessage.Action.Close) {
                                 close(callWidgetDriver.value, navigator)
-                            } else if (parsedMessage.action == WidgetMessage.Action.SendEvent) {
-                                // This event is received when a member joins the call, the first one will be the current one
-                                val type = parsedMessage.data?.jsonObject?.get("type")?.jsonPrimitive?.contentOrNull
-                                if (type == "org.matrix.msc3401.call.member") {
-                                    isJoinedCall = true
-                                }
+                            } else if (parsedMessage.action == WidgetMessage.Action.ContentLoaded) {
+                                isWidgetLoaded = true
                             }
                         }
                     }
                     .launchIn(this)
             }
+
+            if (callType is CallType.RoomCall) {
+                // Note: For external calls isWidgetLoaded will always be false
+                LaunchedEffect(Unit) {
+                    // Wait for the call to be joined, if it takes too long, we display an error
+                    delay(10.seconds)
+
+                    if (!isWidgetLoaded) {
+                        Timber.w("The call took too long to load. Displaying an error before exiting.")
+
+                        // This will display a simple 'Sorry, an error occurred' dialog and force the user to exit the call
+                        webViewError = ""
+                    }
+                }
+            }
         }
 
-        fun handleEvents(event: CallScreenEvents) {
+        fun handleEvent(event: CallScreenEvents) {
             when (event) {
                 is CallScreenEvents.Hangup -> {
                     val widgetId = callWidgetDriver.value?.id
                     val interceptor = messageInterceptor.value
-                    if (widgetId != null && interceptor != null && isJoinedCall) {
+                    if (widgetId != null && interceptor != null && isWidgetLoaded) {
                         // If the call was joined, we need to hang up first. Then the UI will be dismissed automatically.
                         sendHangupMessage(widgetId, interceptor)
-                        isJoinedCall = false
+                        isWidgetLoaded = false
+
+                        coroutineScope.launch {
+                            // Wait for a couple of seconds to receive the hangup message
+                            // If we don't get it in time, we close the screen anyway
+                            delay(2.seconds)
+                            close(callWidgetDriver.value, navigator)
+                        }
                     } else {
                         coroutineScope.launch {
                             close(callWidgetDriver.value, navigator)
@@ -184,9 +203,9 @@ class CallScreenPresenter @AssistedInject constructor(
             urlState = urlState.value,
             webViewError = webViewError,
             userAgent = userAgent,
-            isCallActive = isJoinedCall,
+            isCallActive = isWidgetLoaded,
             isInWidgetMode = isInWidgetMode,
-            eventSink = { handleEvents(it) },
+            eventSink = ::handleEvent,
         )
     }
 
@@ -211,6 +230,7 @@ class CallScreenPresenter @AssistedInject constructor(
                         theme = theme,
                     ).getOrThrow()
                     callWidgetDriver.value = result.driver
+                    Timber.d("Call widget driver initialized for sessionId: ${inputs.sessionId}, roomId: ${inputs.roomId}")
                     result.url
                 }
             }
@@ -221,37 +241,29 @@ class CallScreenPresenter @AssistedInject constructor(
     private fun HandleMatrixClientSyncState() {
         val coroutineScope = rememberCoroutineScope()
         DisposableEffect(Unit) {
-            val client = (callType as? CallType.RoomCall)?.sessionId?.let {
-                matrixClientsProvider.getOrNull(it)
-            } ?: return@DisposableEffect onDispose { }
+            val roomCallType = callType as? CallType.RoomCall ?: return@DisposableEffect onDispose {}
+            val client = matrixClientsProvider.getOrNull(roomCallType.sessionId) ?: return@DisposableEffect onDispose {
+                Timber.w("No MatrixClient found for sessionId, can't send call notification: ${roomCallType.sessionId}")
+            }
             coroutineScope.launch {
-                client.syncService().syncState
+                Timber.d("Observing sync state in-call for sessionId: ${roomCallType.sessionId}")
+                client.syncService.syncState
                     .collect { state ->
-                        if (state == SyncState.Running) {
-                            client.notifyCallStartIfNeeded(callType.roomId)
-                        } else {
+                        if (state != SyncState.Running) {
                             appForegroundStateService.updateIsInCallState(true)
                         }
                     }
             }
             onDispose {
+                Timber.d("Stopped observing sync state in-call for sessionId: ${roomCallType.sessionId}")
                 // Make sure we mark the call as ended in the app state
                 appForegroundStateService.updateIsInCallState(false)
             }
         }
     }
 
-    private suspend fun MatrixClient.notifyCallStartIfNeeded(roomId: RoomId) {
-        if (!notifiedCallStart) {
-            val activeRoomForSession = activeRoomsHolder.getActiveRoomMatching(sessionId, roomId)
-            val sendCallNotificationResult = activeRoomForSession?.sendCallNotificationIfNeeded()
-                ?: getJoinedRoom(roomId)?.use { it.sendCallNotificationIfNeeded() }
-            sendCallNotificationResult?.onSuccess { notifiedCallStart = true }
-        }
-    }
-
     private fun parseMessage(message: String): WidgetMessage? {
-        return WidgetMessageSerializer.deserialize(message).getOrNull()
+        return widgetMessageSerializer.deserialize(message).getOrNull()
     }
 
     private fun sendHangupMessage(widgetId: String, messageInterceptor: WidgetMessageInterceptor) {
@@ -262,7 +274,7 @@ class CallScreenPresenter @AssistedInject constructor(
             action = WidgetMessage.Action.HangUp,
             data = null,
         )
-        messageInterceptor.sendMessage(WidgetMessageSerializer.serialize(message))
+        messageInterceptor.sendMessage(widgetMessageSerializer.serialize(message))
     }
 
     private fun CoroutineScope.close(widgetDriver: MatrixWidgetDriver?, navigator: CallScreenNavigator) = launch(dispatchers.io) {

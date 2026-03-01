@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -40,6 +41,9 @@ open class PushHistoryStateProvider : PreviewParameterProvider<PushHistoryState>
             aPushHistoryState(
                 resetAction = AsyncAction.ConfirmingNoParams,
             ),
+            aPushHistoryState(
+                showNotSameAccountError = true,
+            ),
         )
 }
 
@@ -48,12 +52,14 @@ fun aPushHistoryState(
     pushHistoryItems: List<PushHistoryItem> = emptyList(),
     showOnlyErrors: Boolean = false,
     resetAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
+    showNotSameAccountError: Boolean = false,
     eventSink: (PushHistoryEvents) -> Unit = {},
 ) = PushHistoryState(
     pushCounter = pushCounter,
     pushHistoryItems = pushHistoryItems.toImmutableList(),
     showOnlyErrors = showOnlyErrors,
     resetAction = resetAction,
+    showNotSameAccountError = showNotSameAccountError,
     eventSink = eventSink,
 )
 

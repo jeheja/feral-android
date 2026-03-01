@@ -13,6 +13,9 @@
   <string name="screen_change_account_provider_other">"Iný"</string>
   <string name="screen_change_account_provider_subtitle">"Použite iného poskytovateľa účtu, ako napríklad vlastný súkromný server alebo pracovný účet."</string>
   <string name="screen_change_account_provider_title">"Zmeniť poskytovateľa účtu"</string>
+  <string name="screen_change_server_error_element_pro_required_action_android">"Google Play"</string>
+  <string name="screen_change_server_error_element_pro_required_message">"Aplikácia Element Pro je potrebná na %1$s Stiahnite si ju z obchodu."</string>
+  <string name="screen_change_server_error_element_pro_required_title">"Vyžaduje sa Element Pro"</string>
   <string name="screen_change_server_error_invalid_homeserver">"Nemohli sme sa spojiť s týmto domovským serverom. Skontrolujte prosím, či ste zadali URL adresu domovského servera správne. Ak je adresa URL správna, kontaktujte svoj domovský server pre ďalšiu pomoc."</string>
   <string name="screen_change_server_error_invalid_well_known">"Server nie je k dispozícii kvôli problému v známom súbore:
 %1$s"</string>
@@ -34,6 +37,7 @@
   <string name="screen_login_subtitle">"Matrix je otvorená sieť pre bezpečnú a decentralizovanú komunikáciu."</string>
   <string name="screen_login_title">"Vitajte späť!"</string>
   <string name="screen_login_title_with_homeserver">"Prihlásiť sa do %1$s"</string>
+  <string name="screen_onboarding_app_version">"Verzia %1$s"</string>
   <string name="screen_onboarding_sign_in_manually">"Prihlásiť sa manuálne"</string>
   <string name="screen_onboarding_sign_in_to">"Prihlásiť sa do %1$s"</string>
   <string name="screen_onboarding_sign_in_with_qr_code">"Prihlásiť sa pomocou QR kódu"</string>
@@ -56,6 +60,8 @@
   <string name="screen_qr_code_login_error_cancelled_title">"Žiadosť o prihlásenie bola zrušená"</string>
   <string name="screen_qr_code_login_error_declined_subtitle">"Prihlásenie bolo zamietnuté na druhom zariadení."</string>
   <string name="screen_qr_code_login_error_declined_title">"Prihlásenie bolo odmietnuté"</string>
+  <string name="screen_qr_code_login_error_device_already_signed_in_subtitle">"Nemusíte spraviť nič iné."</string>
+  <string name="screen_qr_code_login_error_device_already_signed_in_title">"Vaše druhé zariadenie je už prihlásené"</string>
   <string name="screen_qr_code_login_error_expired_subtitle">"Platnosť prihlásenia vypršala. Skúste to prosím znova."</string>
   <string name="screen_qr_code_login_error_expired_title">"Prihlásenie nebolo včas dokončené"</string>
   <string name="screen_qr_code_login_error_linking_not_suported_subtitle">"Vaše druhé zariadenie nepodporuje prihlásenie do aplikácie %s pomocou QR kódu.
@@ -89,5 +95,6 @@ Skúste sa prihlásiť manuálne alebo naskenujte QR kód pomocou iného zariade
   <string name="screen_server_confirmation_message_login_matrix_dot_org">"Matrix je otvorená sieť pre bezpečnú a decentralizovanú komunikáciu."</string>
   <string name="screen_server_confirmation_message_register">"Tu budú žiť vaše konverzácie - podobne ako používate poskytovateľa e-mailových služieb na uchovávanie e-mailov."</string>
   <string name="screen_server_confirmation_title_login">"Chystáte sa prihlásiť do %1$s"</string>
+  <string name="screen_server_confirmation_title_picker_mode">"Vyberte poskytovateľa účtu"</string>
   <string name="screen_server_confirmation_title_register">"Chystáte sa vytvoriť účet na %1$s"</string>
 </resources>

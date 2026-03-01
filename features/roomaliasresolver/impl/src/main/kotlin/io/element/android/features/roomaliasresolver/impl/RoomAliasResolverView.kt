@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -24,7 +25,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.atomic.atoms.PlaceholderAtom
-import io.element.android.libraries.designsystem.atomic.atoms.RoomPreviewSubtitleAtom
+import io.element.android.libraries.designsystem.atomic.atoms.RoomPreviewAliasAtom
 import io.element.android.libraries.designsystem.atomic.organisms.RoomPreviewOrganism
 import io.element.android.libraries.designsystem.atomic.pages.HeaderFooterPage
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
@@ -53,7 +54,7 @@ fun RoomAliasResolverView(
             containerColor = Color.Transparent,
             contentPadding = PaddingValues(
                 horizontal = 16.dp,
-                vertical = 32.dp
+                vertical = 24.dp
             ),
             topBar = {
                 RoomAliasResolverTopBar(onBackClick = onBackClick)
@@ -117,10 +118,10 @@ private fun RoomAliasResolverContent(
     RoomPreviewOrganism(
         modifier = modifier,
         avatar = {
-            PlaceholderAtom(width = AvatarSize.RoomHeader.dp, height = AvatarSize.RoomHeader.dp)
+            PlaceholderAtom(width = AvatarSize.RoomPreviewHeader.dp, height = AvatarSize.RoomPreviewHeader.dp)
         },
         title = {
-            RoomPreviewSubtitleAtom(roomAlias.value)
+            RoomPreviewAliasAtom(roomAlias.value)
         },
         subtitle = {
             if (isLoading) {

@@ -1,23 +1,23 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.pushproviders.unifiedpush
 
 import android.content.Context
-import com.squareup.anvil.annotations.ContributesBinding
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import io.element.android.libraries.di.annotations.ApplicationContext
 import io.element.android.libraries.pushproviders.api.Distributor
 import io.element.android.libraries.pushproviders.unifiedpush.registration.EndpointRegistrationHandler
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeout
 import org.unifiedpush.android.connector.UnifiedPush
-import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
 
 interface RegisterUnifiedPushUseCase {
@@ -25,7 +25,7 @@ interface RegisterUnifiedPushUseCase {
 }
 
 @ContributesBinding(AppScope::class)
-class DefaultRegisterUnifiedPushUseCase @Inject constructor(
+class DefaultRegisterUnifiedPushUseCase(
     @ApplicationContext private val context: Context,
     private val endpointRegistrationHandler: EndpointRegistrationHandler,
 ) : RegisterUnifiedPushUseCase {
@@ -35,6 +35,7 @@ class DefaultRegisterUnifiedPushUseCase @Inject constructor(
         // VectorUnifiedPushMessagingReceiver.onNewEndpoint
         UnifiedPush.register(context = context, instance = clientSecret)
         // Wait for VectorUnifiedPushMessagingReceiver.onNewEndpoint to proceed
+        @Suppress("RunCatchingNotAllowed")
         return runCatching {
             withTimeout(30.seconds) {
                 val result = endpointRegistrationHandler.state

@@ -13,7 +13,6 @@
     <item quantity="one">"%d melding"</item>
     <item quantity="other">"%d meldingen"</item>
   </plurals>
-  <string name="notification_fallback_content">"Melding"</string>
   <string name="notification_incoming_call">"📹 Inkomende oproep"</string>
   <string name="notification_inline_reply_failed">"** Verzenden is mislukt - open de kamer"</string>
   <string name="notification_invitation_action_join">"Deelnemen"</string>
@@ -54,6 +53,7 @@
   <string name="push_distributor_background_sync_android">"Achtergrondsynchronisatie"</string>
   <string name="push_distributor_firebase_android">"Google-services"</string>
   <string name="push_no_valid_google_play_services_apk_android">"Geen geldige Google Play-services gevonden. Meldingen werken mogelijk niet goed."</string>
+  <string name="troubleshoot_notifications_test_blocked_users_title">"Geblokkeerde gebruikers"</string>
   <string name="troubleshoot_notifications_test_current_push_provider_description">"Naam van de huidige provider aan het ophalen."</string>
   <string name="troubleshoot_notifications_test_current_push_provider_failure">"Er zijn geen push-providers geselecteerd."</string>
   <string name="troubleshoot_notifications_test_current_push_provider_success">"Huidige push-provider: %1$s."</string>

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -34,6 +35,7 @@ import io.element.android.libraries.designsystem.components.BigIcon
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Button
+import io.element.android.libraries.designsystem.theme.components.OutlinedButton
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.ui.strings.CommonStrings
 import kotlinx.collections.immutable.persistentListOf
@@ -43,16 +45,22 @@ fun QrCodeErrorView(
     errorScreenType: QrCodeErrorScreenType,
     appName: String,
     onRetry: () -> Unit,
+    onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BackHandler(onBack = onRetry)
+    BackHandler(onBack = onCancel)
     FlowStepPage(
         modifier = modifier,
         iconStyle = BigIcon.Style.AlertSolid,
         title = titleText(errorScreenType, appName),
         subTitle = subtitleText(errorScreenType, appName),
         content = { Content(errorScreenType) },
-        buttons = { Buttons(onRetry) },
+        buttons = {
+            Buttons(
+                onRetry = onRetry,
+                onCancel = onCancel,
+            )
+        },
     )
 }
 
@@ -117,11 +125,19 @@ private fun Content(errorScreenType: QrCodeErrorScreenType) {
 }
 
 @Composable
-private fun Buttons(onRetry: () -> Unit) {
+private fun Buttons(
+    onRetry: () -> Unit,
+    onCancel: () -> Unit,
+) {
     Button(
         modifier = Modifier.fillMaxWidth(),
-        text = stringResource(R.string.screen_qr_code_login_start_over_button),
-        onClick = onRetry
+        text = stringResource(CommonStrings.action_try_again),
+        onClick = onRetry,
+    )
+    OutlinedButton(
+        modifier = Modifier.fillMaxWidth(),
+        text = stringResource(CommonStrings.action_cancel),
+        onClick = onCancel,
     )
 }
 
@@ -132,7 +148,8 @@ internal fun QrCodeErrorViewPreview(@PreviewParameter(QrCodeErrorScreenTypeProvi
         QrCodeErrorView(
             errorScreenType = errorScreenType,
             appName = "Element X",
-            onRetry = {}
+            onRetry = {},
+            onCancel = {},
         )
     }
 }

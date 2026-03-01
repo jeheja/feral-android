@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -10,7 +11,7 @@ package io.element.android.features.messages.impl.timeline.components.event
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewParameter
-import io.element.android.features.messages.impl.timeline.TimelineEvents
+import io.element.android.features.messages.impl.timeline.TimelineEvent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemPollContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemPollContentProvider
 import io.element.android.features.poll.api.pollcontent.PollContentView
@@ -22,19 +23,19 @@ import kotlinx.collections.immutable.toImmutableList
 @Composable
 fun TimelineItemPollView(
     content: TimelineItemPollContent,
-    eventSink: (TimelineEvents.TimelineItemPollEvents) -> Unit,
+    eventSink: (TimelineEvent.TimelineItemPollEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     fun onSelectAnswer(pollStartId: EventId, answerId: String) {
-        eventSink(TimelineEvents.SelectPollAnswer(pollStartId, answerId))
+        eventSink(TimelineEvent.SelectPollAnswer(pollStartId, answerId))
     }
 
     fun onEndPoll(pollStartId: EventId) {
-        eventSink(TimelineEvents.EndPoll(pollStartId))
+        eventSink(TimelineEvent.EndPoll(pollStartId))
     }
 
     fun onEditPoll(pollStartId: EventId) {
-        eventSink(TimelineEvents.EditPoll(pollStartId))
+        eventSink(TimelineEvent.EditPoll(pollStartId))
     }
 
     PollContentView(

@@ -1,12 +1,14 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.impl.timeline.item.event
 
+import io.element.android.libraries.matrix.api.timeline.item.EventThreadInfo
 import io.element.android.libraries.matrix.api.timeline.item.event.AudioMessageType
 import io.element.android.libraries.matrix.api.timeline.item.event.EmoteMessageType
 import io.element.android.libraries.matrix.api.timeline.item.event.FileMessageType
@@ -31,17 +33,20 @@ import org.matrix.rustcomponents.sdk.FormattedBody as RustFormattedBody
 import org.matrix.rustcomponents.sdk.MessageFormat as RustMessageFormat
 import org.matrix.rustcomponents.sdk.MessageType as RustMessageType
 
+// https://github.com/Johennes/matrix-spec-proposals/blob/johannes/msgtype-galleries/proposals/4274-inline-media-galleries.md#unstable-prefix
+private const val MSG_TYPE_GALLERY_UNSTABLE = "dm.filament.gallery"
+
 class EventMessageMapper {
     private val inReplyToMapper by lazy { InReplyToMapper(TimelineEventContentMapper()) }
 
-    fun map(message: MsgLikeKind.Message, inReplyTo: InReplyToDetails?, isThreaded: Boolean): MessageContent = message.use {
+    fun map(message: MsgLikeKind.Message, inReplyTo: InReplyToDetails?, threadInfo: EventThreadInfo?): MessageContent = message.use {
         val type = it.content.msgType.use(this::mapMessageType)
         val inReplyToEvent: InReplyTo? = inReplyTo?.use(inReplyToMapper::map)
         MessageContent(
             body = it.content.body,
             inReplyTo = inReplyToEvent,
             isEdited = it.content.isEdited,
-            isThreaded = isThreaded,
+            threadInfo = threadInfo,
             type = type
         )
     }
@@ -111,6 +116,10 @@ class EventMessageMapper {
         }
         is MessageType.Other -> {
             OtherMessageType(type.msgtype, type.body)
+        }
+        is MessageType.Gallery -> {
+            // TODO expose the GalleryType.
+            OtherMessageType(MSG_TYPE_GALLERY_UNSTABLE, type.content.body)
         }
     }
 }

@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -38,15 +39,15 @@ class AsyncDataKtTest {
 
         val result = runUpdatingState(state) {
             delay(1)
-            Result.failure(MyThrowable("hello"))
+            Result.failure(MyException("hello"))
         }
 
         assertThat(result.isFailure).isTrue()
-        assertThat(result.exceptionOrNull()).isEqualTo(MyThrowable("hello"))
+        assertThat(result.exceptionOrNull()).isEqualTo(MyException("hello"))
 
         assertThat(state.popFirst()).isEqualTo(AsyncData.Uninitialized)
         assertThat(state.popFirst()).isEqualTo(AsyncData.Loading(null))
-        assertThat(state.popFirst()).isEqualTo(AsyncData.Failure<Int>(MyThrowable("hello")))
+        assertThat(state.popFirst()).isEqualTo(AsyncData.Failure<Int>(MyException("hello")))
         state.assertNoMoreValues()
     }
 
@@ -54,17 +55,17 @@ class AsyncDataKtTest {
     fun `updates state when block returns failure transforming the error`() = runTest {
         val state = TestableMutableState<AsyncData<Int>>(AsyncData.Uninitialized)
 
-        val result = runUpdatingState(state, { MyThrowable(it.message + " world") }) {
+        val result = runUpdatingState(state, { MyException(it.message + " world") }) {
             delay(1)
-            Result.failure(MyThrowable("hello"))
+            Result.failure(MyException("hello"))
         }
 
         assertThat(result.isFailure).isTrue()
-        assertThat(result.exceptionOrNull()).isEqualTo(MyThrowable("hello world"))
+        assertThat(result.exceptionOrNull()).isEqualTo(MyException("hello world"))
 
         assertThat(state.popFirst()).isEqualTo(AsyncData.Uninitialized)
         assertThat(state.popFirst()).isEqualTo(AsyncData.Loading(null))
-        assertThat(state.popFirst()).isEqualTo(AsyncData.Failure<Int>(MyThrowable("hello world")))
+        assertThat(state.popFirst()).isEqualTo(AsyncData.Failure<Int>(MyException("hello world")))
         state.assertNoMoreValues()
     }
 }
@@ -75,22 +76,21 @@ class AsyncDataKtTest {
 private class TestableMutableState<T>(
     value: T
 ) : MutableState<T> {
-    @Suppress("ktlint:standard:property-naming")
-    private val _deque = ArrayDeque<T>(listOf(value))
+    private val deque = ArrayDeque(listOf(value))
 
     override var value: T
-        get() = _deque.last()
+        get() = deque.last()
         set(value) {
-            _deque.addLast(value)
+            deque.addLast(value)
         }
 
     /**
      * Returns the states that were set in the order they were set.
      */
-    fun popFirst(): T = _deque.removeFirst()
+    fun popFirst(): T = deque.removeFirst()
 
     fun assertNoMoreValues() {
-        assertThat(_deque).isEmpty()
+        assertThat(deque).isEmpty()
     }
 
     override operator fun component1(): T = value
@@ -101,4 +101,4 @@ private class TestableMutableState<T>(
 /**
  * An exception that is also a data class so we can compare it using equals.
  */
-private data class MyThrowable(val myMessage: String) : Throwable(myMessage)
+private data class MyException(val myMessage: String) : Exception(myMessage)

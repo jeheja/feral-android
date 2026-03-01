@@ -1,16 +1,18 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.sessionstorage.impl.observer
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.SingleIn
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.SingleIn
+import io.element.android.libraries.di.annotations.AppCoroutineScope
 import io.element.android.libraries.sessionstorage.api.SessionStore
 import io.element.android.libraries.sessionstorage.api.observer.SessionListener
 import io.element.android.libraries.sessionstorage.api.observer.SessionObserver
@@ -22,12 +24,12 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.CopyOnWriteArraySet
-import javax.inject.Inject
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
-class DefaultSessionObserver @Inject constructor(
+class DefaultSessionObserver(
     private val sessionStore: SessionStore,
+    @AppCoroutineScope
     private val coroutineScope: CoroutineScope,
     private val dispatchers: CoroutineDispatchers,
 ) : SessionObserver {
@@ -59,9 +61,10 @@ class DefaultSessionObserver @Inject constructor(
                             // Compute diff
                             // Removed user
                             val removedUsers = currentUserSet - newUserSet
+                            val wasLastSession = newUserSet.isEmpty()
                             removedUsers.forEach { removedUser ->
                                 listeners.onEach { listener ->
-                                    listener.onSessionDeleted(removedUser)
+                                    listener.onSessionDeleted(removedUser, wasLastSession)
                                 }
                             }
                             // Added user

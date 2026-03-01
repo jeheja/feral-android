@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,7 +15,10 @@ import com.google.common.truth.Truth.assertThat
 import io.element.android.features.viewfolder.impl.folder.FolderExplorer
 import io.element.android.features.viewfolder.impl.folder.ViewFolderPresenter
 import io.element.android.features.viewfolder.impl.model.Item
+import io.element.android.libraries.core.meta.BuildMeta
+import io.element.android.libraries.matrix.test.core.aBuildMeta
 import io.element.android.tests.testutils.WarmUpRule
+import io.element.android.tests.testutils.test
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -30,8 +34,22 @@ class ViewFolderPresenterTest {
             presenter.present()
         }.test {
             val initialState = awaitItem()
-            assertThat(initialState.path).isEqualTo("aPath")
+            assertThat(initialState.title).isEqualTo("aPath")
             assertThat(initialState.content).isEmpty()
+        }
+    }
+
+    @Test
+    fun `present - title is built regarding the applicationId`() = runTest {
+        val presenter = createPresenter(
+            path = "/data/user/O/appId/cache/logs",
+            buildMeta = aBuildMeta(
+                applicationId = "appId",
+            )
+        )
+        presenter.test {
+            val initialState = awaitItem()
+            assertThat(initialState.title).isEqualTo("…/cache/logs")
         }
     }
 
@@ -50,7 +68,7 @@ class ViewFolderPresenterTest {
         }.test {
             skipItems(1)
             val initialState = awaitItem()
-            assertThat(initialState.path).isEqualTo("aPath")
+            assertThat(initialState.title).isEqualTo("aPath")
             assertThat(initialState.content.toList()).isEqualTo(items)
         }
     }
@@ -73,7 +91,7 @@ class ViewFolderPresenterTest {
         }.test {
             skipItems(1)
             val initialState = awaitItem()
-            assertThat(initialState.path).isEqualTo("aPath")
+            assertThat(initialState.title).isEqualTo("aPath")
             assertThat(initialState.content.toList()).isEqualTo(listOf(Item.Parent) + items)
         }
     }
@@ -82,9 +100,13 @@ class ViewFolderPresenterTest {
         canGoUp: Boolean = false,
         path: String = "aPath",
         folderExplorer: FolderExplorer = FakeFolderExplorer(),
+        buildMeta: BuildMeta = aBuildMeta(
+            applicationId = "appId",
+        ),
     ) = ViewFolderPresenter(
         path = path,
         canGoUp = canGoUp,
         folderExplorer = folderExplorer,
+        buildMeta = buildMeta,
     )
 }

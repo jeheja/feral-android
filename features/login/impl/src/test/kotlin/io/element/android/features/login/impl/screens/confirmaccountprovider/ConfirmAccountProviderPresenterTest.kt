@@ -1,19 +1,16 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.login.impl.screens.confirmaccountprovider
 
-import app.cash.molecule.RecompositionMode
-import app.cash.molecule.moleculeFlow
-import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.element.android.appconfig.AuthenticationConfig
 import io.element.android.features.enterprise.test.FakeEnterpriseService
-import io.element.android.features.login.impl.DefaultLoginUserStory
 import io.element.android.features.login.impl.accountprovider.AccountProviderDataSource
 import io.element.android.features.login.impl.login.LoginMode
 import io.element.android.features.login.impl.screens.createaccount.AccountCreationNotSupported
@@ -22,15 +19,14 @@ import io.element.android.features.login.impl.web.FakeWebClientUrlForAuthenticat
 import io.element.android.features.login.impl.web.WebClientUrlForAuthenticationRetriever
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.matrix.api.auth.MatrixAuthenticationService
-import io.element.android.libraries.matrix.test.A_HOMESERVER
-import io.element.android.libraries.matrix.test.A_HOMESERVER_OIDC
-import io.element.android.libraries.matrix.test.A_THROWABLE
+import io.element.android.libraries.matrix.test.AN_EXCEPTION
 import io.element.android.libraries.matrix.test.auth.FakeMatrixAuthenticationService
+import io.element.android.libraries.matrix.test.auth.aMatrixHomeServerDetails
 import io.element.android.libraries.oidc.api.OidcAction
 import io.element.android.libraries.oidc.api.OidcActionFlow
-import io.element.android.libraries.oidc.impl.customtab.DefaultOidcActionFlow
+import io.element.android.libraries.oidc.test.customtab.FakeOidcActionFlow
 import io.element.android.tests.testutils.WarmUpRule
-import io.element.android.tests.testutils.waitForPredicate
+import io.element.android.tests.testutils.test
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -42,9 +38,7 @@ class ConfirmAccountProviderPresenterTest {
     @Test
     fun `present - initial test`() = runTest {
         val presenter = createConfirmAccountProviderPresenter()
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             assertThat(initialState.isAccountCreation).isFalse()
             assertThat(initialState.submitEnabled).isTrue()
@@ -55,14 +49,15 @@ class ConfirmAccountProviderPresenterTest {
 
     @Test
     fun `present - continue password login`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails(supportsPasswordLogin = true))
+            },
+        )
         val presenter = createConfirmAccountProviderPresenter(
             matrixAuthenticationService = authenticationService,
         )
-        authenticationService.givenHomeserver(A_HOMESERVER)
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             initialState.eventSink.invoke(ConfirmAccountProviderEvents.Continue)
             val loadingState = awaitItem()
@@ -77,14 +72,15 @@ class ConfirmAccountProviderPresenterTest {
 
     @Test
     fun `present - continue oidc`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails(supportsOidcLogin = true))
+            },
+        )
         val presenter = createConfirmAccountProviderPresenter(
             matrixAuthenticationService = authenticationService,
         )
-        authenticationService.givenHomeserver(A_HOMESERVER_OIDC)
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             initialState.eventSink.invoke(ConfirmAccountProviderEvents.Continue)
             val loadingState = awaitItem()
@@ -99,16 +95,17 @@ class ConfirmAccountProviderPresenterTest {
 
     @Test
     fun `present - oidc - cancel with failure`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
-        val defaultOidcActionFlow = DefaultOidcActionFlow()
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails(supportsOidcLogin = true))
+            },
+        )
+        val defaultOidcActionFlow = FakeOidcActionFlow()
         val presenter = createConfirmAccountProviderPresenter(
             matrixAuthenticationService = authenticationService,
             defaultOidcActionFlow = defaultOidcActionFlow,
         )
-        authenticationService.givenHomeserver(A_HOMESERVER_OIDC)
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             initialState.eventSink.invoke(ConfirmAccountProviderEvents.Continue)
             val loadingState = awaitItem()
@@ -118,8 +115,8 @@ class ConfirmAccountProviderPresenterTest {
             assertThat(successState.submitEnabled).isFalse()
             assertThat(successState.loginMode).isInstanceOf(AsyncData.Success::class.java)
             assertThat(successState.loginMode.dataOrNull()).isInstanceOf(LoginMode.Oidc::class.java)
-            authenticationService.givenOidcCancelError(A_THROWABLE)
-            defaultOidcActionFlow.post(OidcAction.GoBack)
+            authenticationService.givenOidcCancelError(AN_EXCEPTION)
+            defaultOidcActionFlow.post(OidcAction.GoBack())
             val cancelFailureState = awaitItem()
             assertThat(cancelFailureState.loginMode).isInstanceOf(AsyncData.Failure::class.java)
         }
@@ -127,16 +124,17 @@ class ConfirmAccountProviderPresenterTest {
 
     @Test
     fun `present - oidc - cancel with success`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
-        val defaultOidcActionFlow = DefaultOidcActionFlow()
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails(supportsOidcLogin = true))
+            },
+        )
+        val defaultOidcActionFlow = FakeOidcActionFlow()
         val presenter = createConfirmAccountProviderPresenter(
             matrixAuthenticationService = authenticationService,
             defaultOidcActionFlow = defaultOidcActionFlow,
         )
-        authenticationService.givenHomeserver(A_HOMESERVER_OIDC)
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             initialState.eventSink.invoke(ConfirmAccountProviderEvents.Continue)
             val loadingState = awaitItem()
@@ -146,7 +144,31 @@ class ConfirmAccountProviderPresenterTest {
             assertThat(successState.submitEnabled).isFalse()
             assertThat(successState.loginMode).isInstanceOf(AsyncData.Success::class.java)
             assertThat(successState.loginMode.dataOrNull()).isInstanceOf(LoginMode.Oidc::class.java)
-            defaultOidcActionFlow.post(OidcAction.GoBack)
+            defaultOidcActionFlow.post(OidcAction.GoBack())
+            val cancelFinalState = awaitItem()
+            assertThat(cancelFinalState.loginMode).isInstanceOf(AsyncData.Uninitialized::class.java)
+        }
+    }
+
+    @Test
+    fun `present - oidc - cancel to unblock`() = runTest {
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails(supportsOidcLogin = true))
+            },
+        )
+        val defaultOidcActionFlow = FakeOidcActionFlow()
+        val presenter = createConfirmAccountProviderPresenter(
+            matrixAuthenticationService = authenticationService,
+            defaultOidcActionFlow = defaultOidcActionFlow,
+        )
+        presenter.test {
+            val initialState = awaitItem()
+            initialState.eventSink.invoke(ConfirmAccountProviderEvents.Continue)
+            val loadingState = awaitItem()
+            assertThat(loadingState.submitEnabled).isTrue()
+            assertThat(loadingState.loginMode).isInstanceOf(AsyncData.Loading::class.java)
+            defaultOidcActionFlow.post(OidcAction.GoBack(toUnblock = true))
             val cancelFinalState = awaitItem()
             assertThat(cancelFinalState.loginMode).isInstanceOf(AsyncData.Uninitialized::class.java)
         }
@@ -154,16 +176,17 @@ class ConfirmAccountProviderPresenterTest {
 
     @Test
     fun `present - oidc - success with failure`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
-        val defaultOidcActionFlow = DefaultOidcActionFlow()
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails(supportsOidcLogin = true))
+            },
+        )
+        val defaultOidcActionFlow = FakeOidcActionFlow()
         val presenter = createConfirmAccountProviderPresenter(
             matrixAuthenticationService = authenticationService,
             defaultOidcActionFlow = defaultOidcActionFlow,
         )
-        authenticationService.givenHomeserver(A_HOMESERVER_OIDC)
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             initialState.eventSink.invoke(ConfirmAccountProviderEvents.Continue)
             val loadingState = awaitItem()
@@ -173,7 +196,7 @@ class ConfirmAccountProviderPresenterTest {
             assertThat(successState.submitEnabled).isFalse()
             assertThat(successState.loginMode).isInstanceOf(AsyncData.Success::class.java)
             assertThat(successState.loginMode.dataOrNull()).isInstanceOf(LoginMode.Oidc::class.java)
-            authenticationService.givenLoginError(A_THROWABLE)
+            authenticationService.givenLoginError(AN_EXCEPTION)
             defaultOidcActionFlow.post(OidcAction.Success("aUrl"))
             val cancelLoadingState = awaitItem()
             assertThat(cancelLoadingState.loginMode).isInstanceOf(AsyncData.Loading::class.java)
@@ -184,20 +207,17 @@ class ConfirmAccountProviderPresenterTest {
 
     @Test
     fun `present - oidc - success with success`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
-        val defaultOidcActionFlow = DefaultOidcActionFlow()
-        val defaultLoginUserStory = DefaultLoginUserStory().apply {
-            setLoginFlowIsDone(false)
-        }
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails(supportsOidcLogin = true))
+            },
+        )
+        val defaultOidcActionFlow = FakeOidcActionFlow()
         val presenter = createConfirmAccountProviderPresenter(
             matrixAuthenticationService = authenticationService,
             defaultOidcActionFlow = defaultOidcActionFlow,
-            defaultLoginUserStory = defaultLoginUserStory,
         )
-        authenticationService.givenHomeserver(A_HOMESERVER_OIDC)
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             initialState.eventSink.invoke(ConfirmAccountProviderEvents.Continue)
             val loadingState = awaitItem()
@@ -207,25 +227,24 @@ class ConfirmAccountProviderPresenterTest {
             assertThat(successState.submitEnabled).isFalse()
             assertThat(successState.loginMode).isInstanceOf(AsyncData.Success::class.java)
             assertThat(successState.loginMode.dataOrNull()).isInstanceOf(LoginMode.Oidc::class.java)
-            assertThat(defaultLoginUserStory.loginFlowIsDone.value).isFalse()
             defaultOidcActionFlow.post(OidcAction.Success("aUrl"))
             val successSuccessState = awaitItem()
             assertThat(successSuccessState.loginMode).isInstanceOf(AsyncData.Loading::class.java)
-            waitForPredicate { defaultLoginUserStory.loginFlowIsDone.value }
         }
     }
 
     @Test
     fun `present - submit fails`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.failure(AN_EXCEPTION)
+            },
+        )
         val presenter = createConfirmAccountProviderPresenter(
             matrixAuthenticationService = authenticationService,
         )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
-            authenticationService.givenChangeServerError(Throwable())
             initialState.eventSink.invoke(ConfirmAccountProviderEvents.Continue)
             skipItems(1) // Loading
             val failureState = awaitItem()
@@ -236,17 +255,18 @@ class ConfirmAccountProviderPresenterTest {
 
     @Test
     fun `present - clear error`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.failure(AN_EXCEPTION)
+            },
+        )
         val presenter = createConfirmAccountProviderPresenter(
             matrixAuthenticationService = authenticationService,
         )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
 
             // Submit will return an error
-            authenticationService.givenChangeServerError(A_THROWABLE)
             initialState.eventSink(ConfirmAccountProviderEvents.Continue)
 
             skipItems(1) // Loading
@@ -264,8 +284,11 @@ class ConfirmAccountProviderPresenterTest {
 
     @Test
     fun `present - confirm account creation without oidc and without url generates an error`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
-        authenticationService.givenHomeserver(A_HOMESERVER)
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails())
+            },
+        )
         val presenter = createConfirmAccountProviderPresenter(
             params = ConfirmAccountProviderPresenter.Params(isAccountCreation = true),
             matrixAuthenticationService = authenticationService,
@@ -273,9 +296,7 @@ class ConfirmAccountProviderPresenterTest {
                 throw AccountCreationNotSupported()
             },
         )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             initialState.eventSink(ConfirmAccountProviderEvents.Continue)
             skipItems(1) // Loading
@@ -291,15 +312,16 @@ class ConfirmAccountProviderPresenterTest {
 
     @Test
     fun `present - confirm account creation with oidc is successful`() = runTest {
-        val authenticationService = FakeMatrixAuthenticationService()
-        authenticationService.givenHomeserver(A_HOMESERVER_OIDC)
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails(supportsOidcLogin = true))
+            },
+        )
         val presenter = createConfirmAccountProviderPresenter(
             params = ConfirmAccountProviderPresenter.Params(isAccountCreation = true),
             matrixAuthenticationService = authenticationService,
         )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             initialState.eventSink(ConfirmAccountProviderEvents.Continue)
             skipItems(1) // Loading
@@ -312,16 +334,17 @@ class ConfirmAccountProviderPresenterTest {
     @Test
     fun `present - confirm account creation with oidc and url continues with oidc`() = runTest {
         val aUrl = "aUrl"
-        val authenticationService = FakeMatrixAuthenticationService()
-        authenticationService.givenHomeserver(A_HOMESERVER_OIDC)
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails(supportsOidcLogin = true))
+            },
+        )
         val presenter = createConfirmAccountProviderPresenter(
             params = ConfirmAccountProviderPresenter.Params(isAccountCreation = true),
             matrixAuthenticationService = authenticationService,
             webClientUrlForAuthenticationRetriever = FakeWebClientUrlForAuthenticationRetriever { aUrl },
         )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             initialState.eventSink(ConfirmAccountProviderEvents.Continue)
             skipItems(1) // Loading
@@ -334,16 +357,17 @@ class ConfirmAccountProviderPresenterTest {
     @Test
     fun `present - confirm account creation without oidc and with url continuing with url`() = runTest {
         val aUrl = "aUrl"
-        val authenticationService = FakeMatrixAuthenticationService()
-        authenticationService.givenHomeserver(A_HOMESERVER)
+        val authenticationService = FakeMatrixAuthenticationService(
+            setHomeserverResult = {
+                Result.success(aMatrixHomeServerDetails())
+            },
+        )
         val presenter = createConfirmAccountProviderPresenter(
             params = ConfirmAccountProviderPresenter.Params(isAccountCreation = true),
             matrixAuthenticationService = authenticationService,
             webClientUrlForAuthenticationRetriever = FakeWebClientUrlForAuthenticationRetriever { aUrl },
         )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             val initialState = awaitItem()
             initialState.eventSink(ConfirmAccountProviderEvents.Continue)
             skipItems(1) // Loading
@@ -356,8 +380,7 @@ class ConfirmAccountProviderPresenterTest {
         params: ConfirmAccountProviderPresenter.Params = ConfirmAccountProviderPresenter.Params(isAccountCreation = false),
         accountProviderDataSource: AccountProviderDataSource = AccountProviderDataSource(FakeEnterpriseService()),
         matrixAuthenticationService: MatrixAuthenticationService = FakeMatrixAuthenticationService(),
-        defaultOidcActionFlow: OidcActionFlow = DefaultOidcActionFlow(),
-        defaultLoginUserStory: DefaultLoginUserStory = DefaultLoginUserStory(),
+        defaultOidcActionFlow: OidcActionFlow = FakeOidcActionFlow(),
         webClientUrlForAuthenticationRetriever: WebClientUrlForAuthenticationRetriever = FakeWebClientUrlForAuthenticationRetriever(),
     ) = ConfirmAccountProviderPresenter(
         params = params,
@@ -365,7 +388,6 @@ class ConfirmAccountProviderPresenterTest {
         loginHelper = createLoginHelper(
             authenticationService = matrixAuthenticationService,
             oidcActionFlow = defaultOidcActionFlow,
-            defaultLoginUserStory = defaultLoginUserStory,
             webClientUrlForAuthenticationRetriever = webClientUrlForAuthenticationRetriever,
         ),
     )

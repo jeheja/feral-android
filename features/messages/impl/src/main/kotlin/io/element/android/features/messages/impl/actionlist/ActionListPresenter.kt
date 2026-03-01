@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,11 +15,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import com.squareup.anvil.annotations.ContributesBinding
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
-import io.element.android.features.messages.api.pinned.IsPinnedMessagesFeatureEnabled
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.features.messages.impl.UserEventPermissions
 import io.element.android.features.messages.impl.actionlist.model.TimelineItemAction
 import io.element.android.features.messages.impl.actionlist.model.TimelineItemActionComparator
@@ -26,12 +26,13 @@ import io.element.android.features.messages.impl.actionlist.model.TimelineItemAc
 import io.element.android.features.messages.impl.crypto.sendfailure.VerifiedUserSendFailure
 import io.element.android.features.messages.impl.crypto.sendfailure.VerifiedUserSendFailureFactory
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
-import io.element.android.features.messages.impl.timeline.model.event.TimelineItemCallNotifyContent
+import io.element.android.features.messages.impl.timeline.model.TimelineItemThreadInfo
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemEventContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemEventContentWithAttachment
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemLegacyCallInviteContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemPollContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemRedactedContent
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemRtcNotificationContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStateContent
 import io.element.android.features.messages.impl.timeline.model.event.canBeCopied
 import io.element.android.features.messages.impl.timeline.model.event.canBeForwarded
@@ -44,7 +45,9 @@ import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.room.BaseRoom
+import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
+import io.element.android.libraries.recentemojis.api.GetRecentEmojis
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -54,27 +57,38 @@ import kotlinx.coroutines.launch
 
 interface ActionListPresenter : Presenter<ActionListState> {
     interface Factory {
-        fun create(postProcessor: TimelineItemActionPostProcessor): ActionListPresenter
+        fun create(
+            postProcessor: TimelineItemActionPostProcessor,
+            timelineMode: Timeline.Mode,
+        ): ActionListPresenter
     }
 }
 
-class DefaultActionListPresenter @AssistedInject constructor(
+@AssistedInject
+class DefaultActionListPresenter(
     @Assisted
     private val postProcessor: TimelineItemActionPostProcessor,
+    @Assisted
+    private val timelineMode: Timeline.Mode,
     private val appPreferencesStore: AppPreferencesStore,
-    private val isPinnedMessagesFeatureEnabled: IsPinnedMessagesFeatureEnabled,
     private val room: BaseRoom,
     private val userSendFailureFactory: VerifiedUserSendFailureFactory,
-    private val featureFlagService: FeatureFlagService,
     private val dateFormatter: DateFormatter,
+    private val featureFlagService: FeatureFlagService,
+    private val getRecentEmojis: GetRecentEmojis,
 ) : ActionListPresenter {
     @AssistedFactory
     @ContributesBinding(RoomScope::class)
     interface Factory : ActionListPresenter.Factory {
-        override fun create(postProcessor: TimelineItemActionPostProcessor): DefaultActionListPresenter
+        override fun create(
+            postProcessor: TimelineItemActionPostProcessor,
+            timelineMode: Timeline.Mode,
+        ): DefaultActionListPresenter
     }
 
     private val comparator = TimelineItemActionComparator()
+
+    private val suggestedEmojis = persistentListOf("👍️", "👎️", "🔥", "❤️", "👏")
 
     @Composable
     override fun present(): ActionListState {
@@ -87,28 +101,29 @@ class DefaultActionListPresenter @AssistedInject constructor(
         val isDeveloperModeEnabled by remember {
             appPreferencesStore.isDeveloperModeEnabledFlow()
         }.collectAsState(initial = false)
-        val isPinnedEventsEnabled = isPinnedMessagesFeatureEnabled()
         val pinnedEventIds by remember {
             room.roomInfoFlow.map { it.pinnedEventIds }
         }.collectAsState(initial = persistentListOf())
 
-        fun handleEvents(event: ActionListEvents) {
+        val isThreadsEnabled = featureFlagService.isFeatureEnabledFlow(FeatureFlags.Threads).collectAsState(false)
+
+        fun handleEvent(event: ActionListEvent) {
             when (event) {
-                ActionListEvents.Clear -> target.value = ActionListState.Target.None
-                is ActionListEvents.ComputeForMessage -> localCoroutineScope.computeForMessage(
+                ActionListEvent.Clear -> target.value = ActionListState.Target.None
+                is ActionListEvent.ComputeForMessage -> localCoroutineScope.computeForMessage(
                     timelineItem = event.event,
                     usersEventPermissions = event.userEventPermissions,
                     isDeveloperModeEnabled = isDeveloperModeEnabled,
-                    isPinnedEventsEnabled = isPinnedEventsEnabled,
                     pinnedEventIds = pinnedEventIds,
                     target = target,
+                    isThreadsEnabled = isThreadsEnabled.value,
                 )
             }
         }
 
         return ActionListState(
             target = target.value,
-            eventSink = { handleEvents(it) }
+            eventSink = ::handleEvent,
         )
     }
 
@@ -116,9 +131,9 @@ class DefaultActionListPresenter @AssistedInject constructor(
         timelineItem: TimelineItem.Event,
         usersEventPermissions: UserEventPermissions,
         isDeveloperModeEnabled: Boolean,
-        isPinnedEventsEnabled: Boolean,
         pinnedEventIds: ImmutableList<EventId>,
-        target: MutableState<ActionListState.Target>
+        target: MutableState<ActionListState.Target>,
+        isThreadsEnabled: Boolean,
     ) = launch {
         target.value = ActionListState.Target.Loading(timelineItem)
 
@@ -126,14 +141,15 @@ class DefaultActionListPresenter @AssistedInject constructor(
             timelineItem = timelineItem,
             usersEventPermissions = usersEventPermissions,
             isDeveloperModeEnabled = isDeveloperModeEnabled,
-            isPinnedEventsEnabled = isPinnedEventsEnabled,
             isEventPinned = pinnedEventIds.contains(timelineItem.eventId),
+            isThreadsEnabled = isThreadsEnabled,
         )
 
         val verifiedUserSendFailure = userSendFailureFactory.create(timelineItem.localSendState)
         val displayEmojiReactions = usersEventPermissions.canSendReaction && timelineItem.content.canReact()
 
         if (actions.isNotEmpty() || displayEmojiReactions || verifiedUserSendFailure != VerifiedUserSendFailure.None) {
+            val recentEmojis = getRecentEmojis().getOrNull()?.toImmutableList() ?: persistentListOf()
             target.value = ActionListState.Target.Success(
                 event = timelineItem,
                 sentTimeFull = dateFormatter.format(
@@ -143,39 +159,49 @@ class DefaultActionListPresenter @AssistedInject constructor(
                 ),
                 displayEmojiReactions = displayEmojiReactions,
                 verifiedUserSendFailure = verifiedUserSendFailure,
-                actions = actions.toImmutableList()
+                actions = actions.toImmutableList(),
+                // Merge suggested and recent emojis, removing duplicates and returning at most 100
+                recentEmojis = (suggestedEmojis + recentEmojis).distinct()
+                    .take(100)
+                    .toImmutableList()
             )
         } else {
             target.value = ActionListState.Target.None
         }
     }
 
-    private suspend fun buildActions(
+    private fun buildActions(
         timelineItem: TimelineItem.Event,
         usersEventPermissions: UserEventPermissions,
         isDeveloperModeEnabled: Boolean,
-        isPinnedEventsEnabled: Boolean,
         isEventPinned: Boolean,
+        isThreadsEnabled: Boolean,
     ): List<TimelineItemAction> {
         val canRedact = timelineItem.isMine && usersEventPermissions.canRedactOwn || !timelineItem.isMine && usersEventPermissions.canRedactOther
         return buildSet {
             if (timelineItem.canBeRepliedTo && usersEventPermissions.canSendMessage) {
-                if (timelineItem.isThreaded) {
+                if (isThreadsEnabled && timelineMode !is Timeline.Mode.Thread && timelineItem.isRemote) {
+                    // If threads are enabled, we can reply in thread if the item is remote
                     add(TimelineItemAction.ReplyInThread)
-                } else {
                     add(TimelineItemAction.Reply)
+                } else {
+                    if (!isThreadsEnabled && timelineItem.threadInfo is TimelineItemThreadInfo.ThreadResponse) {
+                        // If threads are not enabled, we can reply in a thread if the item is already in the thread
+                        add(TimelineItemAction.ReplyInThread)
+                    } else {
+                        // Otherwise, we can only reply in the room
+                        add(TimelineItemAction.Reply)
+                    }
                 }
             }
             if (timelineItem.isRemote && timelineItem.content.canBeForwarded()) {
                 add(TimelineItemAction.Forward)
             }
-            if (timelineItem.isEditable) {
+            if (timelineItem.isEditable && usersEventPermissions.canSendMessage) {
                 if (timelineItem.content is TimelineItemEventContentWithAttachment) {
                     // Caption
                     if (timelineItem.content.caption == null) {
-                        if (featureFlagService.isFeatureEnabled(FeatureFlags.MediaCaptionCreation)) {
-                            add(TimelineItemAction.AddCaption)
-                        }
+                        add(TimelineItemAction.AddCaption)
                     } else {
                         add(TimelineItemAction.EditCaption)
                         add(TimelineItemAction.RemoveCaption)
@@ -189,7 +215,7 @@ class DefaultActionListPresenter @AssistedInject constructor(
             if (canRedact && timelineItem.content is TimelineItemPollContent && !timelineItem.content.isEnded) {
                 add(TimelineItemAction.EndPoll)
             }
-            val canPinUnpin = isPinnedEventsEnabled && usersEventPermissions.canPinUnpin && timelineItem.isRemote
+            val canPinUnpin = usersEventPermissions.canPinUnpin && timelineItem.isRemote
             if (canPinUnpin) {
                 if (isEventPinned) {
                     add(TimelineItemAction.Unpin)
@@ -227,7 +253,7 @@ class DefaultActionListPresenter @AssistedInject constructor(
 private fun Iterable<TimelineItemAction>.postFilter(content: TimelineItemEventContent): Iterable<TimelineItemAction> {
     return filter { action ->
         when (content) {
-            is TimelineItemCallNotifyContent,
+            is TimelineItemRtcNotificationContent,
             is TimelineItemLegacyCallInviteContent,
             is TimelineItemStateContent -> action == TimelineItemAction.ViewSource
             is TimelineItemRedactedContent -> {

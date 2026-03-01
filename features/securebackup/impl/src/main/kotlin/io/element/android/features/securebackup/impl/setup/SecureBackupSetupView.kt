@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -24,6 +25,7 @@ import io.element.android.libraries.androidutils.system.startSharePlainTextInten
 import io.element.android.libraries.designsystem.atomic.pages.FlowStepPage
 import io.element.android.libraries.designsystem.components.BigIcon
 import io.element.android.libraries.designsystem.components.dialogs.ConfirmationDialog
+import io.element.android.libraries.designsystem.components.dialogs.ErrorDialog
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Button
@@ -49,6 +51,16 @@ fun SecureBackupSetupView(
         Content(state = state)
     }
 
+    if (state.setupState is SetupState.Error) {
+        ErrorDialog(
+            title = stringResource(id = CommonStrings.common_something_went_wrong),
+            content = stringResource(id = CommonStrings.common_something_went_wrong_message),
+            onSubmit = {
+                state.eventSink.invoke(SecureBackupSetupEvents.DismissDialog)
+            },
+        )
+    }
+
     if (state.showSaveConfirmationDialog) {
         ConfirmationDialog(
             title = stringResource(id = R.string.screen_recovery_key_setup_confirmation_title),
@@ -70,7 +82,8 @@ private fun SecureBackupSetupState.canGoBack(): Boolean {
 private fun title(state: SecureBackupSetupState): String {
     return when (state.setupState) {
         SetupState.Init,
-        SetupState.Creating -> if (state.isChangeRecoveryKeyUserStory) {
+        SetupState.Creating,
+        is SetupState.Error -> if (state.isChangeRecoveryKeyUserStory) {
             stringResource(id = R.string.screen_recovery_key_change_title)
         } else {
             stringResource(id = R.string.screen_recovery_key_setup_title)
@@ -85,7 +98,8 @@ private fun title(state: SecureBackupSetupState): String {
 private fun subtitle(state: SecureBackupSetupState): String {
     return when (state.setupState) {
         SetupState.Init,
-        SetupState.Creating -> if (state.isChangeRecoveryKeyUserStory) {
+        SetupState.Creating,
+        is SetupState.Error -> if (state.isChangeRecoveryKeyUserStory) {
             stringResource(id = R.string.screen_recovery_key_change_description)
         } else {
             stringResource(id = R.string.screen_recovery_key_setup_description)
@@ -102,11 +116,12 @@ private fun Content(
 ) {
     val context = LocalContext.current
     val formattedRecoveryKey = state.recoveryKeyViewState.formattedRecoveryKey
+    val toastMessage = stringResource(R.string.screen_recovery_key_copied_to_clipboard)
     val clickLambda = if (formattedRecoveryKey != null) {
         {
             context.copyToClipboard(
-                formattedRecoveryKey,
-                context.getString(R.string.screen_recovery_key_copied_to_clipboard)
+                text = formattedRecoveryKey,
+                toastMessage = toastMessage,
             )
             state.eventSink.invoke(SecureBackupSetupEvents.RecoveryKeyHasBeenSaved)
         }
@@ -125,6 +140,7 @@ private fun Content(
         onClick = clickLambda,
         onChange = null,
         onSubmit = null,
+        toggleRecoveryKeyVisibility = {},
     )
 }
 
@@ -137,7 +153,8 @@ private fun ColumnScope.Buttons(
     val chooserTitle = stringResource(id = R.string.screen_recovery_key_save_action)
     when (state.setupState) {
         SetupState.Init,
-        SetupState.Creating -> {
+        SetupState.Creating,
+        is SetupState.Error -> {
             Button(
                 text = stringResource(id = CommonStrings.action_done),
                 enabled = false,

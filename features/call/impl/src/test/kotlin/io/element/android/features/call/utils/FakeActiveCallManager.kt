@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,7 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 
 class FakeActiveCallManager(
     var registerIncomingCallResult: (CallNotificationData) -> Unit = {},
-    var hungUpCallResult: (CallType) -> Unit = {},
+    var hangUpCallResult: (CallType, CallNotificationData?) -> Unit = { _, _ -> },
     var joinedCallResult: (CallType) -> Unit = {},
 ) : ActiveCallManager {
     override val activeCall = MutableStateFlow<ActiveCall?>(null)
@@ -25,8 +26,8 @@ class FakeActiveCallManager(
         registerIncomingCallResult(notificationData)
     }
 
-    override suspend fun hungUpCall(callType: CallType) = simulateLongTask {
-        hungUpCallResult(callType)
+    override suspend fun hangUpCall(callType: CallType, notificationData: CallNotificationData?) = simulateLongTask {
+        hangUpCallResult(callType, notificationData)
     }
 
     override suspend fun joinedCall(callType: CallType) = simulateLongTask {

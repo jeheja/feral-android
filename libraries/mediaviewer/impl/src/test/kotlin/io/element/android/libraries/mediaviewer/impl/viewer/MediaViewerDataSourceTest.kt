@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -137,7 +138,7 @@ class MediaViewerDataSourceTest {
     fun `test dataFlow with data galleryMode image`() = runTest {
         val galleryDataSource = FakeMediaGalleryDataSource()
         val sut = createMediaViewerDataSource(
-            mode = MediaViewerMode.TimelineImagesAndVideos(timelineMode = Timeline.Mode.MEDIA),
+            mode = MediaViewerMode.TimelineImagesAndVideos(timelineMode = Timeline.Mode.Media),
             galleryDataSource = galleryDataSource,
         )
         sut.dataFlow().test {
@@ -159,7 +160,7 @@ class MediaViewerDataSourceTest {
     fun `test dataFlow with data galleryMode files`() = runTest {
         val galleryDataSource = FakeMediaGalleryDataSource()
         val sut = createMediaViewerDataSource(
-            mode = MediaViewerMode.TimelineFilesAndAudios(timelineMode = Timeline.Mode.MEDIA),
+            mode = MediaViewerMode.TimelineFilesAndAudios(timelineMode = Timeline.Mode.Media),
             galleryDataSource = galleryDataSource,
         )
         sut.dataFlow().test {
@@ -265,7 +266,7 @@ class MediaViewerDataSourceTest {
     }
 
     private fun TestScope.createMediaViewerDataSource(
-        mode: MediaViewerMode = MediaViewerMode.TimelineImagesAndVideos(timelineMode = Timeline.Mode.MEDIA),
+        mode: MediaViewerMode = MediaViewerMode.TimelineImagesAndVideos(timelineMode = Timeline.Mode.Media),
         galleryDataSource: MediaGalleryDataSource = FakeMediaGalleryDataSource(),
         mediaLoader: MatrixMediaLoader = FakeMatrixMediaLoader(),
         localMediaFactory: LocalMediaFactory = FakeLocalMediaFactory(mockMediaUrl),

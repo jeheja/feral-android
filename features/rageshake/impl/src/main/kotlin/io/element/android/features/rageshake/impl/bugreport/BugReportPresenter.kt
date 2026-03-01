@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,20 +17,23 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import dev.zacsweers.metro.Inject
 import io.element.android.features.rageshake.api.reporter.BugReporter
 import io.element.android.features.rageshake.api.reporter.BugReporterListener
 import io.element.android.features.rageshake.impl.crash.CrashDataStore
 import io.element.android.features.rageshake.impl.screenshot.ScreenshotHolder
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.Presenter
+import io.element.android.libraries.di.annotations.AppCoroutineScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-class BugReportPresenter @Inject constructor(
+@Inject
+class BugReportPresenter(
     private val bugReporter: BugReporter,
     private val crashDataStore: CrashDataStore,
     private val screenshotHolder: ScreenshotHolder,
+    @AppCoroutineScope
     private val appCoroutineScope: CoroutineScope,
 ) : Presenter<BugReportState> {
     private class BugReporterUploadListener(
@@ -74,12 +78,12 @@ class BugReportPresenter @Inject constructor(
         val sendingAction: MutableState<AsyncAction<Unit>> = remember {
             mutableStateOf(AsyncAction.Uninitialized)
         }
-        val formState: MutableState<BugReportFormState> = remember {
+        val formState: MutableState<BugReportFormState> = rememberSaveable {
             mutableStateOf(BugReportFormState.Default)
         }
         val uploadListener = BugReporterUploadListener(sendingProgress, sendingAction)
 
-        fun handleEvents(event: BugReportEvents) {
+        fun handleEvent(event: BugReportEvents) {
             when (event) {
                 BugReportEvents.SendBugReport -> {
                     if (formState.value.description.length < 10) {
@@ -102,6 +106,9 @@ class BugReportPresenter @Inject constructor(
                 is BugReportEvents.SetSendScreenshot -> updateFormState(formState) {
                     copy(sendScreenshot = event.sendScreenshot)
                 }
+                is BugReportEvents.SetSendPushRules -> updateFormState(formState) {
+                    copy(sendPushRules = event.sendPushRules)
+                }
                 BugReportEvents.ClearError -> {
                     sendingProgress.floatValue = 0f
                     sendingAction.value = AsyncAction.Uninitialized
@@ -115,7 +122,7 @@ class BugReportPresenter @Inject constructor(
             sending = sendingAction.value,
             formState = formState.value,
             screenshotUri = screenshotUri.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 
@@ -134,6 +141,7 @@ class BugReportPresenter @Inject constructor(
             withScreenshot = formState.sendScreenshot,
             problemDescription = formState.description,
             canContact = formState.canContact,
+            sendPushRules = formState.sendPushRules,
             listener = listener
         )
     }

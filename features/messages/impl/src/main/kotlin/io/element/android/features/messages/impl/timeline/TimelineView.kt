@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -69,15 +70,13 @@ import io.element.android.libraries.designsystem.theme.components.FloatingAction
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.utils.animateScrollToItemCenter
 import io.element.android.libraries.matrix.api.core.EventId
-import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.timeline.Timeline
+import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.testtags.testTag
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.libraries.ui.utils.time.isTalkbackActive
 import io.element.android.wysiwyg.link.Link
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -92,7 +91,7 @@ import kotlin.time.Duration.Companion.milliseconds
 fun TimelineView(
     state: TimelineState,
     timelineProtectionState: TimelineProtectionState,
-    onUserDataClick: (UserId) -> Unit,
+    onUserDataClick: (MatrixUser) -> Unit,
     onLinkClick: (Link) -> Unit,
     onContentClick: (TimelineItem.Event) -> Unit,
     onMessageLongClick: (TimelineItem.Event) -> Unit,
@@ -108,28 +107,29 @@ fun TimelineView(
     nestedScrollConnection: NestedScrollConnection = rememberNestedScrollInteropConnection(),
 ) {
     fun clearFocusRequestState() {
-        state.eventSink(TimelineEvents.ClearFocusRequestState)
+        state.eventSink(TimelineEvent.ClearFocusRequestState)
     }
 
     fun onScrollFinishAt(firstVisibleIndex: Int) {
-        state.eventSink(TimelineEvents.OnScrollFinished(firstVisibleIndex))
+        state.eventSink(TimelineEvent.OnScrollFinished(firstVisibleIndex))
     }
 
     fun onFocusEventRender() {
-        state.eventSink(TimelineEvents.OnFocusEventRender)
+        state.eventSink(TimelineEvent.OnFocusEventRender)
     }
 
     fun onJumpToLive() {
-        state.eventSink(TimelineEvents.JumpToLive)
+        state.eventSink(TimelineEvent.JumpToLive)
     }
 
     val context = LocalContext.current
+    val toastMessage = stringResource(CommonStrings.common_copied_to_clipboard)
     val view = LocalView.current
     // Disable reverse layout when TalkBack is enabled to avoid incorrect ordering issues seen in the current Compose UI version
     val useReverseLayout = !isTalkbackActive()
 
     fun inReplyToClick(eventId: EventId) {
-        state.eventSink(TimelineEvents.FocusOnEvent(eventId))
+        state.eventSink(TimelineEvent.FocusOnEvent(eventId))
     }
 
     fun onLinkLongClick(link: Link) {
@@ -137,13 +137,13 @@ fun TimelineView(
             HapticFeedbackConstants.LONG_PRESS
         )
         context.copyToClipboard(
-            link.url,
-            context.getString(CommonStrings.common_copied_to_clipboard)
+            text = link.url,
+            toastMessage = toastMessage,
         )
     }
 
     fun prefetchMoreItems() {
-        state.eventSink(TimelineEvents.LoadMore(Timeline.PaginationDirection.BACKWARDS))
+        state.eventSink(TimelineEvent.LoadMore(Timeline.PaginationDirection.BACKWARDS))
     }
 
     // Animate alpha when timeline is first displayed, to avoid flashes or glitching when viewing rooms
@@ -165,11 +165,13 @@ fun TimelineView(
                 ) { timelineItem ->
                     TimelineItemRow(
                         timelineItem = timelineItem,
+                        timelineMode = state.timelineMode,
                         timelineRoomInfo = state.timelineRoomInfo,
                         timelineProtectionState = timelineProtectionState,
                         renderReadReceipts = state.renderReadReceipts,
                         isLastOutgoingMessage = state.isLastOutgoingMessage(timelineItem.identifier()),
                         focusedEventId = state.focusedEventId,
+                        displayThreadSummaries = state.displayThreadSummaries,
                         onUserDataClick = onUserDataClick,
                         onLinkClick = onLinkClick,
                         onLinkLongClick = ::onLinkLongClick,
@@ -218,14 +220,13 @@ fun TimelineView(
 
 @Composable
 private fun MessageShieldDialog(state: TimelineState) {
-    val messageShield = state.messageShield ?: return
+    val messageShield = state.messageShieldDialogData ?: return
     AlertDialog(
         content = messageShield.toText(),
-        onDismiss = { state.eventSink.invoke(TimelineEvents.HideShieldDialog) },
+        onDismiss = { state.eventSink.invoke(TimelineEvent.HideShieldDialog) },
     )
 }
 
-@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Composable
 private fun TimelinePrefetchingHelper(
     lazyListState: LazyListState,
@@ -369,7 +370,7 @@ private fun JumpToBottomButton(
             shape = CircleShape,
             modifier = Modifier.size(36.dp),
             containerColor = ElementTheme.colors.bgSubtleSecondary,
-            contentColor = ElementTheme.colors.iconSecondary
+            contentColor = ElementTheme.colors.iconSecondary,
         ) {
             Icon(
                 modifier = Modifier

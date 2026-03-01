@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,9 +16,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runUpdatingState
@@ -25,12 +26,13 @@ import io.element.android.libraries.matrix.api.core.RoomId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-class ReportRoomPresenter @AssistedInject constructor(
+@AssistedInject
+class ReportRoomPresenter(
     @Assisted private val roomId: RoomId,
     private val reportRoom: ReportRoom,
 ) : Presenter<ReportRoomState> {
     @AssistedFactory
-    interface Factory {
+    fun interface Factory {
         fun create(roomId: RoomId): ReportRoomPresenter
     }
 
@@ -42,7 +44,7 @@ class ReportRoomPresenter @AssistedInject constructor(
 
         val coroutineScope = rememberCoroutineScope()
 
-        fun handleEvents(event: ReportRoomEvents) {
+        fun handleEvent(event: ReportRoomEvents) {
             when (event) {
                 ReportRoomEvents.Report -> coroutineScope.reportRoom(reason, leaveRoom, reportAction)
                 ReportRoomEvents.ToggleLeaveRoom -> {
@@ -60,7 +62,7 @@ class ReportRoomPresenter @AssistedInject constructor(
             reason = reason,
             leaveRoom = leaveRoom,
             reportAction = reportAction.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 

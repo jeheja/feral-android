@@ -2,17 +2,15 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=element-x-android&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=element-x-android)
 [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=element-x-android&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=element-x-android)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=element-x-android&metric=bugs)](https://sonarcloud.io/summary/new_code?id=element-x-android)
-[![codecov](https://codecov.io/github/element-hq/element-x-android/branch/develop/graph/badge.svg?token=ecwvia7amV)](https://codecov.io/github/vector-im/element-x-android)
+[![codecov](https://codecov.io/github/element-hq/element-x-android/branch/develop/graph/badge.svg?token=ecwvia7amV)](https://codecov.io/github/element-hq/element-x-android)
 [![Element X Android Matrix room #element-x-android:matrix.org](https://img.shields.io/matrix/element-x-android:matrix.org.svg?label=%23element-x-android:matrix.org&logo=matrix&server_fqdn=matrix.org)](https://matrix.to/#/#element-x-android:matrix.org)
 [![Localazy](https://img.shields.io/endpoint?url=https%3A%2F%2Fconnect.localazy.com%2Fstatus%2Felement%2Fdata%3Fcontent%3Dall%26title%3Dlocalazy%26logo%3Dtrue)](https://localazy.com/p/element)
 
 # Element X Android
 
-Element X Android is a [Matrix](https://matrix.org/) Android Client provided by [element.io](https://element.io/).
+Element X Android is the next-generation [Matrix](https://matrix.org/) client provided by [Element](https://element.io/).
 
-The application is a total rewrite of [Element-Android](https://github.com/element-hq/element-android) using the [Matrix Rust SDK](https://github.com/matrix-org/matrix-rust-sdk) underneath and targeting devices running Android 7+. The UI layer is written using [Jetpack Compose](https://developer.android.com/jetpack/compose), and the navigation is managed using [Appyx](https://github.com/bumble-tech/appyx).
-
-Learn more about why we are building Element X in our blog post: [https://element.io/blog/element-x-experience-the-future-of-element/](https://element.io/blog/element-x-experience-the-future-of-element/).
+Compared to the previous-generation [Element Classic](https://github.com/element-hq/element-android), the application is a total rewrite, using the [Matrix Rust SDK](https://github.com/matrix-org/matrix-rust-sdk) underneath and targeting devices running Android 7+. The UI layer is written using [Jetpack Compose](https://developer.android.com/jetpack/compose), and the navigation is managed using [Appyx](https://github.com/bumble-tech/appyx).
 
 [<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80">](https://play.google.com/store/apps/details?id=io.element.android.x)[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/io.element.android.x)
 
@@ -24,6 +22,7 @@ Learn more about why we are building Element X in our blog post: [https://elemen
 * [Translations](#translations)
 * [Rust SDK](#rust-sdk)
 * [Status](#status)
+* [Minimum SDK version](#minimum-sdk-version)
 * [Contributing](#contributing)
 * [Build instructions](#build-instructions)
 * [Support](#support)
@@ -71,7 +70,13 @@ We're doing this as a way to share code between platforms and while we've seen p
 
 ## Status
 
-This project is in an early rollout and migration phase.
+This project is actively developed and supported. New users are recommended to use Element X instead of the previous-generation app.
+
+## Minimum SDK version
+
+Element X Android requires a minimum SDK version of 24 (Android 7.0, Nougat). We aim to support devices running Android 7.0 and above, which covers a wide range of devices still in use today.
+
+Element Android Enterprise requires a minimum SDK version of 33 (Android 13, Tiramisu). For Element Enterprise, we support only devices that still receive security updates, which means devices running Android 13 and above. Android does not have a documented support policy, but some information can be found at [https://endoflife.date/android](https://endoflife.date/android).
 
 ## Contributing
 
@@ -97,9 +102,10 @@ If after your research you still have a question, ask at [#element-x-android:mat
 
 ## Copyright and License
 
-Copyright (c) 2022 - 2025 New Vector Ltd
+Copyright (c) 2025 Element Creations Ltd.
+Copyright (c) 2022 - 2025 New Vector Ltd.
 
-This software is dual licensed by New Vector Ltd (Element). It can be used either:
+This software is dual licensed by Element Creations Ltd (Element). It can be used either:
 
 (1) for free under the terms of the GNU Affero General Public License (as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version); OR
 

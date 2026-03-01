@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,10 +15,6 @@ import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.libraries.designsystem.components.Badge
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.badgeNegativeBackgroundColor
-import io.element.android.libraries.designsystem.theme.badgeNegativeContentColor
-import io.element.android.libraries.designsystem.theme.badgeNeutralBackgroundColor
-import io.element.android.libraries.designsystem.theme.badgeNeutralContentColor
 
 object MatrixBadgeAtom {
     data class MatrixBadgeData(
@@ -39,21 +36,21 @@ object MatrixBadgeAtom {
     ) {
         val backgroundColor = when (data.type) {
             Type.Positive -> ElementTheme.colors.bgBadgeAccent
-            Type.Neutral -> ElementTheme.colors.badgeNeutralBackgroundColor
-            Type.Negative -> ElementTheme.colors.badgeNegativeBackgroundColor
+            Type.Neutral -> ElementTheme.colors.bgBadgeDefault
+            Type.Negative -> ElementTheme.colors.bgCriticalSubtle
             Type.Info -> ElementTheme.colors.bgBadgeInfo
         }
         val textColor = when (data.type) {
             Type.Positive -> ElementTheme.colors.textBadgeAccent
-            Type.Neutral -> ElementTheme.colors.badgeNeutralContentColor
-            Type.Negative -> ElementTheme.colors.badgeNegativeContentColor
+            Type.Neutral -> ElementTheme.colors.textPrimary
+            Type.Negative -> ElementTheme.colors.textCriticalPrimary
             Type.Info -> ElementTheme.colors.textBadgeInfo
         }
         val iconColor = when (data.type) {
-            Type.Positive -> ElementTheme.colors.textBadgeAccent
-            Type.Neutral -> ElementTheme.colors.iconSecondary
+            Type.Positive -> ElementTheme.colors.iconAccentPrimary
+            Type.Neutral -> ElementTheme.colors.iconPrimary
             Type.Negative -> ElementTheme.colors.iconCriticalPrimary
-            Type.Info -> ElementTheme.colors.textBadgeInfo
+            Type.Info -> ElementTheme.colors.iconInfoPrimary
         }
         Badge(
             text = data.text,
@@ -97,6 +94,18 @@ internal fun MatrixBadgeAtomNegativePreview() = ElementPreview {
             text = "Not trusted",
             icon = CompoundIcons.ErrorSolid(),
             type = MatrixBadgeAtom.Type.Negative,
+        )
+    )
+}
+
+@PreviewsDayNight
+@Composable
+internal fun MatrixBadgeAtomNeutralWrappingPreview() = ElementPreview {
+    MatrixBadgeAtom.View(
+        MatrixBadgeAtom.MatrixBadgeData(
+            text = "How much wood could a wood chuck chuck if a wood chuck could chuck wood",
+            icon = CompoundIcons.LockOff(),
+            type = MatrixBadgeAtom.Type.Info,
         )
     )
 }

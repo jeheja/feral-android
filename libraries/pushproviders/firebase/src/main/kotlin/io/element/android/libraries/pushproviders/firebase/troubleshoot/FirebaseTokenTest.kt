@@ -1,18 +1,20 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.pushproviders.firebase.troubleshoot
 
-import com.squareup.anvil.annotations.ContributesMultibinding
-import io.element.android.libraries.di.AppScope
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoSet
 import io.element.android.libraries.pushproviders.firebase.FirebaseConfig
 import io.element.android.libraries.pushproviders.firebase.FirebaseStore
 import io.element.android.libraries.pushproviders.firebase.FirebaseTroubleshooter
 import io.element.android.libraries.pushproviders.firebase.R
+import io.element.android.libraries.troubleshoot.api.test.NotificationTroubleshootNavigator
 import io.element.android.libraries.troubleshoot.api.test.NotificationTroubleshootTest
 import io.element.android.libraries.troubleshoot.api.test.NotificationTroubleshootTestDelegate
 import io.element.android.libraries.troubleshoot.api.test.NotificationTroubleshootTestState
@@ -23,10 +25,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import javax.inject.Inject
 
-@ContributesMultibinding(AppScope::class)
-class FirebaseTokenTest @Inject constructor(
+@ContributesIntoSet(AppScope::class)
+class FirebaseTokenTest(
     private val firebaseStore: FirebaseStore,
     private val firebaseTroubleshooter: FirebaseTroubleshooter,
     private val stringProvider: StringProvider,
@@ -61,7 +62,7 @@ class FirebaseTokenTest @Inject constructor(
                 } else {
                     delegate.updateState(
                         description = stringProvider.getString(R.string.troubleshoot_notifications_test_firebase_token_failure),
-                        status = NotificationTroubleshootTestState.Status.Failure(true)
+                        status = NotificationTroubleshootTestState.Status.Failure(hasQuickFix = true)
                     )
                 }
             }
@@ -70,7 +71,10 @@ class FirebaseTokenTest @Inject constructor(
 
     override suspend fun reset() = delegate.reset()
 
-    override suspend fun quickFix(coroutineScope: CoroutineScope) {
+    override suspend fun quickFix(
+        coroutineScope: CoroutineScope,
+        navigator: NotificationTroubleshootNavigator,
+    ) {
         delegate.start()
         firebaseTroubleshooter.troubleshoot()
         run(coroutineScope)

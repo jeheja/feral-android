@@ -1,9 +1,11 @@
-import extension.setupAnvil
+import extension.setupDependencyInjection
+import extension.testCommonDependencies
 
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2023, 2024 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -21,7 +23,7 @@ android {
     }
 }
 
-setupAnvil()
+setupDependencyInjection()
 
 dependencies {
     implementation(projects.appconfig)
@@ -44,7 +46,7 @@ dependencies {
     api(projects.services.apperror.api)
     implementation(libs.coil.compose)
     implementation(projects.features.call.api)
-    implementation(projects.features.createroom.api)
+    implementation(projects.features.startchat.api)
     implementation(projects.features.leaveroom.api)
     implementation(projects.features.userprofile.shared)
     implementation(projects.services.analytics.compose)
@@ -54,23 +56,30 @@ dependencies {
     implementation(projects.features.knockrequests.api)
     implementation(projects.features.verifysession.api)
     implementation(projects.features.reportroom.api)
+    implementation(projects.features.roommembermoderation.api)
+    implementation(projects.features.rolesandpermissions.api)
+    implementation(projects.features.securityandprivacy.api)
+    implementation(projects.features.roomdetailsedit.api)
+    implementation(projects.features.invitepeople.api)
 
-    testImplementation(libs.test.junit)
-    testImplementation(libs.coroutines.test)
-    testImplementation(libs.molecule.runtime)
-    testImplementation(libs.test.truth)
-    testImplementation(libs.test.turbine)
-    testImplementation(libs.test.mockk)
-    testImplementation(libs.test.robolectric)
+    testCommonDependencies(libs, true)
     testImplementation(projects.libraries.matrix.test)
     testImplementation(projects.libraries.mediaupload.test)
     testImplementation(projects.libraries.mediapickers.test)
+    testImplementation(projects.libraries.mediaviewer.test)
     testImplementation(projects.libraries.permissions.test)
+    testImplementation(projects.libraries.preferences.test)
     testImplementation(projects.libraries.usersearch.test)
     testImplementation(projects.libraries.featureflag.test)
-    testImplementation(projects.tests.testutils)
-    testImplementation(projects.features.createroom.test)
+    testImplementation(projects.features.call.test)
+    testImplementation(projects.features.rolesandpermissions.test)
+    testImplementation(projects.features.securityandprivacy.test)
+    testImplementation(projects.features.roomdetailsedit.test)
+    testImplementation(projects.features.knockrequests.test)
+    testImplementation(projects.features.messages.test)
+    testImplementation(projects.features.poll.test)
+    testImplementation(projects.features.reportroom.test)
+    testImplementation(projects.features.startchat.test)
+    testImplementation(projects.features.verifysession.test)
     testImplementation(projects.services.analytics.test)
-    testImplementation(libs.androidx.compose.ui.test.junit)
-    testReleaseImplementation(libs.androidx.compose.ui.test.manifest)
 }

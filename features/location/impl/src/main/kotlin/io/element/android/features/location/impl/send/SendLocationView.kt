@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -20,6 +21,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -28,8 +31,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
-import io.element.android.compound.theme.ElementTheme
-import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.location.api.Location
 import io.element.android.features.location.api.internal.centerBottomEdge
 import io.element.android.features.location.api.internal.rememberTileStyleUrl
@@ -37,17 +38,14 @@ import io.element.android.features.location.impl.R
 import io.element.android.features.location.impl.common.MapDefaults
 import io.element.android.features.location.impl.common.PermissionDeniedDialog
 import io.element.android.features.location.impl.common.PermissionRationaleDialog
+import io.element.android.features.location.impl.common.ui.LocationFloatingActionButton
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.aliasScreenTitle
 import io.element.android.libraries.designsystem.theme.components.BottomSheetScaffold
-import io.element.android.libraries.designsystem.theme.components.FloatingActionButton
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
-import io.element.android.libraries.designsystem.theme.components.bottomsheet.rememberBottomSheetScaffoldState
-import io.element.android.libraries.designsystem.theme.components.bottomsheet.rememberStandardBottomSheetState
 import io.element.android.libraries.designsystem.utils.CommonDrawables
 import io.element.android.libraries.maplibre.compose.CameraMode
 import io.element.android.libraries.maplibre.compose.CameraMoveStartedReason
@@ -162,12 +160,7 @@ fun SendLocationView(
         sheetSwipeEnabled = false,
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(CommonStrings.screen_share_location_title),
-                        style = ElementTheme.typography.aliasScreenTitle,
-                    )
-                },
+                titleStr = stringResource(CommonStrings.screen_share_location_title),
                 navigationIcon = {
                     BackButton(onClick = navigateUp)
                 },
@@ -196,17 +189,13 @@ fun SendLocationView(
                 tint = Color.Unspecified,
                 modifier = Modifier.centerBottomEdge(this),
             )
-            FloatingActionButton(
+            LocationFloatingActionButton(
+                isMapCenteredOnUser = state.mode == SendLocationState.Mode.SenderLocation,
                 onClick = { state.eventSink(SendLocationEvents.SwitchToMyLocationMode) },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 72.dp + navBarPadding),
-            ) {
-                when (state.mode) {
-                    SendLocationState.Mode.PinLocation -> Icon(imageVector = CompoundIcons.LocationNavigator(), contentDescription = null)
-                    SendLocationState.Mode.SenderLocation -> Icon(imageVector = CompoundIcons.LocationNavigatorCentred(), contentDescription = null)
-                }
-            }
+                    .padding(end = 18.dp, bottom = 72.dp + navBarPadding),
+            )
         }
     }
 }

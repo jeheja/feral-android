@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -83,7 +84,7 @@ class DefaultEventItemFactoryTest {
                 ),
                 mediaSource = MediaSource("")
             ),
-            UnableToDecryptContent(UnableToDecryptContent.Data.Unknown),
+            UnableToDecryptContent(data = UnableToDecryptContent.Data.Unknown, threadInfo = null),
             UnknownContent,
         )
         contents.forEach {
@@ -155,6 +156,7 @@ class DefaultEventItemFactoryTest {
                 mediaInfo = MediaInfo(
                     mimeType = MimeTypes.Apk,
                     filename = "filename.apk",
+                    fileSize = 123L,
                     caption = "caption",
                     formattedFileSize = "123 Bytes",
                     fileExtension = "apk",
@@ -205,6 +207,7 @@ class DefaultEventItemFactoryTest {
                 mediaInfo = MediaInfo(
                     mimeType = MimeTypes.Jpeg,
                     filename = "filename.jpg",
+                    fileSize = 123L,
                     caption = "caption",
                     formattedFileSize = "123 Bytes",
                     fileExtension = "jpg",
@@ -252,6 +255,7 @@ class DefaultEventItemFactoryTest {
                 mediaInfo = MediaInfo(
                     mimeType = MimeTypes.Mp3,
                     filename = "filename.mp3",
+                    fileSize = 123L,
                     caption = "caption",
                     formattedFileSize = "123 Bytes",
                     fileExtension = "mp3",
@@ -303,6 +307,7 @@ class DefaultEventItemFactoryTest {
                 mediaInfo = MediaInfo(
                     mimeType = MimeTypes.Mp4,
                     filename = "filename.mp4",
+                    fileSize = 123L,
                     caption = "caption",
                     formattedFileSize = "123 Bytes",
                     fileExtension = "mp4",
@@ -354,6 +359,7 @@ class DefaultEventItemFactoryTest {
                 mediaInfo = MediaInfo(
                     mimeType = MimeTypes.Ogg,
                     filename = "filename.ogg",
+                    fileSize = 123L,
                     caption = "caption",
                     formattedFileSize = "123 Bytes",
                     fileExtension = "ogg",
@@ -391,8 +397,8 @@ class DefaultEventItemFactoryTest {
                                 height = 1L,
                                 width = 2L,
                                 blurhash = null,
-                            )
-                        )
+                            ),
+                        ),
                     )
                 )
             )
@@ -404,6 +410,7 @@ class DefaultEventItemFactoryTest {
                 mediaInfo = MediaInfo(
                     mimeType = MimeTypes.Gif,
                     filename = "filename.gif",
+                    fileSize = 123L,
                     caption = "caption",
                     formattedFileSize = "123 Bytes",
                     fileExtension = "gif",

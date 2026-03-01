@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,17 +14,17 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.annotation.RequiresApi
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.androidutils.system.toast
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.core.mimetype.MimeTypes
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.ApplicationContext
+import io.element.android.libraries.di.annotations.ApplicationContext
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
-import javax.inject.Inject
 
 interface FileSave {
     suspend fun save(
@@ -32,7 +33,7 @@ interface FileSave {
 }
 
 @ContributesBinding(AppScope::class)
-class DefaultFileSave @Inject constructor(
+class DefaultFileSave(
     @ApplicationContext private val context: Context,
     private val dispatchers: CoroutineDispatchers,
 ) : FileSave {
@@ -40,7 +41,7 @@ class DefaultFileSave @Inject constructor(
         path: String,
     ) {
         withContext(dispatchers.io) {
-            runCatching {
+            runCatchingExceptions {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     saveOnDiskUsingMediaStore(path)
                 } else {

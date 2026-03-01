@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -20,7 +21,7 @@ class SelectRoomInfoProvider : PreviewParameterProvider<SelectRoomInfo> {
         get() = sequenceOf(
             aSelectRoomInfo(roomId = RoomId("!room1:domain")),
             aSelectRoomInfo(roomId = RoomId("!room2:domain"), name = "Room with a name"),
-            aSelectRoomInfo(roomId = RoomId("!room3:domain"), name = "Room with a name and alias", canonicalAlias = RoomAlias("#alias:domain")),
+            aSelectRoomInfo(roomId = RoomId("!room3:domain"), name = "Room with a name and avatar", avatarUrl = "anUrl"),
         )
 }
 
@@ -30,10 +31,12 @@ fun aSelectRoomInfo(
     canonicalAlias: RoomAlias? = null,
     avatarUrl: String? = null,
     heroes: ImmutableList<MatrixUser> = persistentListOf(),
+    isTombstoned: Boolean = false,
 ) = SelectRoomInfo(
     roomId = roomId,
     name = name,
     canonicalAlias = canonicalAlias,
     avatarUrl = avatarUrl,
     heroes = heroes,
+    isTombstoned = isTombstoned,
 )

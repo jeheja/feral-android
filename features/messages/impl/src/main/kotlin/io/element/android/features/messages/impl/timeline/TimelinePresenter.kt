@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,45 +15,58 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.features.messages.impl.MessagesNavigator
-import io.element.android.features.messages.impl.crypto.sendfailure.resolve.ResolveVerifiedUserSendFailureEvents
+import io.element.android.features.messages.impl.UserEventPermissions
+import io.element.android.features.messages.impl.crypto.sendfailure.resolve.ResolveVerifiedUserSendFailureEvent
 import io.element.android.features.messages.impl.crypto.sendfailure.resolve.ResolveVerifiedUserSendFailureState
+import io.element.android.features.messages.impl.timeline.components.MessageShieldData
 import io.element.android.features.messages.impl.timeline.factories.TimelineItemsFactory
 import io.element.android.features.messages.impl.timeline.factories.TimelineItemsFactoryConfig
 import io.element.android.features.messages.impl.timeline.model.NewEventState
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.virtual.TimelineItemTypingNotificationModel
 import io.element.android.features.messages.impl.typing.TypingNotificationState
+import io.element.android.features.messages.impl.userEventPermissions
 import io.element.android.features.messages.impl.voicemessages.timeline.RedactedVoiceMessageManager
 import io.element.android.features.poll.api.actions.EndPollAction
 import io.element.android.features.poll.api.actions.SendPollResponseAction
 import io.element.android.features.roomcall.api.RoomCallState
 import io.element.android.libraries.architecture.Presenter
-import io.element.android.libraries.core.bool.orFalse
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
+import io.element.android.libraries.di.annotations.SessionCoroutineScope
+import io.element.android.libraries.featureflag.api.FeatureFlagService
+import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.UniqueId
+import io.element.android.libraries.matrix.api.core.asEventId
 import io.element.android.libraries.matrix.api.room.JoinedRoom
-import io.element.android.libraries.matrix.api.room.MessageEventType
 import io.element.android.libraries.matrix.api.room.isDm
+import io.element.android.libraries.matrix.api.room.powerlevels.permissionsAsState
 import io.element.android.libraries.matrix.api.room.roomMembers
 import io.element.android.libraries.matrix.api.timeline.ReceiptType
-import io.element.android.libraries.matrix.api.timeline.item.event.MessageShield
+import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.item.event.TimelineItemEventOrigin
-import io.element.android.libraries.matrix.ui.room.canSendMessageAsState
 import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
+import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction.DisplayFirstTimelineItems
+import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction.NotificationToMessage
+import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction.OpenRoom
+import io.element.android.services.analytics.api.AnalyticsService
+import io.element.android.services.analytics.api.finishLongRunningTransaction
+import io.element.android.services.analyticsproviders.api.AnalyticsUserData
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -61,25 +75,34 @@ import timber.log.Timber
 
 const val FOCUS_ON_PINNED_EVENT_DEBOUNCE_DURATION_IN_MILLIS = 200L
 
-class TimelinePresenter @AssistedInject constructor(
+@AssistedInject
+class TimelinePresenter(
     timelineItemsFactoryCreator: TimelineItemsFactory.Creator,
     private val room: JoinedRoom,
     private val dispatchers: CoroutineDispatchers,
-    private val appScope: CoroutineScope,
+    @SessionCoroutineScope
+    private val sessionCoroutineScope: CoroutineScope,
     @Assisted private val navigator: MessagesNavigator,
     private val redactedVoiceMessageManager: RedactedVoiceMessageManager,
     private val sendPollResponseAction: SendPollResponseAction,
     private val endPollAction: EndPollAction,
     private val sessionPreferencesStore: SessionPreferencesStore,
-    private val timelineController: TimelineController,
+    @Assisted private val timelineController: TimelineController,
     private val timelineItemIndexer: TimelineItemIndexer = TimelineItemIndexer(),
     private val resolveVerifiedUserSendFailurePresenter: Presenter<ResolveVerifiedUserSendFailureState>,
     private val typingNotificationPresenter: Presenter<TypingNotificationState>,
     private val roomCallStatePresenter: Presenter<RoomCallState>,
+    private val featureFlagService: FeatureFlagService,
+    private val analyticsService: AnalyticsService,
 ) : Presenter<TimelineState> {
+    private val tag = "TimelinePresenter"
+
     @AssistedFactory
     interface Factory {
-        fun create(navigator: MessagesNavigator): TimelinePresenter
+        fun create(
+            timelineController: TimelineController,
+            navigator: MessagesNavigator
+        ): TimelinePresenter
     }
 
     private val timelineItemsFactory: TimelineItemsFactory = timelineItemsFactoryCreator.create(
@@ -90,24 +113,27 @@ class TimelinePresenter @AssistedInject constructor(
     )
     private var timelineItems by mutableStateOf<ImmutableList<TimelineItem>>(persistentListOf())
 
+    private val focusRequestState: MutableState<FocusRequestState> = mutableStateOf(FocusRequestState.None)
+
     @Composable
     override fun present(): TimelineState {
+        LaunchedEffect(Unit) {
+            val parent = analyticsService.getLongRunningTransaction(OpenRoom)
+            analyticsService.startLongRunningTransaction(DisplayFirstTimelineItems, parent)
+        }
+
         val localScope = rememberCoroutineScope()
-        var focusRequestState: FocusRequestState by remember { mutableStateOf(FocusRequestState.None) }
+
+        val timelineMode = remember { timelineController.mainTimelineMode() }
 
         val lastReadReceiptId = rememberSaveable { mutableStateOf<EventId?>(null) }
 
         val roomInfo by room.roomInfoFlow.collectAsState()
 
-        val syncUpdateFlow = room.syncUpdateFlow.collectAsState()
-
-        val userHasPermissionToSendMessage by room.canSendMessageAsState(type = MessageEventType.ROOM_MESSAGE, updateKey = syncUpdateFlow.value)
-        val userHasPermissionToSendReaction by room.canSendMessageAsState(type = MessageEventType.REACTION, updateKey = syncUpdateFlow.value)
-
         val prevMostRecentItemId = rememberSaveable { mutableStateOf<UniqueId?>(null) }
 
         val newEventState = remember { mutableStateOf(NewEventState.None) }
-        val messageShield: MutableState<MessageShield?> = remember { mutableStateOf(null) }
+        val messageShieldDialogData: MutableState<MessageShieldData?> = remember { mutableStateOf(null) }
 
         val resolveVerifiedUserSendFailureState = resolveVerifiedUserSendFailurePresenter.present()
         val isSendPublicReadReceiptsEnabled by remember {
@@ -120,20 +146,28 @@ class TimelinePresenter @AssistedInject constructor(
             timelineController.isLive()
         }.collectAsState(initial = true)
 
-        fun handleEvents(event: TimelineEvents) {
+        val displayThreadSummaries by produceState(false) {
+            value = featureFlagService.isFeatureEnabled(FeatureFlags.Threads)
+        }
+
+        fun handleEvent(event: TimelineEvent) {
             when (event) {
-                is TimelineEvents.LoadMore -> {
+                is TimelineEvent.LoadMore -> {
+                    if (event.direction == Timeline.PaginationDirection.FORWARDS && timelineMode is Timeline.Mode.Thread) {
+                        // Do not paginate forwards in thread mode, as it's not supported
+                        return
+                    }
                     localScope.launch {
                         timelineController.paginate(direction = event.direction)
                     }
                 }
-                is TimelineEvents.OnScrollFinished -> {
+                is TimelineEvent.OnScrollFinished -> {
                     if (isLive) {
                         if (event.firstIndex == 0) {
                             newEventState.value = NewEventState.None
                         }
-                        Timber.d("## sendReadReceiptIfNeeded firstVisibleIndex: ${event.firstIndex}")
-                        appScope.sendReadReceiptIfNeeded(
+                        Timber.tag(tag).d("## sendReadReceiptIfNeeded firstVisibleIndex: ${event.firstIndex}")
+                        sessionCoroutineScope.sendReadReceiptIfNeeded(
                             firstVisibleIndex = event.firstIndex,
                             timelineItems = timelineItems,
                             lastReadReceiptId = lastReadReceiptId,
@@ -143,36 +177,59 @@ class TimelinePresenter @AssistedInject constructor(
                         newEventState.value = NewEventState.None
                     }
                 }
-                is TimelineEvents.SelectPollAnswer -> appScope.launch {
-                    sendPollResponseAction.execute(
-                        pollStartId = event.pollStartId,
-                        answerId = event.answerId
-                    )
+                is TimelineEvent.SelectPollAnswer -> sessionCoroutineScope.launch {
+                    timelineController.invokeOnCurrentTimeline {
+                        sendPollResponseAction.execute(
+                            timeline = this,
+                            pollStartId = event.pollStartId,
+                            answerId = event.answerId
+                        )
+                    }
                 }
-                is TimelineEvents.EndPoll -> appScope.launch {
-                    endPollAction.execute(
-                        pollStartId = event.pollStartId,
-                    )
+                is TimelineEvent.EndPoll -> sessionCoroutineScope.launch {
+                    timelineController.invokeOnCurrentTimeline {
+                        endPollAction.execute(
+                            timeline = this,
+                            pollStartId = event.pollStartId,
+                        )
+                    }
                 }
-                is TimelineEvents.EditPoll -> {
-                    navigator.onEditPollClick(event.pollStartId)
+                is TimelineEvent.EditPoll -> {
+                    navigator.navigateToEditPoll(event.pollStartId)
                 }
-                is TimelineEvents.FocusOnEvent -> {
-                    focusRequestState = FocusRequestState.Requested(event.eventId, event.debounce)
+                is TimelineEvent.FocusOnEvent -> sessionCoroutineScope.launch {
+                    focusRequestState.value = FocusRequestState.Requested(event.eventId, event.debounce)
+                    delay(event.debounce)
+                    Timber.tag(tag).d("Started focus on ${event.eventId}")
+                    focusOnEvent(event.eventId, focusRequestState)
+                }.start()
+                is TimelineEvent.OnFocusEventRender -> {
+                    // If there was a pending 'notification tap opens timeline' transaction, finish it now we're focused in the required event
+                    analyticsService.finishLongRunningTransaction(NotificationToMessage)
+
+                    focusRequestState.value = focusRequestState.value.onFocusEventRender()
                 }
-                is TimelineEvents.OnFocusEventRender -> {
-                    focusRequestState = focusRequestState.onFocusEventRender()
+                is TimelineEvent.ClearFocusRequestState -> {
+                    focusRequestState.value = FocusRequestState.None
                 }
-                is TimelineEvents.ClearFocusRequestState -> {
-                    focusRequestState = FocusRequestState.None
-                }
-                is TimelineEvents.JumpToLive -> {
+                is TimelineEvent.JumpToLive -> {
                     timelineController.focusOnLive()
                 }
-                TimelineEvents.HideShieldDialog -> messageShield.value = null
-                is TimelineEvents.ShowShieldDialog -> messageShield.value = event.messageShield
-                is TimelineEvents.ComputeVerifiedUserSendFailure -> {
-                    resolveVerifiedUserSendFailureState.eventSink(ResolveVerifiedUserSendFailureEvents.ComputeForMessage(event.event))
+                TimelineEvent.HideShieldDialog -> messageShieldDialogData.value = null
+                is TimelineEvent.ShowShieldDialog -> messageShieldDialogData.value = event.messageShieldData
+                is TimelineEvent.ComputeVerifiedUserSendFailure -> {
+                    resolveVerifiedUserSendFailureState.eventSink(ResolveVerifiedUserSendFailureEvent.ComputeForMessage(event.event))
+                }
+                is TimelineEvent.NavigateToPredecessorOrSuccessorRoom -> {
+                    // Navigate to the predecessor or successor room
+                    val serverNames = calculateServerNamesForRoom(room)
+                    navigator.navigateToRoom(event.roomId, null, serverNames)
+                }
+                is TimelineEvent.OpenThread -> {
+                    navigator.navigateToThread(
+                        threadRootId = event.threadRootEventId,
+                        focusedEventId = event.focusedEvent,
+                    )
                 }
             }
         }
@@ -182,87 +239,133 @@ class TimelinePresenter @AssistedInject constructor(
                 .onEach { newTimelineItems ->
                     timelineItemIndexer.process(newTimelineItems)
                     timelineItems = newTimelineItems
+
+                    analyticsService.run {
+                        finishLongRunningTransaction(DisplayFirstTimelineItems)
+                        finishLongRunningTransaction(OpenRoom)
+                    }
                 }
                 .launchIn(this)
 
             combine(timelineController.timelineItems(), room.membersStateFlow) { items, membersState ->
+                val parent = analyticsService.getLongRunningTransaction(DisplayFirstTimelineItems)
+                val transaction = parent?.startChild("timelineItemsFactory.replaceWith", "Processing timeline items")
+                transaction?.putExtraData(AnalyticsUserData.TIMELINE_ITEM_COUNT, items.count().toString())
                 timelineItemsFactory.replaceWith(
                     timelineItems = items,
                     roomMembers = membersState.roomMembers().orEmpty()
                 )
+                transaction?.finish()
                 items
             }
                 .onEach(redactedVoiceMessageManager::onEachMatrixTimelineItem)
+                .flowOn(dispatchers.computation)
                 .launchIn(this)
-        }
-
-        LaunchedEffect(focusRequestState) {
-            Timber.d("## focusRequestState: $focusRequestState")
-            when (val currentFocusRequestState = focusRequestState) {
-                is FocusRequestState.Requested -> {
-                    delay(currentFocusRequestState.debounce)
-                    if (timelineItemIndexer.isKnown(currentFocusRequestState.eventId)) {
-                        val index = timelineItemIndexer.indexOf(currentFocusRequestState.eventId)
-                        focusRequestState = FocusRequestState.Success(eventId = currentFocusRequestState.eventId, index = index)
-                    } else {
-                        focusRequestState = FocusRequestState.Loading(eventId = currentFocusRequestState.eventId)
-                    }
-                }
-                is FocusRequestState.Loading -> {
-                    val eventId = currentFocusRequestState.eventId
-                    timelineController.focusOnEvent(eventId)
-                        .onSuccess {
-                            focusRequestState = FocusRequestState.Success(eventId = eventId)
-                        }
-                        .onFailure {
-                            focusRequestState = FocusRequestState.Failure(it)
-                        }
-                }
-                else -> Unit
-            }
         }
 
         LaunchedEffect(timelineItems.size) {
             computeNewItemState(timelineItems, prevMostRecentItemId, newEventState)
         }
 
-        LaunchedEffect(timelineItems.size, focusRequestState) {
-            val currentFocusRequestState = focusRequestState
+        LaunchedEffect(timelineItems.size, focusRequestState.value) {
+            val currentFocusRequestState = focusRequestState.value
             if (currentFocusRequestState is FocusRequestState.Success && !currentFocusRequestState.rendered) {
                 val eventId = currentFocusRequestState.eventId
                 if (timelineItemIndexer.isKnown(eventId)) {
                     val index = timelineItemIndexer.indexOf(eventId)
-                    focusRequestState = FocusRequestState.Success(eventId = eventId, index = index)
+                    focusRequestState.value = FocusRequestState.Success(eventId = eventId, index = index)
+                } else {
+                    Timber.w("Unknown timeline item for focused item, can't render focus")
                 }
             }
         }
 
         val typingNotificationState = typingNotificationPresenter.present()
         val roomCallState = roomCallStatePresenter.present()
+        val userEventPermissions by room.permissionsAsState(UserEventPermissions.DEFAULT) { perms ->
+            perms.userEventPermissions()
+        }
         val timelineRoomInfo by remember(typingNotificationState, roomCallState, roomInfo) {
             derivedStateOf {
                 TimelineRoomInfo(
                     name = roomInfo.name,
-                    isDm = roomInfo.isDm.orFalse(),
-                    userHasPermissionToSendMessage = userHasPermissionToSendMessage,
-                    userHasPermissionToSendReaction = userHasPermissionToSendReaction,
+                    isDm = roomInfo.isDm,
+                    userHasPermissionToSendMessage = userEventPermissions.canSendMessage,
+                    userHasPermissionToSendReaction = userEventPermissions.canSendReaction,
                     roomCallState = roomCallState,
-                    pinnedEventIds = roomInfo.pinnedEventIds.orEmpty(),
+                    pinnedEventIds = roomInfo.pinnedEventIds,
                     typingNotificationState = typingNotificationState,
+                    predecessorRoom = room.predecessorRoom(),
                 )
             }
         }
+
+        LaunchedEffect(focusRequestState.value) {
+            Timber.tag(tag).d("Timeline: $timelineMode | focus state: ${focusRequestState.value}")
+        }
+
         return TimelineState(
             timelineItems = timelineItems,
+            timelineMode = timelineMode,
             timelineRoomInfo = timelineRoomInfo,
             renderReadReceipts = renderReadReceipts,
             newEventState = newEventState.value,
             isLive = isLive,
-            focusRequestState = focusRequestState,
-            messageShield = messageShield.value,
+            focusRequestState = focusRequestState.value,
+            messageShieldDialogData = messageShieldDialogData.value,
             resolveVerifiedUserSendFailureState = resolveVerifiedUserSendFailureState,
-            eventSink = { handleEvents(it) }
+            displayThreadSummaries = displayThreadSummaries,
+            eventSink = ::handleEvent,
         )
+    }
+
+    private suspend fun focusOnEvent(
+        eventId: EventId,
+        focusRequestState: MutableState<FocusRequestState>,
+    ) {
+        if (timelineItemIndexer.isKnown(eventId)) {
+            val index = timelineItemIndexer.indexOf(eventId)
+            focusRequestState.value = FocusRequestState.Success(eventId = eventId, index = index)
+            return
+        }
+
+        Timber.tag(tag).d("Event $eventId not found in the loaded timeline, loading a focused timeline")
+        focusRequestState.value = FocusRequestState.Loading(eventId = eventId)
+
+        val threadId = room.threadRootIdForEvent(eventId).getOrElse {
+            focusRequestState.value = FocusRequestState.Failure(it)
+            return
+        }
+
+        if (timelineController.mainTimelineMode() is Timeline.Mode.Thread && threadId == null) {
+            // We are in a thread timeline, and the event isn't part of a thread, we need to navigate back to the room
+            focusRequestState.value = FocusRequestState.None
+            navigator.navigateToRoom(room.roomId, eventId, calculateServerNamesForRoom(room))
+        } else {
+            Timber.tag(tag).d("Focusing on event $eventId - thread $threadId")
+            timelineController.focusOnEvent(eventId, threadId)
+                .onSuccess { result ->
+                    when (result) {
+                        is EventFocusResult.FocusedOnLive -> {
+                            focusRequestState.value = FocusRequestState.Success(eventId = eventId)
+                        }
+                        is EventFocusResult.IsInThread -> {
+                            val currentThreadId = (timelineController.mainTimelineMode() as? Timeline.Mode.Thread)?.threadRootId
+                            if (currentThreadId == result.threadId) {
+                                // It's the same thread, we just focus on the event
+                                focusRequestState.value = FocusRequestState.Success(eventId = eventId)
+                            } else {
+                                focusRequestState.value = FocusRequestState.Success(eventId = result.threadId.asEventId())
+                                // It's part of a thread we're not in, let's open it in another timeline
+                                navigator.navigateToThread(result.threadId, eventId)
+                            }
+                        }
+                    }
+                }
+                .onFailure {
+                    focusRequestState.value = FocusRequestState.Failure(it)
+                }
+        }
     }
 
     /**
@@ -291,9 +394,8 @@ class TimelinePresenter @AssistedInject constructor(
             newMostRecentItemId != prevMostRecentItemIdValue
 
         if (hasNewEvent) {
-            val newMostRecentEvent = newMostRecentItem as? TimelineItem.Event
             // Scroll to bottom if the new event is from me, even if sent from another device
-            val fromMe = newMostRecentEvent?.isMine == true
+            val fromMe = newMostRecentItem.isMine
             newEventState.value = if (fromMe) {
                 NewEventState.FromMe
             } else {
@@ -311,13 +413,17 @@ class TimelinePresenter @AssistedInject constructor(
     ) = launch(dispatchers.computation) {
         // If we are at the bottom of timeline, we mark the room as read.
         if (firstVisibleIndex == 0) {
-            room.markAsRead(receiptType = readReceiptType)
+            timelineController.invokeOnCurrentTimeline {
+                markAsRead(receiptType = readReceiptType)
+            }
         } else {
             // Get last valid EventId seen by the user, as the first index might refer to a Virtual item
             val eventId = getLastEventIdBeforeOrAt(firstVisibleIndex, timelineItems)
             if (eventId != null && eventId != lastReadReceiptId.value) {
                 lastReadReceiptId.value = eventId
-                room.liveTimeline.sendReadReceipt(eventId = eventId, receiptType = readReceiptType)
+                timelineController.invokeOnCurrentTimeline {
+                    sendReadReceipt(eventId = eventId, receiptType = readReceiptType)
+                }
             }
         }
     }
@@ -338,4 +444,20 @@ private fun FocusRequestState.onFocusEventRender(): FocusRequestState {
         is FocusRequestState.Success -> copy(rendered = true)
         else -> this
     }
+}
+
+// Workaround for not having the server names available, get possible server names from the user ids of the room members
+private fun calculateServerNamesForRoom(room: JoinedRoom): List<String> {
+    // If we have no room members, return right ahead
+    val serverNames = room.membersStateFlow.value.roomMembers() ?: return emptyList()
+
+    // Otherwise get the three most common server names from the user ids of the room members
+    return serverNames
+        .mapNotNull { it.userId.domainName }
+        .groupingBy { it }
+        .eachCount()
+        .let { map ->
+            map.keys.sortedByDescending { map[it] }
+        }
+        .take(3)
 }

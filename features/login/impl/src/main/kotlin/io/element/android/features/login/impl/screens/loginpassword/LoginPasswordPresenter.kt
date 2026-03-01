@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,7 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import io.element.android.features.login.impl.DefaultLoginUserStory
+import dev.zacsweers.metro.Inject
 import io.element.android.features.login.impl.accountprovider.AccountProviderDataSource
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
@@ -23,12 +24,11 @@ import io.element.android.libraries.matrix.api.auth.MatrixAuthenticationService
 import io.element.android.libraries.matrix.api.core.SessionId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-class LoginPasswordPresenter @Inject constructor(
+@Inject
+class LoginPasswordPresenter(
     private val authenticationService: MatrixAuthenticationService,
     private val accountProviderDataSource: AccountProviderDataSource,
-    private val defaultLoginUserStory: DefaultLoginUserStory,
 ) : Presenter<LoginPasswordState> {
     @Composable
     override fun present(): LoginPasswordState {
@@ -42,7 +42,7 @@ class LoginPasswordPresenter @Inject constructor(
         }
         val accountProvider by accountProviderDataSource.flow.collectAsState()
 
-        fun handleEvents(event: LoginPasswordEvents) {
+        fun handleEvent(event: LoginPasswordEvents) {
             when (event) {
                 is LoginPasswordEvents.SetLogin -> updateFormState(formState) {
                     copy(login = event.login)
@@ -61,7 +61,7 @@ class LoginPasswordPresenter @Inject constructor(
             accountProvider = accountProvider,
             formState = formState.value,
             loginAction = loginAction.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 
@@ -69,8 +69,6 @@ class LoginPasswordPresenter @Inject constructor(
         loggedInState.value = AsyncData.Loading()
         authenticationService.login(formState.login.trim(), formState.password)
             .onSuccess { sessionId ->
-                // We will not navigate to the WaitList screen, so the login user story is done
-                defaultLoginUserStory.setLoginFlowIsDone(true)
                 loggedInState.value = AsyncData.Success(sessionId)
             }
             .onFailure { failure ->

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -12,20 +13,15 @@ import io.element.android.libraries.matrix.api.core.FlowId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.verification.SessionVerificationRequestDetails
 import io.element.android.libraries.matrix.api.verification.VerificationRequest
+import io.element.android.libraries.matrix.impl.mapper.map
 import org.matrix.rustcomponents.sdk.SessionVerificationRequestDetails as RustSessionVerificationRequestDetails
-import org.matrix.rustcomponents.sdk.UserProfile as RustUserProfile
 
 fun RustSessionVerificationRequestDetails.map() = SessionVerificationRequestDetails(
     senderProfile = senderProfile.map(),
     flowId = FlowId(flowId),
     deviceId = DeviceId(deviceId),
+    deviceDisplayName = deviceDisplayName,
     firstSeenTimestamp = firstSeenTimestamp.toLong(),
-)
-
-fun RustUserProfile.map() = SessionVerificationRequestDetails.SenderProfile(
-    userId = UserId(userId),
-    displayName = displayName,
-    avatarUrl = avatarUrl,
 )
 
 fun RustSessionVerificationRequestDetails.toVerificationRequest(currentUserId: UserId): VerificationRequest.Incoming {

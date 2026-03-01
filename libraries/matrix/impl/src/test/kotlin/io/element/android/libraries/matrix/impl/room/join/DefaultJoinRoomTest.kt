@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -20,7 +21,6 @@ import io.element.android.libraries.matrix.test.A_SERVER_LIST
 import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.room.FakeBaseRoom
 import io.element.android.libraries.matrix.test.room.aRoomInfo
-import io.element.android.libraries.matrix.test.room.aRoomSummary
 import io.element.android.services.analytics.test.FakeAnalyticsService
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.lambda.value
@@ -30,9 +30,9 @@ import org.junit.Test
 class DefaultJoinRoomTest {
     @Test
     fun `when using roomId and there is no server names, the classic join room API is used`() = runTest {
-        val roomSummary = aRoomSummary()
-        val joinRoomLambda = lambdaRecorder { _: RoomId -> Result.success(roomSummary) }
-        val joinRoomByIdOrAliasLambda = lambdaRecorder { _: RoomIdOrAlias, _: List<String> -> Result.success(roomSummary) }
+        val roomInfo = aRoomInfo()
+        val joinRoomLambda = lambdaRecorder { _: RoomId -> Result.success(roomInfo) }
+        val joinRoomByIdOrAliasLambda = lambdaRecorder { _: RoomIdOrAlias, _: List<String> -> Result.success(roomInfo) }
         val roomResult = FakeBaseRoom().apply {
             givenRoomInfo(aRoomInfo())
         }
@@ -67,9 +67,9 @@ class DefaultJoinRoomTest {
 
     @Test
     fun `when using roomId and server names are available, joinRoomByIdOrAlias API is used`() = runTest {
-        val roomSummary = aRoomSummary()
-        val joinRoomLambda = lambdaRecorder { _: RoomId -> Result.success(roomSummary) }
-        val joinRoomByIdOrAliasLambda = lambdaRecorder { _: RoomIdOrAlias, _: List<String> -> Result.success(roomSummary) }
+        val roomInfo = aRoomInfo()
+        val joinRoomLambda = lambdaRecorder { _: RoomId -> Result.success(roomInfo) }
+        val joinRoomByIdOrAliasLambda = lambdaRecorder { _: RoomIdOrAlias, _: List<String> -> Result.success(roomInfo) }
         val roomResult = FakeBaseRoom().apply {
             givenRoomInfo(aRoomInfo())
         }
@@ -105,9 +105,9 @@ class DefaultJoinRoomTest {
 
     @Test
     fun `when using roomAlias, joinRoomByIdOrAlias API is used`() = runTest {
-        val roomSummary = aRoomSummary()
-        val joinRoomLambda = lambdaRecorder { _: RoomId -> Result.success(roomSummary) }
-        val joinRoomByIdOrAliasLambda = lambdaRecorder { _: RoomIdOrAlias, _: List<String> -> Result.success(roomSummary) }
+        val roomInfo = aRoomInfo()
+        val joinRoomLambda = lambdaRecorder { _: RoomId -> Result.success(roomInfo) }
+        val joinRoomByIdOrAliasLambda = lambdaRecorder { _: RoomIdOrAlias, _: List<String> -> Result.success(roomInfo) }
         val roomResult = FakeBaseRoom().apply {
             givenRoomInfo(aRoomInfo())
         }

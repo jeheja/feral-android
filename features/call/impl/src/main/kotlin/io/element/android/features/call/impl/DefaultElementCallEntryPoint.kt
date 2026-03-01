@@ -1,27 +1,27 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.call.impl
 
 import android.content.Context
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.features.call.api.CallType
 import io.element.android.features.call.api.ElementCallEntryPoint
 import io.element.android.features.call.impl.notifications.CallNotificationData
 import io.element.android.features.call.impl.utils.ActiveCallManager
 import io.element.android.features.call.impl.utils.IntentProvider
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.ApplicationContext
+import io.element.android.libraries.di.annotations.ApplicationContext
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.UserId
-import javax.inject.Inject
 
 @ContributesBinding(AppScope::class)
-class DefaultElementCallEntryPoint @Inject constructor(
+class DefaultElementCallEntryPoint(
     @ApplicationContext private val context: Context,
     private val activeCallManager: ActiveCallManager,
 ) : ElementCallEntryPoint {
@@ -42,6 +42,7 @@ class DefaultElementCallEntryPoint @Inject constructor(
         senderName: String?,
         avatarUrl: String?,
         timestamp: Long,
+        expirationTimestamp: Long,
         notificationChannelId: String,
         textContent: String?,
     ) {
@@ -54,6 +55,7 @@ class DefaultElementCallEntryPoint @Inject constructor(
             senderName = senderName,
             avatarUrl = avatarUrl,
             timestamp = timestamp,
+            expirationTimestamp = expirationTimestamp,
             notificationChannelId = notificationChannelId,
             textContent = textContent,
         )

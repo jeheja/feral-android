@@ -1,7 +1,8 @@
 /*
- * Copyright 2022-2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2022-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,6 +17,9 @@ android {
 
 dependencies {
     implementation(projects.libraries.architecture)
+    implementation(projects.libraries.designsystem)
     implementation(projects.libraries.matrix.api)
+    implementation(projects.libraries.mediaviewer.api)
+    implementation(projects.libraries.preferences.api)
     api(projects.libraries.textcomposer.impl)
 }

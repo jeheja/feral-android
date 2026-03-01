@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -22,6 +23,11 @@ open class RecoveryKeyViewStateProvider : PreviewParameterProvider<RecoveryKeyVi
             } + sequenceOf(
             aRecoveryKeyViewState(recoveryKeyUserStory = RecoveryKeyUserStory.Enter, formattedRecoveryKey = aFormattedRecoveryKey().replace(" ", "")),
             aRecoveryKeyViewState(recoveryKeyUserStory = RecoveryKeyUserStory.Enter, formattedRecoveryKey = "This is a passphrase with spaces"),
+            aRecoveryKeyViewState(
+                recoveryKeyUserStory = RecoveryKeyUserStory.Enter,
+                formattedRecoveryKey = aFormattedRecoveryKey().replace(" ", ""),
+                displayTextFieldContents = false
+            ),
         )
 }
 
@@ -29,9 +35,11 @@ fun aRecoveryKeyViewState(
     recoveryKeyUserStory: RecoveryKeyUserStory = RecoveryKeyUserStory.Setup,
     formattedRecoveryKey: String? = null,
     inProgress: Boolean = false,
+    displayTextFieldContents: Boolean = true,
 ) = RecoveryKeyViewState(
     recoveryKeyUserStory = recoveryKeyUserStory,
     formattedRecoveryKey = formattedRecoveryKey,
+    displayTextFieldContents = displayTextFieldContents,
     inProgress = inProgress,
 )
 

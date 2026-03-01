@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,15 +12,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.SingleIn
 import io.element.android.libraries.androidutils.system.DateTimeObserver.Event
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.ApplicationContext
-import io.element.android.libraries.di.SingleIn
+import io.element.android.libraries.di.annotations.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import java.time.Instant
-import javax.inject.Inject
 
 interface DateTimeObserver {
     val changes: Flow<Event>
@@ -32,7 +32,7 @@ interface DateTimeObserver {
 
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
-class DefaultDateTimeObserver @Inject constructor(
+class DefaultDateTimeObserver(
     @ApplicationContext context: Context
 ) : DateTimeObserver {
     private val dateTimeReceiver = object : BroadcastReceiver() {

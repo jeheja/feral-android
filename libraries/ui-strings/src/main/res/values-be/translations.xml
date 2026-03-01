@@ -28,7 +28,7 @@
   </plurals>
   <string name="a11y_read_receipts_single">"Прачытана %1$s"</string>
   <string name="a11y_read_receipts_tap_to_show_all">"Націсніце, каб паказаць усе"</string>
-  <string name="a11y_remove_reaction_with">"Выдаліць рэакцыю з %1$s"</string>
+  <string name="a11y_remove_reaction">"Выдаліць рэакцыю з %1$s"</string>
   <string name="a11y_send_files">"Адправіць файлы"</string>
   <string name="a11y_show_password">"Паказаць пароль"</string>
   <string name="a11y_start_call">"Пазваніць"</string>
@@ -53,7 +53,7 @@
   <string name="action_copy_link">"Скапіраваць спасылку"</string>
   <string name="action_copy_link_to_message">"Скапіраваць спасылку на паведамленне"</string>
   <string name="action_create">"Стварыць"</string>
-  <string name="action_create_a_room">"Стварыце пакой"</string>
+  <string name="action_create_room">"Стварыце пакой"</string>
   <string name="action_deactivate">"Дэактываваць"</string>
   <string name="action_deactivate_account">"Дэактываваць уліковы запіс"</string>
   <string name="action_decline">"Адхіліць"</string>
@@ -117,6 +117,7 @@
   <string name="action_skip">"Прапусціць"</string>
   <string name="action_start">"Пачаць"</string>
   <string name="action_start_chat">"Пачаць чат"</string>
+  <string name="action_start_over">"Пачаць спачатку"</string>
   <string name="action_start_verification">"Пачаць праверку"</string>
   <string name="action_static_map_load">"Націсніце, каб загрузіць карту"</string>
   <string name="action_take_photo">"Зрабіць фота"</string>
@@ -132,6 +133,7 @@
   <string name="common_acceptable_use_policy">"Палітыка дапушчальнага выкарыстання"</string>
   <string name="common_advanced_settings">"Пашыраныя налады"</string>
   <string name="common_analytics">"Аналітыка"</string>
+  <string name="common_android_shortcuts_remove_reason_left_room">"Вы выйшлі з пакоя"</string>
   <string name="common_appearance">"Знешні выгляд"</string>
   <string name="common_audio">"Аўдыя"</string>
   <string name="common_blocked_users">"Заблакіраваныя карыстальнікі"</string>
@@ -209,6 +211,8 @@
     <item quantity="many">"%d галасоў"</item>
   </plurals>
   <string name="common_privacy_policy">"Палітыка прыватнасці"</string>
+  <string name="common_private_room">"Прыватны пакой"</string>
+  <string name="common_public_room">"Публічны пакой"</string>
   <string name="common_reaction">"Рэакцыя"</string>
   <string name="common_reactions">"Рэакцыі"</string>
   <string name="common_recovery_key">"Ключ аднаўлення"</string>
@@ -270,6 +274,7 @@
   <string name="dialog_title_error">"Памылка"</string>
   <string name="dialog_title_success">"Поспех"</string>
   <string name="dialog_title_warning">"Папярэджанне"</string>
+  <string name="dialog_unsaved_changes_description">"У вас ёсць незахаваныя змены."</string>
   <string name="dialog_unsaved_changes_description_android">"Вашы змены не былі захаваны. Вы ўпэўнены, што хочаце вярнуцца?"</string>
   <string name="dialog_unsaved_changes_title">"Захаваць змены?"</string>
   <string name="error_account_creation_not_possible">"Ваш хатні сервер неабходна абнавіць для падтрымкі Matrix Authentication Service і стварэння ўліковага запісу."</string>
@@ -284,28 +289,11 @@
   <string name="error_missing_microphone_voice_rationale_android">"%1$s не мае дазволу на доступ да вашага мікрафона. Дазвольце доступ да запісу галасавога паведамлення."</string>
   <string name="error_some_messages_have_not_been_sent">"Некаторыя паведамленні не былі адпраўлены"</string>
   <string name="error_unknown">"Выбачце, адбылася памылка"</string>
-  <string name="event_shield_reason_authenticity_not_guaranteed">"Сапраўднасць гэтага зашыфраванага паведамлення не можа быць гарантаваная на гэтай прыладзе."</string>
-  <string name="event_shield_reason_previously_verified">"Зашыфравана раней правераным карыстальнікам."</string>
-  <string name="event_shield_reason_sent_in_clear">"Не зашыфраваны."</string>
-  <string name="event_shield_reason_unknown_device">"Зашыфравана невядомай ці выдаленай прыладай."</string>
-  <string name="event_shield_reason_unsigned_device">"Зашыфравана прыладай, не пацверджанай яе ўладальнікам."</string>
-  <string name="event_shield_reason_unverified_identity">"Зашыфравана неправераным карыстальнікам."</string>
   <string name="invite_friends_rich_title">"🔐️ Далучайцеся да мяне %1$s"</string>
   <string name="invite_friends_text">"Гэй, пагавары са мной у %1$s: %2$s"</string>
   <string name="login_initial_device_name_android">"%1$s Android"</string>
   <string name="preference_rageshake">"Паведаміць аб памылцы з дапамогай Rageshake"</string>
-  <string name="screen_bottom_sheet_manage_room_member_ban">"Выдаліць і заблакіраваць удзельніка"</string>
-  <string name="screen_bottom_sheet_manage_room_member_ban_member_confirmation_action">"Заблакіраваць"</string>
-  <string name="screen_bottom_sheet_manage_room_member_ban_member_confirmation_description">"Яны не змогуць зноў далучыцца да гэтага пакоя, калі іх запросяць."</string>
-  <string name="screen_bottom_sheet_manage_room_member_ban_member_confirmation_title">"Вы ўпэўнены, што хочаце заблакіраваць гэтага карыстальніка?"</string>
-  <string name="screen_bottom_sheet_manage_room_member_banning_user">"Блакіроўка %1$s"</string>
-  <string name="screen_bottom_sheet_manage_room_member_member_user_info">"Прагляд профілю"</string>
-  <string name="screen_bottom_sheet_manage_room_member_remove">"Выдаліць удзельніка з пакоя"</string>
-  <string name="screen_bottom_sheet_manage_room_member_remove_confirmation_title">"Выдаліць удзельніка і забараніць далучацца ў будучыні?"</string>
-  <string name="screen_bottom_sheet_manage_room_member_removing_user">"Выдаленне %1$s…"</string>
   <string name="screen_media_picker_error_failed_selection">"Не ўдалося выбраць носьбіт, паўтарыце спробу."</string>
-  <string name="screen_media_upload_preview_error_failed_processing">"Не атрымалася апрацаваць медыяфайл для загрузкі, паспрабуйце яшчэ раз."</string>
-  <string name="screen_media_upload_preview_error_failed_sending">"Не атрымалася загрузіць медыяфайлы, паспрабуйце яшчэ раз."</string>
   <string name="screen_pinned_timeline_empty_state_description">"Націсніце на паведамленне і абярыце «%1$s », каб уключыць сюды."</string>
   <string name="screen_pinned_timeline_empty_state_headline">"Замацуеце важныя паведамленні, каб іх можна было лёгка знайсці"</string>
   <plurals name="screen_pinned_timeline_screen_title">
@@ -335,4 +323,5 @@
   <string name="screen_view_location_title">"Месцазнаходжанне"</string>
   <string name="settings_version_number">"Версія: %1$s (%2$s)"</string>
   <string name="test_language_identifier">"be"</string>
+  <string name="timeline_decryption_failure_historical_event_user_not_joined">"У вас няма доступу да гэтага паведамлення"</string>
 </resources>

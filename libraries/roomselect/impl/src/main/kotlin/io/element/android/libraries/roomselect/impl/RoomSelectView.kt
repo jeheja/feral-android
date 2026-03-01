@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -22,8 +23,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -32,12 +38,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
+import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
-import io.element.android.libraries.designsystem.components.avatar.CompositeAvatar
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.aliasScreenTitle
 import io.element.android.libraries.designsystem.theme.components.HorizontalDivider
 import io.element.android.libraries.designsystem.theme.components.RadioButton
 import io.element.android.libraries.designsystem.theme.components.Scaffold
@@ -46,6 +52,7 @@ import io.element.android.libraries.designsystem.theme.components.SearchBarResul
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TextButton
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
+import io.element.android.libraries.designsystem.utils.OnVisibleRangeChangeEffect
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.ui.components.SelectedRoom
 import io.element.android.libraries.matrix.ui.model.SelectRoomInfo
@@ -53,7 +60,7 @@ import io.element.android.libraries.matrix.ui.model.getAvatarData
 import io.element.android.libraries.roomselect.api.RoomSelectMode
 import io.element.android.libraries.ui.strings.CommonStrings
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 
 @Suppress("MultipleEmitters") // False positive
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,31 +87,39 @@ fun RoomSelectView(
         )
     }
 
+    var canHandleBack by remember { mutableStateOf(true) }
     fun onBackButton(state: RoomSelectState) {
         if (state.isSearchActive) {
             state.eventSink(RoomSelectEvents.ToggleSearchActive)
-        } else {
+        } else if (canHandleBack) {
+            canHandleBack = false
             onDismiss()
         }
     }
 
-    BackHandler(onBack = { onBackButton(state) })
+    BackHandler(
+        enabled = canHandleBack,
+        onBack = { onBackButton(state) }
+    )
+
+    val lazyListState = rememberLazyListState()
+    OnVisibleRangeChangeEffect(lazyListState) { visibleRange ->
+        state.eventSink(RoomSelectEvents.UpdateVisibleRange(visibleRange))
+    }
 
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = when (state.mode) {
-                            RoomSelectMode.Forward -> stringResource(CommonStrings.common_forward_message)
-                            RoomSelectMode.Share -> stringResource(CommonStrings.common_send_to)
-                        },
-                        style = ElementTheme.typography.aliasScreenTitle
-                    )
+                titleStr = when (state.mode) {
+                    RoomSelectMode.Forward -> stringResource(CommonStrings.common_forward_message)
+                    RoomSelectMode.Share -> stringResource(CommonStrings.common_send_to)
                 },
                 navigationIcon = {
-                    BackButton(onClick = { onBackButton(state) })
+                    BackButton(
+                        enabled = canHandleBack,
+                        onClick = { onBackButton(state) }
+                    )
                 },
                 actions = {
                     TextButton(
@@ -124,14 +139,13 @@ fun RoomSelectView(
             SearchBar(
                 modifier = Modifier.fillMaxWidth(),
                 placeHolderTitle = stringResource(CommonStrings.action_search),
-                query = state.query,
-                onQueryChange = { state.eventSink(RoomSelectEvents.UpdateQuery(it)) },
+                queryState = state.searchQuery,
                 active = state.isSearchActive,
                 onActiveChange = { state.eventSink(RoomSelectEvents.ToggleSearchActive) },
                 resultState = state.resultState,
                 showBackButton = false,
             ) { summaries ->
-                LazyColumn {
+                LazyColumn(state = lazyListState) {
                     item {
                         SelectedRoomsHelper(
                             // TODO state.isForwarding
@@ -163,7 +177,7 @@ fun RoomSelectView(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 if (state.resultState is SearchBarResultState.Results) {
-                    LazyColumn {
+                    LazyColumn(state = lazyListState) {
                         items(state.resultState.results, key = { it.roomId.value }) { roomSummary ->
                             Column {
                                 RoomSummaryView(
@@ -214,11 +228,14 @@ private fun RoomSummaryView(
             .heightIn(56.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        CompositeAvatar(
+        Avatar(
             avatarData = roomInfo.getAvatarData(size = AvatarSize.RoomSelectRoomListItem),
-            heroes = roomInfo.heroes.map { user ->
-                user.getAvatarData(size = AvatarSize.RoomSelectRoomListItem)
-            }.toPersistentList()
+            avatarType = AvatarType.Room(
+                heroes = roomInfo.heroes.map { user ->
+                    user.getAvatarData(size = AvatarSize.RoomSelectRoomListItem)
+                }.toImmutableList(),
+                isTombstoned = roomInfo.isTombstoned,
+            ),
         )
         Column(
             modifier = Modifier

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -33,7 +34,6 @@ import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.components.CircularProgressIndicator
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.ui.strings.CommonStrings
 
@@ -53,11 +53,13 @@ object BigIcon {
          * @param vectorIcon the [ImageVector] to display
          * @param contentDescription the content description of the icon, if any. It defaults to `null`
          * @param useCriticalTint whether the icon and background should be rendered using critical tint
+         * @param usePrimaryTint whether the icon should be rendered using primary tint
          */
         data class Default(
             val vectorIcon: ImageVector,
             val contentDescription: String? = null,
             val useCriticalTint: Boolean = false,
+            val usePrimaryTint: Boolean = false,
         ) : Style
 
         /**
@@ -79,11 +81,6 @@ object BigIcon {
          * A success style with a tinted background.
          */
         data object SuccessSolid : Style
-
-        /**
-         * A loading style with the default background color.
-         */
-        data object Loading : Style
     }
 
     /**
@@ -107,7 +104,6 @@ object BigIcon {
             Style.Success -> Color.Transparent
             Style.AlertSolid -> ElementTheme.colors.bgCriticalSubtle
             Style.SuccessSolid -> ElementTheme.colors.bgSuccessSubtle
-            Style.Loading -> ElementTheme.colors.bgSubtleSecondary
         }
         Box(
             modifier = modifier
@@ -116,50 +112,39 @@ object BigIcon {
                 .background(backgroundColor),
             contentAlignment = Alignment.Center,
         ) {
-            if (style is Style.Loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(27.dp),
-                    color = ElementTheme.colors.iconSecondary,
-                    trackColor = Color.Transparent,
-                    strokeWidth = 3.dp,
-                )
-            } else {
-                val icon = when (style) {
-                    is Style.Default -> style.vectorIcon
-                    Style.Alert,
-                    Style.AlertSolid -> CompoundIcons.ErrorSolid()
-                    Style.Success,
-                    Style.SuccessSolid -> CompoundIcons.CheckCircleSolid()
-                    Style.Loading -> error("This should never be reached")
-                }
-                val contentDescription = when (style) {
-                    is Style.Default -> style.contentDescription
-                    Style.Alert,
-                    Style.AlertSolid -> stringResource(CommonStrings.common_error)
-                    Style.Success,
-                    Style.SuccessSolid -> stringResource(CommonStrings.common_success)
-                    Style.Loading -> error("This should never be reached")
-                }
-                val iconTint = when (style) {
-                    is Style.Default -> if (style.useCriticalTint) {
-                        ElementTheme.colors.iconCriticalPrimary
-                    } else {
-                        ElementTheme.colors.iconSecondary
-                    }
-                    Style.Alert,
-                    Style.AlertSolid -> ElementTheme.colors.iconCriticalPrimary
-                    Style.Success,
-                    Style.SuccessSolid -> ElementTheme.colors.iconSuccessPrimary
-                    Style.Loading -> error("This should never be reached")
-                }
-
-                Icon(
-                    modifier = Modifier.size(32.dp),
-                    tint = iconTint,
-                    imageVector = icon,
-                    contentDescription = contentDescription
-                )
+            val icon = when (style) {
+                is Style.Default -> style.vectorIcon
+                Style.Alert,
+                Style.AlertSolid -> CompoundIcons.ErrorSolid()
+                Style.Success,
+                Style.SuccessSolid -> CompoundIcons.CheckCircleSolid()
             }
+            val contentDescription = when (style) {
+                is Style.Default -> style.contentDescription
+                Style.Alert,
+                Style.AlertSolid -> stringResource(CommonStrings.common_error)
+                Style.Success,
+                Style.SuccessSolid -> stringResource(CommonStrings.common_success)
+            }
+            val iconTint = when (style) {
+                is Style.Default -> if (style.useCriticalTint) {
+                    ElementTheme.colors.iconCriticalPrimary
+                } else if (style.usePrimaryTint) {
+                    ElementTheme.colors.iconPrimary
+                } else {
+                    ElementTheme.colors.iconSecondary
+                }
+                Style.Alert,
+                Style.AlertSolid -> ElementTheme.colors.iconCriticalPrimary
+                Style.Success,
+                Style.SuccessSolid -> ElementTheme.colors.iconSuccessPrimary
+            }
+            Icon(
+                modifier = Modifier.size(32.dp),
+                tint = iconTint,
+                imageVector = icon,
+                contentDescription = contentDescription
+            )
         }
     }
 }
@@ -194,6 +179,5 @@ internal class BigIconStyleProvider : PreviewParameterProvider<BigIcon.Style> {
             BigIcon.Style.Default(Icons.Filled.CatchingPokemon, useCriticalTint = true),
             BigIcon.Style.Success,
             BigIcon.Style.SuccessSolid,
-            BigIcon.Style.Loading,
         )
 }

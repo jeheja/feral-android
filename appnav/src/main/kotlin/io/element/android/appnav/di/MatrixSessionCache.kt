@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -10,19 +11,20 @@ package io.element.android.appnav.di
 import androidx.annotation.VisibleForTesting
 import com.bumble.appyx.core.state.MutableSavedStateMap
 import com.bumble.appyx.core.state.SavedStateMap
-import com.squareup.anvil.annotations.ContributesBinding
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.SingleIn
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.SingleIn
+import io.element.android.libraries.androidutils.hash.hash
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.MatrixClientProvider
 import io.element.android.libraries.matrix.api.auth.MatrixAuthenticationService
 import io.element.android.libraries.matrix.api.core.SessionId
-import kotlinx.coroutines.runBlocking
+import io.element.android.services.analytics.api.AnalyticsService
+import io.element.android.services.analyticsproviders.api.AnalyticsUserData
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 import java.util.concurrent.ConcurrentHashMap
-import javax.inject.Inject
 
 private const val SAVE_INSTANCE_KEY = "io.element.android.x.di.MatrixClientsHolder.SaveInstanceKey"
 
@@ -33,21 +35,17 @@ private const val SAVE_INSTANCE_KEY = "io.element.android.x.di.MatrixClientsHold
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
-class MatrixSessionCache @Inject constructor(
+class MatrixSessionCache(
     private val authenticationService: MatrixAuthenticationService,
     private val syncOrchestratorFactory: SyncOrchestrator.Factory,
+    private val analyticsService: AnalyticsService,
 ) : MatrixClientProvider {
     private val sessionIdsToMatrixSession = ConcurrentHashMap<SessionId, InMemoryMatrixSession>()
     private val restoreMutex = Mutex()
 
     init {
         authenticationService.listenToNewMatrixClients { matrixClient ->
-            val syncOrchestrator = syncOrchestratorFactory.create(matrixClient)
-            sessionIdsToMatrixSession[matrixClient.sessionId] = InMemoryMatrixSession(
-                matrixClient = matrixClient,
-                syncOrchestrator = syncOrchestrator,
-            )
-            syncOrchestrator.start()
+            onNewMatrixClient(matrixClient)
         }
     }
 
@@ -78,20 +76,18 @@ class MatrixSessionCache @Inject constructor(
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun restoreWithSavedState(state: SavedStateMap?) {
+    suspend fun restoreWithSavedState(state: SavedStateMap?) {
         Timber.d("Restore state")
         if (state == null || sessionIdsToMatrixSession.isNotEmpty()) {
-            Timber.w("Restore with non-empty map")
+            Timber.w("No need to restore saved state")
             return
         }
         val sessionIds = state[SAVE_INSTANCE_KEY] as? Array<SessionId>
         Timber.d("Restore matrix session keys = ${sessionIds?.map { it.value }}")
         if (sessionIds.isNullOrEmpty()) return
         // Not ideal but should only happens in case of process recreation. This ensure we restore all the active sessions before restoring the node graphs.
-        runBlocking {
-            sessionIds.forEach { sessionId ->
-                getOrRestore(sessionId)
-            }
+        sessionIds.forEach { sessionId ->
+            getOrRestore(sessionId)
         }
     }
 
@@ -105,16 +101,28 @@ class MatrixSessionCache @Inject constructor(
         Timber.d("Restore matrix session: $sessionId")
         return authenticationService.restoreSession(sessionId)
             .onSuccess { matrixClient ->
-                val syncOrchestrator = syncOrchestratorFactory.create(matrixClient)
-                sessionIdsToMatrixSession[matrixClient.sessionId] = InMemoryMatrixSession(
-                    matrixClient = matrixClient,
-                    syncOrchestrator = syncOrchestrator,
-                )
-                syncOrchestrator.start()
+                // Add the current homeserver (hashed) to the extra info
+                // This may not play well with multiple sessions, but it should work for now
+                analyticsService.addIndexableData(AnalyticsUserData.HOMESERVER, matrixClient.userIdServerName().hash())
+
+                // Add the new client to the in-memory cache
+                onNewMatrixClient(matrixClient)
             }
             .onFailure {
                 Timber.e(it, "Fail to restore session")
             }
+    }
+
+    private fun onNewMatrixClient(matrixClient: MatrixClient) {
+        val syncOrchestrator = syncOrchestratorFactory.create(
+            syncService = matrixClient.syncService,
+            sessionCoroutineScope = matrixClient.sessionCoroutineScope,
+        )
+        sessionIdsToMatrixSession[matrixClient.sessionId] = InMemoryMatrixSession(
+            matrixClient = matrixClient,
+            syncOrchestrator = syncOrchestrator,
+        )
+        syncOrchestrator.start()
     }
 }
 

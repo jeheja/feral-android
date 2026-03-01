@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -18,17 +19,24 @@ suspend fun MatrixClient.startDM(
     userId: UserId,
     createIfDmDoesNotExist: Boolean,
 ): StartDMResult {
-    val existingDM = findDM(userId)
-    return if (existingDM != null) {
-        StartDMResult.Success(existingDM, isNew = false)
-    } else if (createIfDmDoesNotExist) {
-        createDM(userId).fold(
-            { StartDMResult.Success(it, isNew = true) },
-            { StartDMResult.Failure(it) }
+    return findDM(userId)
+        .fold(
+            onSuccess = { existingDM ->
+                if (existingDM != null) {
+                    StartDMResult.Success(existingDM, isNew = false)
+                } else if (createIfDmDoesNotExist) {
+                    createDM(userId).fold(
+                        { StartDMResult.Success(it, isNew = true) },
+                        { StartDMResult.Failure(it) }
+                    )
+                } else {
+                    StartDMResult.DmDoesNotExist
+                }
+            },
+            onFailure = { error ->
+                StartDMResult.Failure(error)
+            }
         )
-    } else {
-        StartDMResult.DmDoesNotExist
-    }
 }
 
 sealed interface StartDMResult {

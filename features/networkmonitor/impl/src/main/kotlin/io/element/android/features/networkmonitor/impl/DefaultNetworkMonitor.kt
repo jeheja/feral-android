@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,12 +14,13 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkRequest
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.SingleIn
 import io.element.android.features.networkmonitor.api.NetworkMonitor
 import io.element.android.features.networkmonitor.api.NetworkStatus
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.ApplicationContext
-import io.element.android.libraries.di.SingleIn
+import io.element.android.libraries.di.annotations.AppCoroutineScope
+import io.element.android.libraries.di.annotations.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.awaitClose
@@ -32,15 +34,18 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicInteger
-import javax.inject.Inject
 
 @ContributesBinding(scope = AppScope::class)
 @SingleIn(AppScope::class)
-class DefaultNetworkMonitor @Inject constructor(
+class DefaultNetworkMonitor(
     @ApplicationContext context: Context,
+    @AppCoroutineScope
     appCoroutineScope: CoroutineScope,
 ) : NetworkMonitor {
     private val connectivityManager: ConnectivityManager = context.getSystemService(ConnectivityManager::class.java)
+    private val blockedNetworkBlockedChecker = NetworkBlockedChecker(connectivityManager)
+
+    override fun isNetworkBlocked(): Boolean = blockedNetworkBlockedChecker.isNetworkBlocked()
 
     override val connectivity: StateFlow<NetworkStatus> = callbackFlow {
 

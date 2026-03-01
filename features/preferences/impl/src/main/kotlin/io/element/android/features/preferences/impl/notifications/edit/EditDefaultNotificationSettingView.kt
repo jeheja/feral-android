@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,7 +17,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import io.element.android.features.preferences.impl.R
 import io.element.android.libraries.designsystem.components.async.AsyncActionView
-import io.element.android.libraries.designsystem.components.avatar.CompositeAvatar
+import io.element.android.libraries.designsystem.components.avatar.Avatar
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.components.list.ListItemContent
 import io.element.android.libraries.designsystem.components.preferences.PreferenceCategory
 import io.element.android.libraries.designsystem.components.preferences.PreferencePage
@@ -97,9 +99,11 @@ fun EditDefaultNotificationSettingView(
                             Text(text = subtitle)
                         },
                         leadingContent = ListItemContent.Custom {
-                            CompositeAvatar(
+                            Avatar(
                                 avatarData = summary.avatarData,
-                                heroes = summary.heroesAvatar,
+                                avatarType = AvatarType.Room(
+                                    heroes = summary.heroesAvatar,
+                                ),
                             )
                         },
                         onClick = {

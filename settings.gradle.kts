@@ -1,11 +1,10 @@
 /*
- * Copyright 2022-2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2022-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
-
-import java.net.URI
 
 pluginManagement {
     repositories {
@@ -18,29 +17,16 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        // Snapshot versions
         maven {
-            url = URI("https://s01.oss.sonatype.org/content/repositories/snapshots")
+            url = uri("https://www.jitpack.io")
             content {
-                includeModule("org.matrix.rustcomponents", "sdk-android")
-                includeModule("io.element.android", "wysiwyg")
-                includeModule("io.element.android", "wysiwyg-compose")
-            }
-        }
-        // To have immediate access to Rust SDK versions without a sync with Maven Central
-        maven {
-            url = URI("https://s01.oss.sonatype.org/content/repositories/releases")
-            content {
-                includeModule("org.matrix.rustcomponents", "sdk-android")
+                includeModule("com.github.matrix-org", "matrix-analytics-events")
             }
         }
         google()
         mavenCentral()
         maven {
-            url = URI("https://www.jitpack.io")
-            content {
-                includeModule("com.github.matrix-org", "matrix-analytics-events")
-            }
+            url = uri("https://repo1.maven.org/maven2/")
         }
         flatDir {
             dirs("libraries/matrix/libs")
@@ -56,11 +42,12 @@ include(":appnav")
 include(":appconfig")
 include(":appicon:element")
 include(":appicon:enterprise")
+include(":tests:detekt-rules")
 include(":tests:konsist")
 include(":tests:uitests")
 include(":tests:testutils")
-include(":anvilannotations")
-include(":anvilcodegen")
+include(":annotations")
+include(":codegen")
 
 fun includeProjects(directory: File, path: String, maxDepth: Int = 1) {
     directory.listFiles().orEmpty().also { it.sort() }.forEach { file ->

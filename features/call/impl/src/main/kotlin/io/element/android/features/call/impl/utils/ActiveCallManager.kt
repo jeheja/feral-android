@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,15 +16,17 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.getSystemService
 import coil3.SingletonImageLoader
 import coil3.annotation.DelicateCoilApi
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.SingleIn
 import io.element.android.appconfig.ElementCallConfig
 import io.element.android.features.call.api.CallType
 import io.element.android.features.call.api.CurrentCall
 import io.element.android.features.call.impl.notifications.CallNotificationData
 import io.element.android.features.call.impl.notifications.RingingCallNotificationCreator
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.ApplicationContext
-import io.element.android.libraries.di.SingleIn
+import io.element.android.libraries.core.extensions.runCatchingExceptions
+import io.element.android.libraries.di.annotations.AppCoroutineScope
+import io.element.android.libraries.di.annotations.ApplicationContext
 import io.element.android.libraries.matrix.api.MatrixClientProvider
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.ui.media.ImageLoaderHolder
@@ -31,6 +34,7 @@ import io.element.android.libraries.push.api.notifications.ForegroundServiceType
 import io.element.android.libraries.push.api.notifications.NotificationIdProvider
 import io.element.android.libraries.push.api.notifications.OnMissedCallNotificationHandler
 import io.element.android.services.appnavstate.api.AppForegroundStateService
+import io.element.android.services.toolbox.api.systemclock.SystemClock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -50,8 +54,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
-import javax.inject.Inject
-import kotlin.time.Duration.Companion.seconds
+import kotlin.math.min
 
 /**
  * Manages the active call state.
@@ -69,10 +72,14 @@ interface ActiveCallManager {
     suspend fun registerIncomingCall(notificationData: CallNotificationData)
 
     /**
-     * Called when the active call has been hung up. It will remove any existing UI and the active call.
-     * @param callType The type of call that the user hung up, either an external url one or a room one.
+     * Called to hang up the active call. It will hang up the call and remove any existing UI and the active call.
+     * @param callType The type of call that the user hangs up, either an external url one or a room one.
+     * @param notificationData The data for the incoming call notification.
      */
-    suspend fun hungUpCall(callType: CallType)
+    suspend fun hangUpCall(
+        callType: CallType,
+        notificationData: CallNotificationData? = null,
+    )
 
     /**
      * Called after the user joined a call. It will remove any existing UI and set the call state as [CallState.InCall].
@@ -84,8 +91,9 @@ interface ActiveCallManager {
 
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
-class DefaultActiveCallManager @Inject constructor(
+class DefaultActiveCallManager(
     @ApplicationContext context: Context,
+    @AppCoroutineScope
     private val coroutineScope: CoroutineScope,
     private val onMissedCallNotificationHandler: OnMissedCallNotificationHandler,
     private val ringingCallNotificationCreator: RingingCallNotificationCreator,
@@ -94,8 +102,9 @@ class DefaultActiveCallManager @Inject constructor(
     private val defaultCurrentCallService: DefaultCurrentCallService,
     private val appForegroundStateService: AppForegroundStateService,
     private val imageLoaderHolder: ImageLoaderHolder,
+    private val systemClock: SystemClock,
 ) : ActiveCallManager {
-    private val tag = "DefaultActiveCallManager"
+    private val tag = "ActiveCallManager"
     private var timedOutCallJob: Job? = null
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -114,8 +123,20 @@ class DefaultActiveCallManager @Inject constructor(
 
     override suspend fun registerIncomingCall(notificationData: CallNotificationData) {
         mutex.withLock {
+            val ringDuration =
+                min(
+                    notificationData.expirationTimestamp - systemClock.epochMillis(),
+                    ElementCallConfig.RINGING_CALL_DURATION_SECONDS * 1000L
+                )
+
+            if (ringDuration < 0) {
+                // Should already have stopped ringing, ignore.
+                Timber.tag(tag).d("Received timed-out incoming ringing call for room id: ${notificationData.roomId}, cancel ringing")
+                return
+            }
+
             appForegroundStateService.updateHasRingingCall(true)
-            Timber.tag(tag).d("Received incoming call for room id: ${notificationData.roomId}")
+            Timber.tag(tag).d("Received incoming call for room id: ${notificationData.roomId}, ringDuration(ms): $ringDuration")
             if (activeCall.value != null) {
                 displayMissedCallNotification(notificationData)
                 Timber.tag(tag).w("Already have an active call, ignoring incoming call: $notificationData")
@@ -134,14 +155,14 @@ class DefaultActiveCallManager @Inject constructor(
                 showIncomingCallNotification(notificationData)
 
                 // Wait for the ringing call to time out
-                delay(ElementCallConfig.RINGING_CALL_DURATION_SECONDS.seconds)
+                delay(timeMillis = ringDuration)
                 incomingCallTimedOut(displayMissedCallNotification = true)
             }
 
             // Acquire a wake lock to keep the device awake during the incoming call, so we can process the room info data
             if (activeWakeLock?.isHeld == false) {
                 Timber.tag(tag).d("Acquiring partial wakelock")
-                activeWakeLock.acquire(ElementCallConfig.RINGING_CALL_DURATION_SECONDS * 1000L)
+                activeWakeLock.acquire(ringDuration)
             }
         }
     }
@@ -160,8 +181,8 @@ class DefaultActiveCallManager @Inject constructor(
     suspend fun incomingCallTimedOut(displayMissedCallNotification: Boolean) = mutex.withLock {
         Timber.tag(tag).d("Incoming call timed out")
 
-        val previousActiveCall = activeCall.value ?: return
-        val notificationData = (previousActiveCall.callState as? CallState.Ringing)?.notificationData ?: return
+        val previousActiveCall = activeCall.value ?: return@withLock
+        val notificationData = (previousActiveCall.callState as? CallState.Ringing)?.notificationData ?: return@withLock
         activeCall.value = null
         if (activeWakeLock?.isHeld == true) {
             Timber.tag(tag).d("Releasing partial wakelock after timeout")
@@ -175,12 +196,45 @@ class DefaultActiveCallManager @Inject constructor(
         }
     }
 
-    override suspend fun hungUpCall(callType: CallType) = mutex.withLock {
-        if (activeCall.value?.callType != callType) {
-            Timber.tag(tag).w("Call type $callType does not match the active call type, ignoring")
-            return
-        }
+    override suspend fun hangUpCall(
+        callType: CallType,
+        notificationData: CallNotificationData?,
+    ) = mutex.withLock {
+        Timber.tag(tag).d("Hang up call: $callType")
         cancelIncomingCallNotification()
+        val currentActiveCall = activeCall.value ?: run {
+            // activeCall.value can be null if the application has been killed while the call was ringing
+            // Build a currentActiveCall with the provided parameters.
+            notificationData?.let {
+                ActiveCall(
+                    callType = callType,
+                    callState = CallState.Ringing(
+                        notificationData = notificationData,
+                    )
+                )
+            }
+        } ?: run {
+            Timber.tag(tag).w("No active call, ignoring hang up")
+            return@withLock
+        }
+
+        if (currentActiveCall.callType != callType) {
+            Timber.tag(tag).w("Call type $callType does not match the active call type, ignoring")
+            return@withLock
+        }
+        if (currentActiveCall.callState is CallState.Ringing) {
+            // Decline the call
+            val notificationData = currentActiveCall.callState.notificationData
+            matrixClientProvider.getOrRestore(notificationData.sessionId).getOrNull()
+                ?.getRoom(notificationData.roomId)
+                ?.declineCall(notificationData.eventId)
+                ?.onFailure {
+                    Timber.e(it, "Failed to decline incoming call")
+                }
+                ?: run {
+                    Timber.tag(tag).d("Couldn't find session or room to decline call for incoming call")
+                }
+        }
         if (activeWakeLock?.isHeld == true) {
             Timber.tag(tag).d("Releasing partial wakelock after hang up")
             activeWakeLock.release()
@@ -190,6 +244,7 @@ class DefaultActiveCallManager @Inject constructor(
     }
 
     override suspend fun joinedCall(callType: CallType) = mutex.withLock {
+        Timber.tag(tag).d("Joined call: $callType")
         cancelIncomingCallNotification()
         if (activeWakeLock?.isHeld == true) {
             Timber.tag(tag).d("Releasing partial wakelock after joining call")
@@ -217,8 +272,9 @@ class DefaultActiveCallManager @Inject constructor(
             notificationChannelId = notificationData.notificationChannelId,
             timestamp = notificationData.timestamp,
             textContent = notificationData.textContent,
+            expirationTimestamp = notificationData.expirationTimestamp,
         ) ?: return
-        runCatching {
+        runCatchingExceptions {
             notificationManagerCompat.notify(
                 NotificationIdProvider.getForegroundServiceNotificationId(ForegroundServiceType.INCOMING_CALL),
                 notification,
@@ -247,6 +303,43 @@ class DefaultActiveCallManager @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun observeRingingCall() {
+        activeCall
+            .filterNotNull()
+            .filter { it.callState is CallState.Ringing && it.callType is CallType.RoomCall }
+            .flatMapLatest { activeCall ->
+                val callType = activeCall.callType as CallType.RoomCall
+                val ringingInfo = activeCall.callState as CallState.Ringing
+                val client = matrixClientProvider.getOrRestore(callType.sessionId).getOrNull() ?: run {
+                    Timber.tag(tag).d("Couldn't find session for incoming call: $activeCall")
+                    return@flatMapLatest flowOf()
+                }
+                val room = client.getRoom(callType.roomId) ?: run {
+                    Timber.tag(tag).d("Couldn't find room for incoming call: $activeCall")
+                    return@flatMapLatest flowOf()
+                }
+
+                Timber.tag(tag).d("Found room for ringing call: ${room.roomId}")
+
+                // If we have declined from another phone we want to stop ringing.
+                room.subscribeToCallDecline(ringingInfo.notificationData.eventId)
+                    .filter { decliner ->
+                        Timber.tag(tag).d("Call: $activeCall was declined by $decliner")
+                        // only want to listen if the call was declined from another of my sessions,
+                        // (we are ringing for an incoming call in a DM)
+                        decliner == client.sessionId
+                    }
+            }
+            .onEach { decliner ->
+                Timber.tag(tag).d("Call: $activeCall was declined by user from another session")
+                // Remove the active call and cancel the notification
+                activeCall.value = null
+                if (activeWakeLock?.isHeld == true) {
+                    Timber.tag(tag).d("Releasing partial wakelock after call declined from another session")
+                    activeWakeLock.release()
+                }
+                cancelIncomingCallNotification()
+            }
+            .launchIn(coroutineScope)
         // This will observe ringing calls and ensure they're terminated if the room call is cancelled or if the user
         // has joined the call from another session.
         activeCall

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -38,6 +39,8 @@ internal class MarkdownEditText(
         }
     }
 
+    // When using the EditText within a Compose layout, we need to override focusSearch to prevent the default behavior
+    // Otherwise it can try searching for focusable nodes in the Compose hierarchy while they're being laid out, which will crash
     override fun focusSearch(direction: Int): View? {
         return null
     }

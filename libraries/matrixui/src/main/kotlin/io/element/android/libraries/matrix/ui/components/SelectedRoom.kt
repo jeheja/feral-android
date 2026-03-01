@@ -1,40 +1,24 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.ui.components
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.unit.dp
-import io.element.android.compound.theme.ElementTheme
-import io.element.android.compound.tokens.generated.CompoundIcons
+import androidx.compose.ui.unit.LayoutDirection
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
-import io.element.android.libraries.designsystem.components.avatar.CompositeAvatar
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.components.Icon
-import io.element.android.libraries.designsystem.theme.components.Surface
-import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.matrix.ui.model.SelectRoomInfo
 import io.element.android.libraries.matrix.ui.model.getAvatarData
 import io.element.android.libraries.ui.strings.CommonStrings
@@ -46,45 +30,22 @@ fun SelectedRoom(
     onRemoveRoom: (SelectRoomInfo) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .width(56.dp)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            CompositeAvatar(
-                avatarData = roomInfo.getAvatarData(AvatarSize.SelectedRoom),
-                heroes = roomInfo.heroes.map { it.getAvatarData(AvatarSize.SelectedRoom) }.toImmutableList(),
-            )
-            Text(
-                // If name is null, we do not have space to render "No room name", so just use `#` here.
-                text = roomInfo.name ?: "#",
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 1,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-        }
-        Surface(
-            color = ElementTheme.colors.iconPrimary,
-            modifier = Modifier
-                .clip(CircleShape)
-                .size(20.dp)
-                .align(Alignment.TopEnd)
-                .clickable(
-                    indication = ripple(),
-                    interactionSource = remember { MutableInteractionSource() },
-                    onClick = { onRemoveRoom(roomInfo) }
-                ),
-        ) {
-            Icon(
-                imageVector = CompoundIcons.Close(),
-                contentDescription = stringResource(id = CommonStrings.action_remove),
-                tint = ElementTheme.colors.iconOnSolidPrimary,
-                modifier = Modifier.padding(2.dp)
-            )
-        }
-    }
+    SelectedItem(
+        avatarData = roomInfo.getAvatarData(AvatarSize.SelectedRoom),
+        avatarType = AvatarType.Room(
+            heroes = roomInfo.heroes.map { it.getAvatarData(AvatarSize.SelectedRoom) }.toImmutableList(),
+            isTombstoned = roomInfo.isTombstoned,
+        ),
+        // If name is null, we do not have space to render "No room name", so just use `#` here.
+        text = roomInfo.name ?: "#",
+        maxLines = 1,
+        a11yContentDescription = roomInfo.name
+            ?: roomInfo.canonicalAlias?.value
+            ?: stringResource(id = CommonStrings.common_room_name),
+        canRemove = true,
+        onRemoveClick = { onRemoveRoom(roomInfo) },
+        modifier = modifier,
+    )
 }
 
 @PreviewsDayNight
@@ -96,4 +57,19 @@ internal fun SelectedRoomPreview(
         roomInfo = roomInfo,
         onRemoveRoom = {},
     )
+}
+
+@PreviewsDayNight
+@Composable
+internal fun SelectedRoomRtlPreview(
+    @PreviewParameter(SelectRoomInfoProvider::class) roomInfo: SelectRoomInfo
+) = CompositionLocalProvider(
+    LocalLayoutDirection provides LayoutDirection.Rtl,
+) {
+    ElementPreview {
+        SelectedRoom(
+            roomInfo = roomInfo,
+            onRemoveRoom = {},
+        )
+    }
 }

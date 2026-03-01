@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,9 +16,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.features.invite.api.InviteData
 import io.element.android.features.invite.impl.DeclineInvite
 import io.element.android.libraries.architecture.AsyncAction
@@ -28,13 +29,14 @@ import io.element.android.libraries.ui.strings.CommonStrings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-class DeclineAndBlockPresenter @AssistedInject constructor(
+@AssistedInject
+class DeclineAndBlockPresenter(
     @Assisted private val inviteData: InviteData,
     private val declineInvite: DeclineInvite,
     private val snackbarDispatcher: SnackbarDispatcher,
 ) : Presenter<DeclineAndBlockState> {
     @AssistedFactory
-    interface Factory {
+    fun interface Factory {
         fun create(inviteData: InviteData): DeclineAndBlockPresenter
     }
 
@@ -47,7 +49,7 @@ class DeclineAndBlockPresenter @AssistedInject constructor(
 
         val coroutineScope = rememberCoroutineScope()
 
-        fun handleEvents(event: DeclineAndBlockEvents) {
+        fun handleEvent(event: DeclineAndBlockEvents) {
             when (event) {
                 DeclineAndBlockEvents.ClearDeclineAction -> declineAction.value = AsyncAction.Uninitialized
                 DeclineAndBlockEvents.Decline -> coroutineScope.decline(reportReason, blockUser, reportRoom, declineAction)
@@ -62,7 +64,7 @@ class DeclineAndBlockPresenter @AssistedInject constructor(
             reportReason = reportReason,
             blockUser = blockUser,
             declineAction = declineAction.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -36,18 +37,14 @@ import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
-import io.element.android.compound.annotations.CoreColorToken
 import io.element.android.compound.theme.ElementTheme
-import io.element.android.compound.tokens.generated.internal.DarkColorTokens
-import io.element.android.compound.tokens.generated.internal.LightColorTokens
+import io.element.android.libraries.designsystem.colors.gradientActionColors
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.LocalBuildMeta
 import io.element.android.libraries.designsystem.theme.components.ButtonSize
 import io.element.android.libraries.designsystem.theme.components.HorizontalDivider
 import io.element.android.libraries.designsystem.theme.components.lowHorizontalPaddingValue
 
-@OptIn(CoreColorToken::class)
 @Composable
 fun SuperButton(
     onClick: () -> Unit,
@@ -66,21 +63,13 @@ fun SuperButton(
             ButtonSize.Small -> PaddingValues(horizontal = 16.dp, vertical = 5.dp)
         }
     }
-    val isLightTheme = ElementTheme.isLightTheme
-    val textActionAccent = ElementTheme.colors.textActionAccent
-    val colors = remember(isLightTheme, textActionAccent) {
-        listOf(
-            textActionAccent,
-            textActionAccent,
-        )
-    }
-
+    val colors = gradientActionColors()
     val shaderBrush = remember(colors) {
         object : ShaderBrush() {
             override fun createShader(size: Size): Shader {
                 return LinearGradientShader(
-                    from = Offset(0f, size.height),
-                    to = Offset(size.width, 0f),
+                    from = Offset(0f, 0f),
+                    to = Offset(0f, size.height),
                     colors = colors,
                 )
             }

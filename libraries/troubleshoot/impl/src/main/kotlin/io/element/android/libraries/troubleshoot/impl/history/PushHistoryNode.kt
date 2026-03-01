@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -12,36 +13,32 @@ import androidx.compose.ui.Modifier
 import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.core.node.Node
 import com.bumble.appyx.core.plugin.Plugin
-import com.bumble.appyx.core.plugin.plugins
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
 import im.vector.app.features.analytics.plan.MobileScreen
-import io.element.android.anvilannotations.ContributesNode
+import io.element.android.annotations.ContributesNode
+import io.element.android.libraries.architecture.callback
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
-import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.troubleshoot.api.PushHistoryEntryPoint
 import io.element.android.services.analytics.api.ScreenTracker
 
 @ContributesNode(SessionScope::class)
-class PushHistoryNode @AssistedInject constructor(
+@AssistedInject
+class PushHistoryNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
-    private val presenter: PushHistoryPresenter,
+    presenterFactory: PushHistoryPresenter.Factory,
     private val screenTracker: ScreenTracker,
-) : Node(buildContext, plugins = plugins) {
-    private fun onDone() {
-        plugins<PushHistoryEntryPoint.Callback>().forEach {
-            it.onDone()
-        }
+) : Node(buildContext, plugins = plugins), PushHistoryNavigator {
+    private val callback: PushHistoryEntryPoint.Callback = callback()
+
+    override fun navigateTo(roomId: RoomId, eventId: EventId) {
+        callback.navigateToEvent(roomId, eventId)
     }
 
-    private fun onItemClick(sessionId: SessionId, roomId: RoomId, eventId: EventId) {
-        plugins<PushHistoryEntryPoint.Callback>().forEach {
-            it.onItemClick(sessionId, roomId, eventId)
-        }
-    }
+    private val presenter = presenterFactory.create(this)
 
     @Composable
     override fun View(modifier: Modifier) {
@@ -49,8 +46,7 @@ class PushHistoryNode @AssistedInject constructor(
         val state = presenter.present()
         PushHistoryView(
             state = state,
-            onBackClick = ::onDone,
-            onItemClick = ::onItemClick,
+            onBackClick = callback::onDone,
             modifier = modifier,
         )
     }

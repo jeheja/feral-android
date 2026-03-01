@@ -1,12 +1,12 @@
 /*
- * Copyright 2022-2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
-
 plugins {
-    id("io.element.android-compose-library")
+    id("io.element.android-library")
 }
 
 android {
@@ -14,10 +14,8 @@ android {
 }
 
 dependencies {
-    implementation(libs.coroutines.core)
-    implementation(projects.libraries.matrix.api)
-    implementation(projects.libraries.matrix.test)
+    implementation(projects.features.createroom.api)
     implementation(projects.libraries.architecture)
+    implementation(projects.libraries.matrix.api)
     implementation(projects.tests.testutils)
-    api(projects.features.createroom.api)
 }

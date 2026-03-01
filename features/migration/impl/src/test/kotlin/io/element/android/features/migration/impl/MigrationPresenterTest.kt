@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,8 +16,10 @@ import io.element.android.features.migration.impl.migrations.AppMigration
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.tests.testutils.WarmUpRule
 import io.element.android.tests.testutils.consumeItemsUntilPredicate
-import io.element.android.tests.testutils.lambda.LambdaNoParamRecorder
+import io.element.android.tests.testutils.lambda.LambdaOneParamRecorder
+import io.element.android.tests.testutils.lambda.lambdaError
 import io.element.android.tests.testutils.lambda.lambdaRecorder
+import io.element.android.tests.testutils.lambda.value
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -48,13 +51,18 @@ class MigrationPresenterTest {
             assertThat(store.applicationMigrationVersion().first()).isEqualTo(migrations.maxOf { it.order })
         }
         for (migration in migrations) {
-            migration.migrateLambda.assertions().isCalledOnce()
+            migration.migrateLambda.assertions().isCalledOnce().with(value(true))
         }
     }
 
     @Test
     fun `present - no migration should occurs if ApplicationMigrationVersion is the last one`() = runTest {
-        val migrations = (1..10).map { FakeAppMigration(it) }
+        val migrations = (1..10).map {
+            FakeAppMigration(
+                order = it,
+                migrateLambda = lambdaRecorder<Boolean, Unit> { lambdaError() },
+            )
+        }
         val store = InMemoryMigrationStore(migrations.maxOf { it.order })
         val presenter = createPresenter(
             migrationStore = store,
@@ -90,7 +98,7 @@ class MigrationPresenterTest {
             consumeItemsUntilPredicate { it.migrationAction is AsyncData.Success }
             assertThat(store.applicationMigrationVersion().first()).isEqualTo(migrations.maxOf { it.order })
             for (migration in migrations) {
-                migration.migrateLambda.assertions().isCalledOnce()
+                migration.migrateLambda.assertions().isCalledOnce().with(value(false))
             }
         }
     }
@@ -106,9 +114,9 @@ private fun createPresenter(
 
 private class FakeAppMigration(
     override val order: Int,
-    val migrateLambda: LambdaNoParamRecorder<Unit> = lambdaRecorder { -> },
+    val migrateLambda: LambdaOneParamRecorder<Boolean, Unit> = lambdaRecorder<Boolean, Unit> { },
 ) : AppMigration {
-    override suspend fun migrate() {
-        migrateLambda()
+    override suspend fun migrate(isFreshInstall: Boolean) {
+        migrateLambda(isFreshInstall)
     }
 }

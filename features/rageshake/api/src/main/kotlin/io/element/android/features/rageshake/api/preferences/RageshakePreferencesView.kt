@@ -1,7 +1,8 @@
 /*
- * Copyright 2022-2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2022-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -28,11 +29,11 @@ fun RageshakePreferencesView(
     modifier: Modifier = Modifier,
 ) {
     fun onSensitivityChanged(sensitivity: Float) {
-        state.eventSink(RageshakePreferencesEvents.SetSensitivity(sensitivity = sensitivity))
+        state.eventSink(RageshakePreferencesEvent.SetSensitivity(sensitivity = sensitivity))
     }
 
     fun onEnabledChanged(isEnabled: Boolean) {
-        state.eventSink(RageshakePreferencesEvents.SetIsEnabled(isEnabled = isEnabled))
+        state.eventSink(RageshakePreferencesEvent.SetIsEnabled(isEnabled = isEnabled))
     }
 
     Column(modifier = modifier) {

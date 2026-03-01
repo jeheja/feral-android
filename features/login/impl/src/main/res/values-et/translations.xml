@@ -13,6 +13,9 @@
   <string name="screen_change_account_provider_other">"Muu teenusepakkuja"</string>
   <string name="screen_change_account_provider_subtitle">"Kasuta erinevat teenusepakkujat, milleks võib olla ka sinu oma server või töökoha hallatav server."</string>
   <string name="screen_change_account_provider_title">"Muuda teenusepakkujat"</string>
+  <string name="screen_change_server_error_element_pro_required_action_android">"Google Play"</string>
+  <string name="screen_change_server_error_element_pro_required_message">"%1$s koduserver eeldab Element Pro rakenduse kasutamist. Palun laadi ta alla rakendustepoest."</string>
+  <string name="screen_change_server_error_element_pro_required_title">"Vajalik on Element Pro"</string>
   <string name="screen_change_server_error_invalid_homeserver">"Me ei suutnud luuaühendust selle koduserveriga. Palun kontrolli, kas koduserveri aadress on õige. Kui aadress on õige, siis täiendavat teavet oskab sulle anda koduserveri haldaja."</string>
   <string name="screen_change_server_error_invalid_well_known">"Server pole saadaval vea tõttu well-known failis:
 %1$s"</string>
@@ -34,8 +37,9 @@
   <string name="screen_login_subtitle">"Matrix on avatud võrk turvalise ja hajutatud suhtluse jaoks."</string>
   <string name="screen_login_title">"Tere tulemast tagasi!"</string>
   <string name="screen_login_title_with_homeserver">"Logi sisse serverisse %1$s"</string>
+  <string name="screen_onboarding_app_version">"Versioon %1$s"</string>
   <string name="screen_onboarding_sign_in_manually">"Logi sisse käsitsi"</string>
-  <string name="screen_onboarding_sign_in_to">"Logi sisse teenusesse %1$s"</string>
+  <string name="screen_onboarding_sign_in_to">"Logi sisse serverisse %1$s"</string>
   <string name="screen_onboarding_sign_in_with_qr_code">"Logi sisse QR-koodi alusel"</string>
   <string name="screen_onboarding_sign_up">"Loo kasutajakonto"</string>
   <string name="screen_onboarding_welcome_message">"for feralists"</string>
@@ -56,6 +60,8 @@
   <string name="screen_qr_code_login_error_cancelled_title">"Sisselogimispäring on tühistatud"</string>
   <string name="screen_qr_code_login_error_declined_subtitle">"Sisselogimisest on teises seadmes keeldutud."</string>
   <string name="screen_qr_code_login_error_declined_title">"Sisselogimisest on keeldutud"</string>
+  <string name="screen_qr_code_login_error_device_already_signed_in_subtitle">"Sa ei pea enam midagi muud tegema."</string>
+  <string name="screen_qr_code_login_error_device_already_signed_in_title">"Sinu muu seade on juba sisse logitud"</string>
   <string name="screen_qr_code_login_error_expired_subtitle">"Sisselogimine aegus. Palun proovi uuesti."</string>
   <string name="screen_qr_code_login_error_expired_title">"Sisselogimine jäi etteantud aja jooksul tegemata"</string>
   <string name="screen_qr_code_login_error_linking_not_suported_subtitle">"Sinu teine seade ei toeta %s sisselogimist QR-koodiga.
@@ -89,5 +95,6 @@ Proovi käsitsi sisselogimist või skaneeri QR-koodi mõne muu seadmega."</strin
   <string name="screen_server_confirmation_message_login_matrix_dot_org">"Matrix on avatud võrk turvalise ja hajutatud suhtluse jaoks."</string>
   <string name="screen_server_confirmation_message_register">"See on koht, kus sinu vestlused elavad – just nagu kasutaksid oma e-kirjade säilitamiseks e-postiteenuse pakkujat."</string>
   <string name="screen_server_confirmation_title_login">"Sa oled sisselogimas koduserverisse %1$s"</string>
+  <string name="screen_server_confirmation_title_picker_mode">"Vali teenusepakkuja"</string>
   <string name="screen_server_confirmation_title_register">"Sa oled loomas kasutajakontot koduserveris %1$s"</string>
 </resources>

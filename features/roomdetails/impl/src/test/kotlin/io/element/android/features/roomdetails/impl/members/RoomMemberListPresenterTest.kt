@@ -1,32 +1,30 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.roomdetails.impl.members
 
-import app.cash.molecule.RecompositionMode
-import app.cash.molecule.moleculeFlow
-import app.cash.turbine.test
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import com.google.common.truth.Truth.assertThat
-import io.element.android.features.roomdetails.impl.members.moderation.RoomMembersModerationEvents
-import io.element.android.features.roomdetails.impl.members.moderation.RoomMembersModerationState
-import io.element.android.features.roomdetails.impl.members.moderation.aRoomMembersModerationState
+import io.element.android.features.roommembermoderation.api.RoomMemberModerationState
+import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
-import io.element.android.libraries.designsystem.theme.components.SearchBarResultState
-import io.element.android.libraries.matrix.api.core.UserId
-import io.element.android.libraries.matrix.api.room.BaseRoom
 import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.room.RoomMembersState
+import io.element.android.libraries.matrix.api.room.RoomMembershipState
 import io.element.android.libraries.matrix.test.encryption.FakeEncryptionService
 import io.element.android.libraries.matrix.test.room.FakeBaseRoom
 import io.element.android.libraries.matrix.test.room.FakeJoinedRoom
 import io.element.android.libraries.matrix.test.room.aRoomInfo
-import io.element.android.tests.testutils.EventsRecorder
+import io.element.android.libraries.matrix.test.room.powerlevels.FakeRoomPermissions
 import io.element.android.tests.testutils.WarmUpRule
+import io.element.android.tests.testutils.test
 import io.element.android.tests.testutils.testCoroutineDispatchers
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -39,126 +37,131 @@ class RoomMemberListPresenterTest {
     val warmUpRule = WarmUpRule()
 
     @Test
-    fun `member loading is done automatically on start, but is async`() = runTest {
-        val room = FakeJoinedRoom(
-            baseRoom = FakeBaseRoom(
-            updateMembersResult = { Result.success(Unit) },
-            canInviteResult = { Result.success(true) }
-        ).apply {
-            // Needed to avoid discarding the loaded members as a partial and invalid result
-            givenRoomInfo(aRoomInfo(joinedMembersCount = 2))
-        }
-        )
-        val presenter = createPresenter(joinedRoom = room)
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+    fun `initial state is loading`() = runTest {
+        val presenter = createPresenter()
+        presenter.test {
             skipItems(1)
             val initialState = awaitItem()
-            assertThat(initialState.roomMembers.isLoading()).isTrue()
-            assertThat(initialState.searchQuery).isEmpty()
-            assertThat(initialState.searchResults).isInstanceOf(SearchBarResultState.Initial::class.java)
-            assertThat(initialState.isSearchActive).isFalse()
-            room.givenRoomMembersState(RoomMembersState.Ready(aRoomMemberList()))
-            // Skip item while the new members state is processed
-            skipItems(1)
-            val loadedMembersState = awaitItem()
-            assertThat(loadedMembersState.roomMembers.isLoading()).isFalse()
-            assertThat(loadedMembersState.roomMembers.dataOrNull()?.invited)
-                .isEqualTo(listOf(RoomMemberWithIdentityState(aVictor(), null), RoomMemberWithIdentityState(aWalter(), null)))
-            assertThat(loadedMembersState.roomMembers.dataOrNull()?.joined).isNotEmpty()
+            assertThat(initialState.filteredRoomMembers.isLoading()).isTrue()
+            assertThat(initialState.searchQuery.text.toString()).isEmpty()
+            assertThat(initialState.selectedSection).isEqualTo(SelectedSection.MEMBERS)
         }
     }
 
     @Test
-    fun `open search`() = runTest {
+    fun `hide banned section when there is no banned users`() = runTest {
+        val allRoomMembers = aRoomMemberList()
+        val noBannedMembers = allRoomMembers
+            .filterNot { it.membership == RoomMembershipState.BAN }
+            .toImmutableList()
+        val room = createFakeJoinedRoom()
+            .apply {
+                givenRoomMembersState(RoomMembersState.Ready(allRoomMembers))
+            }
         val presenter = createPresenter(
-            joinedRoom = FakeJoinedRoom(
-                baseRoom = FakeBaseRoom(
-                    updateMembersResult = { Result.success(Unit) },
-                    canInviteResult = { Result.success(true) }
-                )
-            )
+            joinedRoom = room,
+            roomMemberModerationState = aRoomMemberModerationState(canBan = true),
         )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             skipItems(1)
             val loadedState = awaitItem()
-            loadedState.eventSink(RoomMemberListEvents.OnSearchActiveChanged(true))
+            assertThat(loadedState.showBannedSection).isTrue()
+            loadedState.eventSink(RoomMemberListEvent.ChangeSelectedSection(SelectedSection.BANNED))
+            val bannedSectionState = awaitItem()
+            assertThat(bannedSectionState.selectedSection).isEqualTo(SelectedSection.BANNED)
+            // Now update the room members to have no banned users
+            room.givenRoomMembersState(RoomMembersState.Ready(noBannedMembers))
             skipItems(1)
-            val searchActiveState = awaitItem()
-            assertThat(searchActiveState.isSearchActive).isTrue()
+            val noBannedMembersState = awaitItem()
+            assertThat(noBannedMembersState.showBannedSection).isFalse()
+            skipItems(1)
+            val finalState = awaitItem()
+            assertThat(finalState.selectedSection).isEqualTo(SelectedSection.MEMBERS)
+        }
+    }
+
+    @Test
+    fun `member loading is done automatically on start, but is async`() = runTest {
+        val room = createFakeJoinedRoom()
+        val presenter = createPresenter(joinedRoom = room)
+        presenter.test {
+            skipItems(1)
+            val initialState = awaitItem()
+            assertThat(initialState.filteredRoomMembers.isLoading()).isTrue()
+            assertThat(initialState.searchQuery.text.toString()).isEmpty()
+            room.givenRoomMembersState(RoomMembersState.Ready(aRoomMemberList()))
+            // Skip items while the new members state is processed
+            skipItems(2)
+            val loadedState = awaitItem()
+            val loadedRoomMembers = loadedState.filteredRoomMembers.dataOrNull()!!
+            assertThat(loadedRoomMembers.joined).isNotEmpty()
+            assertThat(loadedRoomMembers.banned).isNotEmpty()
+            assertThat(loadedRoomMembers.invited).isNotEmpty()
+            assertThat(loadedRoomMembers.isEmpty(SelectedSection.MEMBERS)).isFalse()
+            assertThat(loadedRoomMembers.isEmpty(SelectedSection.BANNED)).isFalse()
         }
     }
 
     @Test
     fun `search for something which is not found`() = runTest {
-        val presenter = createPresenter(
-            joinedRoom = FakeJoinedRoom(
-                baseRoom = FakeBaseRoom(
-                updateMembersResult = { Result.success(Unit) },
-                canInviteResult = { Result.success(true) }
-            )
-            )
-        )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        val room = createFakeJoinedRoom().apply {
+            givenRoomMembersState(RoomMembersState.Ready(aRoomMemberList()))
+        }
+        val presenter = createPresenter(joinedRoom = room)
+        presenter.test {
             skipItems(1)
             val loadedState = awaitItem()
-            loadedState.eventSink(RoomMemberListEvents.OnSearchActiveChanged(true))
-            val searchActiveState = awaitItem()
-            searchActiveState.eventSink(RoomMemberListEvents.UpdateSearchQuery("something"))
-            skipItems(1)
+            val loadedRoomMembers = loadedState.filteredRoomMembers.dataOrNull()!!
+            assertThat(loadedRoomMembers.joined).isNotEmpty()
+            assertThat(loadedRoomMembers.banned).isNotEmpty()
+            assertThat(loadedRoomMembers.invited).isNotEmpty()
+            assertThat(loadedRoomMembers.isEmpty(SelectedSection.MEMBERS)).isFalse()
+            assertThat(loadedRoomMembers.isEmpty(SelectedSection.BANNED)).isFalse()
+            loadedState.searchQuery.setTextAndPlaceCursorAtEnd("something")
             val searchQueryUpdatedState = awaitItem()
-            assertThat(searchQueryUpdatedState.searchQuery).isEqualTo("something")
+            assertThat(searchQueryUpdatedState.searchQuery.text).isEqualTo("something")
             val searchSearchResultDelivered = awaitItem()
-            assertThat(searchSearchResultDelivered.searchResults).isInstanceOf(SearchBarResultState.NoResultsFound::class.java)
+            val emptyRoomMembers = searchSearchResultDelivered.filteredRoomMembers.dataOrNull()!!
+            assertThat(emptyRoomMembers.joined).isEmpty()
+            assertThat(emptyRoomMembers.banned).isEmpty()
+            assertThat(emptyRoomMembers.invited).isEmpty()
+            assertThat(emptyRoomMembers.isEmpty(SelectedSection.MEMBERS)).isTrue()
+            assertThat(emptyRoomMembers.isEmpty(SelectedSection.BANNED)).isTrue()
         }
     }
 
     @Test
     fun `search for something which is found`() = runTest {
-        val presenter = createPresenter(
-            joinedRoom = FakeJoinedRoom(
-                baseRoom = FakeBaseRoom(
-                    updateMembersResult = { Result.success(Unit) },
-                    canInviteResult = { Result.success(true) }
-                )
-            )
-        )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        val room = createFakeJoinedRoom().apply {
+            givenRoomMembersState(RoomMembersState.Ready(aRoomMemberList()))
+        }
+        val presenter = createPresenter(joinedRoom = room)
+        presenter.test {
             skipItems(1)
             val loadedState = awaitItem()
-            loadedState.eventSink(RoomMemberListEvents.OnSearchActiveChanged(true))
-            val searchActiveState = awaitItem()
-            searchActiveState.eventSink(RoomMemberListEvents.UpdateSearchQuery("Alice"))
-            skipItems(1)
+            val loadedRoomMembers = loadedState.filteredRoomMembers.dataOrNull()!!
+            assertThat(loadedRoomMembers.joined).isNotEmpty()
+            assertThat(loadedRoomMembers.banned).isNotEmpty()
+            assertThat(loadedRoomMembers.invited).isNotEmpty()
+            assertThat(loadedRoomMembers.isEmpty(SelectedSection.MEMBERS)).isFalse()
+            assertThat(loadedRoomMembers.isEmpty(SelectedSection.BANNED)).isFalse()
+            loadedState.searchQuery.setTextAndPlaceCursorAtEnd("alice")
             val searchQueryUpdatedState = awaitItem()
-            assertThat(searchQueryUpdatedState.searchQuery).isEqualTo("Alice")
+            assertThat(searchQueryUpdatedState.searchQuery.text).isEqualTo("alice")
             val searchSearchResultDelivered = awaitItem()
-            assertThat(searchSearchResultDelivered.searchResults).isInstanceOf(SearchBarResultState.Results::class.java)
-            assertThat((searchSearchResultDelivered.searchResults as SearchBarResultState.Results).results.dataOrNull()!!.joined.first().roomMember.displayName)
-                .isEqualTo("Alice")
+            val emptyRoomMembers = searchSearchResultDelivered.filteredRoomMembers.dataOrNull()!!
+            assertThat(emptyRoomMembers.joined).isNotEmpty()
+            assertThat(emptyRoomMembers.banned).isEmpty()
+            assertThat(emptyRoomMembers.invited).isEmpty()
+            assertThat(emptyRoomMembers.isEmpty(SelectedSection.MEMBERS)).isFalse()
+            assertThat(emptyRoomMembers.isEmpty(SelectedSection.BANNED)).isTrue()
         }
     }
 
     @Test
     fun `present - asynchronously sets canInvite when user has correct power level`() = runTest {
-        val presenter = createPresenter(
-            joinedRoom = FakeJoinedRoom(
-                baseRoom = FakeBaseRoom(
-                    canInviteResult = { Result.success(true) },
-                    updateMembersResult = { Result.success(Unit) }
-                )
-            )
-        )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        val presenter = createPresenter()
+        presenter.test {
             skipItems(1)
             val loadedState = awaitItem()
             assertThat(loadedState.canInvite).isTrue()
@@ -168,128 +171,56 @@ class RoomMemberListPresenterTest {
     @Test
     fun `present - asynchronously sets canInvite when user does not have correct power level`() = runTest {
         val presenter = createPresenter(
-            joinedRoom = FakeJoinedRoom(
-                baseRoom = FakeBaseRoom(
-                    canInviteResult = { Result.success(false) },
-                    updateMembersResult = { Result.success(Unit) }
-                )
+            joinedRoom = createFakeJoinedRoom(
+                canInvite = false,
             )
         )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
-            skipItems(1)
+        presenter.test {
             val loadedState = awaitItem()
             assertThat(loadedState.canInvite).isFalse()
         }
     }
 
     @Test
-    fun `present - asynchronously sets canInvite when power level check fails`() = runTest {
+    fun `present - RoomMemberSelected will open the moderation options`() = runTest {
         val presenter = createPresenter(
-            joinedRoom = FakeJoinedRoom(
-                baseRoom = FakeBaseRoom(
-                    canInviteResult = { Result.failure(Throwable("Eek")) },
-                    updateMembersResult = { Result.success(Unit) }
-                )
-            )
+            roomMemberModerationState = aRoomMemberModerationState(canBan = true, canKick = true)
         )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
+        presenter.test {
             skipItems(1)
-            val loadedState = awaitItem()
-            assertThat(loadedState.canInvite).isFalse()
-        }
-    }
-
-    @Test
-    fun `present - RoomMemberSelected by default opens the room member details through the navigator`() = runTest {
-        val navigator = FakeRoomMemberListNavigator()
-        val roomMembersModerationStateLambda = { aRoomMembersModerationState(canDisplayModerationActions = false) }
-        val presenter = createPresenter(
-            roomMembersModerationStateLambda = roomMembersModerationStateLambda,
-            navigator = navigator,
-            joinedRoom = FakeJoinedRoom(
-                baseRoom = FakeBaseRoom(
-                    updateMembersResult = { Result.success(Unit) },
-                    canInviteResult = { Result.success(true) }
-                )
-            )
-        )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
-            skipItems(1)
-            awaitItem().eventSink(RoomMemberListEvents.RoomMemberSelected(aVictor()))
-            assertThat(navigator.openRoomMemberDetailsCallCount).isEqualTo(1)
-        }
-    }
-
-    @Test
-    fun `present - RoomMemberSelected will open the moderation options if the current user can use them`() = runTest {
-        val navigator = FakeRoomMemberListNavigator()
-        val eventsRecorder = EventsRecorder<RoomMembersModerationEvents>()
-        val roomMembersModerationStateLambda = {
-            aRoomMembersModerationState(
-                canDisplayModerationActions = true,
-                eventSink = eventsRecorder,
-            )
-        }
-        val presenter = createPresenter(
-            roomMembersModerationStateLambda = roomMembersModerationStateLambda,
-            navigator = navigator,
-            joinedRoom = FakeJoinedRoom(
-                baseRoom = FakeBaseRoom(
-                    updateMembersResult = { Result.success(Unit) },
-                    canInviteResult = { Result.success(true) }
-                )
-            )
-        )
-        moleculeFlow(RecompositionMode.Immediate) {
-            presenter.present()
-        }.test {
-            skipItems(1)
-            awaitItem().eventSink(RoomMemberListEvents.RoomMemberSelected(aVictor()))
-            eventsRecorder.assertSingle(RoomMembersModerationEvents.SelectRoomMember(aVictor()))
+            awaitItem().eventSink(RoomMemberListEvent.RoomMemberSelected(anInvitedVictor()))
         }
     }
 }
 
-private class FakeRoomMemberListNavigator : RoomMemberListNavigator {
-    var openRoomMemberDetailsCallCount = 0
-        private set
-
-    override fun openRoomMemberDetails(roomMemberId: UserId) {
-        openRoomMemberDetailsCallCount++
-    }
+private fun createFakeJoinedRoom(
+    updateMembersResult: () -> Unit = { },
+    canInvite: Boolean = true,
+): FakeJoinedRoom {
+    return FakeJoinedRoom(
+        baseRoom = FakeBaseRoom(
+            updateMembersResult = updateMembersResult,
+            roomPermissions = FakeRoomPermissions(
+                canInvite = canInvite,
+            ),
+        ).apply {
+            // Needed to avoid discarding the loaded members as a partial and invalid result
+            givenRoomInfo(aRoomInfo(joinedMembersCount = 2))
+        }
+    )
 }
-
-@ExperimentalCoroutinesApi
-private fun TestScope.createDataSource(
-    room: BaseRoom = FakeBaseRoom().apply {
-        givenRoomMembersState(RoomMembersState.Ready(aRoomMemberList()))
-    },
-    coroutineDispatchers: CoroutineDispatchers = testCoroutineDispatchers()
-) = RoomMemberListDataSource(room, coroutineDispatchers)
 
 @ExperimentalCoroutinesApi
 private fun TestScope.createPresenter(
     coroutineDispatchers: CoroutineDispatchers = testCoroutineDispatchers(useUnconfinedTestDispatcher = true),
-    joinedRoom: JoinedRoom = FakeJoinedRoom(
-            baseRoom = FakeBaseRoom(
-            updateMembersResult = { Result.success(Unit) }
-        )
-    ),
-    roomMemberListDataSource: RoomMemberListDataSource = createDataSource(coroutineDispatchers = coroutineDispatchers),
-    roomMembersModerationStateLambda: () -> RoomMembersModerationState = { aRoomMembersModerationState() },
+    joinedRoom: JoinedRoom = createFakeJoinedRoom(),
     encryptedService: FakeEncryptionService = FakeEncryptionService(),
-    navigator: RoomMemberListNavigator = object : RoomMemberListNavigator {}
+    roomMemberModerationState: RoomMemberModerationState = aRoomMemberModerationState(),
 ) = RoomMemberListPresenter(
     room = joinedRoom,
-    roomMemberListDataSource = roomMemberListDataSource,
     coroutineDispatchers = coroutineDispatchers,
-    roomMembersModerationPresenter = { roomMembersModerationStateLambda() },
+    roomMembersModerationPresenter = Presenter {
+        roomMemberModerationState
+    },
     encryptionService = encryptedService,
-    navigator = navigator,
 )

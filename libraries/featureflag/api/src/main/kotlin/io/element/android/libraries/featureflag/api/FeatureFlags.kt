@@ -1,13 +1,13 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.featureflag.api
 
-import io.element.android.appconfig.OnBoardingConfig
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.core.meta.BuildType
 
@@ -20,47 +20,8 @@ enum class FeatureFlags(
     override val description: String? = null,
     override val defaultValue: (BuildMeta) -> Boolean,
     override val isFinished: Boolean,
+    override val isInLabs: Boolean = false,
 ) : Feature {
-    LocationSharing(
-        key = "feature.locationsharing",
-        title = "Allow user to share location",
-        defaultValue = { true },
-        isFinished = true,
-    ),
-    Polls(
-        key = "feature.polls",
-        title = "Polls",
-        description = "Create poll and render poll events in the timeline",
-        defaultValue = { true },
-        isFinished = true,
-    ),
-    NotificationSettings(
-        key = "feature.notificationsettings",
-        title = "Show notification settings",
-        defaultValue = { true },
-        isFinished = true,
-    ),
-    VoiceMessages(
-        key = "feature.voicemessages",
-        title = "Voice messages",
-        description = "Send and receive voice messages",
-        defaultValue = { true },
-        isFinished = true,
-    ),
-    PinUnlock(
-        key = "feature.pinunlock",
-        title = "Pin unlock",
-        description = "Allow user to lock/unlock the app with a pin code or biometrics",
-        defaultValue = { true },
-        isFinished = true,
-    ),
-    MarkAsUnread(
-        key = "feature.markAsUnread",
-        title = "Mark as unread",
-        description = "Allow user to mark a room as unread",
-        defaultValue = { true },
-        isFinished = false,
-    ),
     RoomDirectorySearch(
         key = "feature.roomdirectorysearch",
         title = "Room directory search",
@@ -73,27 +34,6 @@ enum class FeatureFlags(
         title = "Show blocked users details",
         description = "Show the name and avatar of blocked users in the blocked users list",
         defaultValue = { false },
-        isFinished = false,
-    ),
-    QrCodeLogin(
-        key = "feature.qrCodeLogin",
-        title = "Enable login using QR code",
-        description = "Allow the user to login using the QR code flow",
-        defaultValue = { OnBoardingConfig.CAN_LOGIN_WITH_QR_CODE },
-        isFinished = false,
-    ),
-    IncomingShare(
-        key = "feature.incomingShare",
-        title = "Incoming Share support",
-        description = "Allow the application to receive data from other applications",
-        defaultValue = { true },
-        isFinished = false,
-    ),
-    PinnedEvents(
-        key = "feature.pinnedEvents",
-        title = "Pinned Events",
-        description = "Allow user to pin events in a room",
-        defaultValue = { true },
         isFinished = false,
     ),
     SyncOnPush(
@@ -112,6 +52,17 @@ enum class FeatureFlags(
         defaultValue = { false },
         isFinished = false,
     ),
+    EnableKeyShareOnInvite(
+        key = "feature.enableKeyShareOnInvite",
+        title = "Share encrypted history with new members",
+        description = "When inviting a user to an encrypted room that has history visibility set to \"shared\"," +
+            " share encrypted history with that user, and accept encrypted history when you are invited to such a room." +
+            "\nRequires an app restart to take effect." +
+            "\n\nWARNING: this feature is EXPERIMENTAL and not all security precautions are implemented." +
+            " Do not enable on production accounts.",
+        defaultValue = { false },
+        isFinished = false,
+    ),
     Knock(
         key = "feature.knock",
         title = "Ask to join",
@@ -119,31 +70,24 @@ enum class FeatureFlags(
         defaultValue = { false },
         isFinished = false,
     ),
-    MediaUploadOnSendQueue(
-        key = "feature.media_upload_through_send_queue",
-        title = "Media upload through send queue",
-        description = "Experimental support for treating media uploads as regular events, with an improved retry and cancellation implementation.",
-        defaultValue = { buildMeta -> buildMeta.buildType != BuildType.RELEASE },
-        isFinished = false,
-    ),
-    MediaCaptionCreation(
-        key = "feature.media_caption_creation",
-        title = "Allow creation of media captions",
-        description = null,
+    CreateSpaces(
+        key = "feature.createSpaces",
+        title = "Create spaces",
+        description = "Allow creating spaces.",
         defaultValue = { true },
         isFinished = false,
     ),
-    MediaCaptionWarning(
-        key = "feature.media_caption_creation_warning",
-        title = "Show a compatibility warning on media captions creation",
-        description = null,
+    SpaceSettings(
+        key = "feature.spaceSettings",
+        title = "Space settings",
+        description = "Allow managing space settings such as details, permissions and privacy.",
         defaultValue = { true },
         isFinished = false,
     ),
-    MediaGallery(
-        key = "feature.media_gallery",
-        title = "Allow user to open the media gallery",
-        description = null,
+    RoomListSpaceFilters(
+        key = "feature.roomListSpaceFilters",
+        title = "Room list space filters",
+        description = "Allow filtering the room list by space.",
         defaultValue = { true },
         isFinished = false,
     ),
@@ -155,6 +99,52 @@ enum class FeatureFlags(
             "It's not intended for daily usage in release builds.",
         defaultValue = { buildMeta -> buildMeta.buildType != BuildType.RELEASE },
         // False so it's displayed in the developer options screen
+        isFinished = false,
+    ),
+    SelectableMediaQuality(
+        key = "feature.selectable_media_quality",
+        title = "Select media quality per upload",
+        description = "You can select the media quality for each attachment you upload.",
+        defaultValue = { false },
+        // False so it's displayed in the developer options screen
+        isFinished = false,
+    ),
+    Threads(
+        key = "feature.thread_timeline",
+        title = "Threads",
+        description = "Renders thread messages as a dedicated timeline. Restarting the app is required for this setting to fully take effect.",
+        defaultValue = { false },
+        isFinished = false,
+        isInLabs = true,
+    ),
+    MultiAccount(
+        key = "feature.multi_account",
+        title = "Multi accounts",
+        description = "Allow the application to connect to multiple accounts at the same time." +
+            "\n\nWARNING: this feature is EXPERIMENTAL and UNSTABLE.",
+        defaultValue = { false },
+        isFinished = false,
+    ),
+    SyncNotificationsWithWorkManager(
+        key = "feature.sync_notifications_with_workmanager",
+        title = "Sync notifications with WorkManager",
+        description = "Use WorkManager to schedule notification sync tasks when a push is received." +
+            " This should improve reliability and battery usage.",
+        defaultValue = { true },
+        isFinished = false,
+    ),
+    QrCodeLogin(
+        key = "feature.qr_code_login",
+        title = "QR Code Login",
+        description = "Allow logging in on other devices using a QR code.",
+        defaultValue = { false },
+        isFinished = false,
+    ),
+    SignInWithClassic(
+        key = "feature.signin_with_classic",
+        title = "Sign in with Element Classic",
+        description = "Allow the application to sign in to the current Element Classic account.",
+        defaultValue = { false },
         isFinished = false,
     ),
 }

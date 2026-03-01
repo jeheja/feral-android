@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -151,23 +152,23 @@ class PollHistoryPresenterTest {
             assert(paginateLambda).isCalledExactly(2)
         }
     }
+}
 
-    private fun TestScope.createPollHistoryPresenter(
-        room: FakeJoinedRoom = FakeJoinedRoom(),
-        endPollAction: EndPollAction = FakeEndPollAction(),
-        sendPollResponseAction: SendPollResponseAction = FakeSendPollResponseAction(),
-        pollHistoryItemFactory: PollHistoryItemsFactory = PollHistoryItemsFactory(
-            pollContentStateFactory = DefaultPollContentStateFactory(FakeMatrixClient()),
-            dateFormatter = FakeDateFormatter(),
-            dispatchers = testCoroutineDispatchers(),
-        ),
-    ): PollHistoryPresenter {
-        return PollHistoryPresenter(
-            appCoroutineScope = this,
-            sendPollResponseAction = sendPollResponseAction,
-            endPollAction = endPollAction,
-            pollHistoryItemFactory = pollHistoryItemFactory,
-            room = room,
-        )
-    }
+internal fun TestScope.createPollHistoryPresenter(
+    room: FakeJoinedRoom = FakeJoinedRoom(),
+    endPollAction: EndPollAction = FakeEndPollAction(),
+    sendPollResponseAction: SendPollResponseAction = FakeSendPollResponseAction(),
+    pollHistoryItemFactory: PollHistoryItemsFactory = PollHistoryItemsFactory(
+        pollContentStateFactory = DefaultPollContentStateFactory(FakeMatrixClient()),
+        dateFormatter = FakeDateFormatter(),
+        dispatchers = testCoroutineDispatchers(),
+    ),
+): PollHistoryPresenter {
+    return PollHistoryPresenter(
+        sessionCoroutineScope = this,
+        sendPollResponseAction = sendPollResponseAction,
+        endPollAction = endPollAction,
+        pollHistoryItemFactory = pollHistoryItemFactory,
+        room = room,
+    )
 }

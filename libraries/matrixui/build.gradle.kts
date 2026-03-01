@@ -1,9 +1,11 @@
-import extension.setupAnvil
+import extension.setupDependencyInjection
+import extension.testCommonDependencies
 
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2022-2024 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -21,33 +23,24 @@ android {
     }
 }
 
-setupAnvil()
+setupDependencyInjection()
 
 dependencies {
     implementation(projects.libraries.di)
     implementation(projects.libraries.architecture)
     implementation(projects.libraries.androidutils)
     implementation(projects.libraries.matrix.api)
+    implementation(projects.libraries.matrixmedia.api)
     implementation(projects.libraries.designsystem)
     implementation(projects.libraries.core)
     implementation(projects.libraries.uiStrings)
     implementation(projects.libraries.testtags)
     implementation(libs.coil.compose)
-    implementation(libs.coil.gif)
-    implementation(libs.coil.network.okhttp)
-    implementation(libs.jsoup)
+    implementation(libs.matrix.richtexteditor)
+    implementation(projects.libraries.previewutils)
 
-    testImplementation(libs.coroutines.test)
-    testImplementation(libs.test.junit)
-    testImplementation(libs.coroutines.test)
-    testImplementation(libs.molecule.runtime)
-    testImplementation(libs.test.truth)
-    testImplementation(libs.test.turbine)
+    testCommonDependencies(libs, true)
     testImplementation(projects.libraries.matrix.test)
     testImplementation(projects.libraries.dateformatter.test)
-    testImplementation(projects.tests.testutils)
-    testImplementation(libs.test.mockk)
-    testImplementation(libs.test.robolectric)
-    testImplementation(libs.androidx.compose.ui.test.junit)
     testImplementation(projects.libraries.sessionStorage.test)
 }

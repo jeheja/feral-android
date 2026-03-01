@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -19,18 +20,18 @@ import android.provider.MediaStore
 import android.util.Size
 import androidx.core.net.toUri
 import com.vanniktech.blurhash.BlurHash
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.androidutils.bitmap.resizeToMax
 import io.element.android.libraries.androidutils.file.createTmpFile
 import io.element.android.libraries.androidutils.media.runAndRelease
 import io.element.android.libraries.core.mimetype.MimeTypes
-import io.element.android.libraries.di.ApplicationContext
+import io.element.android.libraries.di.annotations.ApplicationContext
 import io.element.android.libraries.matrix.api.media.ThumbnailInfo
 import io.element.android.services.toolbox.api.sdk.BuildVersionSdkIntProvider
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
-import javax.inject.Inject
 import kotlin.coroutines.resume
 
 /**
@@ -50,7 +51,8 @@ private const val THUMB_MAX_HEIGHT = 600
  */
 private const val VIDEO_THUMB_FRAME = 0L
 
-class ThumbnailFactory @Inject constructor(
+@Inject
+class ThumbnailFactory(
     @ApplicationContext private val context: Context,
     private val sdkIntProvider: BuildVersionSdkIntProvider
 ) {
@@ -123,8 +125,8 @@ class ThumbnailFactory @Inject constructor(
         val thumbnailResult = ThumbnailResult(
             file = thumbnailFile,
             info = ThumbnailInfo(
-                height = bitmapThumbnail.height.toLong(),
                 width = bitmapThumbnail.width.toLong(),
+                height = bitmapThumbnail.height.toLong(),
                 mimetype = mimeTypeToThumbnailMimeType(mimeType),
                 size = thumbnailFile.length()
             ),

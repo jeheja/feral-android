@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -33,4 +34,14 @@ interface FeatureFlagService {
      * is registered
      */
     suspend fun setFeatureEnabled(feature: Feature, enabled: Boolean): Boolean
+
+    /**
+     * @return the list of available features that can be toggled.
+     * @param includeFinishedFeatures whether to include finished features, default is false
+     * @param isInLabs whether the user is in labs (to include lab features), default is false
+     */
+    fun getAvailableFeatures(
+        includeFinishedFeatures: Boolean = false,
+        isInLabs: Boolean = false,
+    ): List<Feature>
 }

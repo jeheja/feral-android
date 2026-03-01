@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -31,13 +32,14 @@ import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.ftue.impl.R
 import io.element.android.libraries.designsystem.atomic.molecules.ButtonColumnMolecule
+import io.element.android.libraries.designsystem.atomic.molecules.IconTitleSubtitleMolecule
 import io.element.android.libraries.designsystem.atomic.pages.HeaderFooterPage
 import io.element.android.libraries.designsystem.background.OnboardingBackground
 import io.element.android.libraries.designsystem.components.BigIcon
-import io.element.android.libraries.designsystem.components.PageTitle
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Button
@@ -58,7 +60,7 @@ fun NotificationsOptInView(
             .statusBarsPadding()
             .fillMaxSize(),
         background = { OnboardingBackground() },
-        header = { NotificationsOptInHeader(modifier = Modifier.padding(top = 60.dp, bottom = 12.dp)) },
+        header = { NotificationsOptInHeader(modifier = Modifier.padding(top = 60.dp, bottom = 28.dp)) },
         footer = { NotificationsOptInFooter(state) },
     ) {
         NotificationsOptInContent()
@@ -69,10 +71,10 @@ fun NotificationsOptInView(
 private fun NotificationsOptInHeader(
     modifier: Modifier = Modifier,
 ) {
-    PageTitle(
+    IconTitleSubtitleMolecule(
         modifier = modifier,
         title = stringResource(R.string.screen_notification_optin_title),
-        subtitle = stringResource(R.string.screen_notification_optin_subtitle),
+        subTitle = stringResource(R.string.screen_notification_optin_subtitle),
         iconStyle = BigIcon.Style.Default(CompoundIcons.NotificationsSolid()),
     )
 }
@@ -149,6 +151,7 @@ private fun NotificationRow(
         ) {
             Avatar(
                 avatarData = AvatarData(id = avatarColorsId, name = avatarLetter, size = AvatarSize.NotificationsOptIn),
+                avatarType = AvatarType.User,
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(

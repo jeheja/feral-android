@@ -1,36 +1,53 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.createroom.impl.configureroom
 
+import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.bumble.appyx.core.lifecycle.subscribe
 import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.core.node.Node
 import com.bumble.appyx.core.plugin.Plugin
-import com.bumble.appyx.core.plugin.plugins
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
 import im.vector.app.features.analytics.plan.MobileScreen
-import io.element.android.anvilannotations.ContributesNode
-import io.element.android.features.createroom.CreateRoomNavigator
-import io.element.android.features.createroom.impl.di.CreateRoomScope
-import io.element.android.libraries.matrix.api.core.toRoomIdOrAlias
+import io.element.android.annotations.ContributesNode
+import io.element.android.libraries.architecture.NodeInputs
+import io.element.android.libraries.architecture.callback
+import io.element.android.libraries.architecture.inputs
+import io.element.android.libraries.di.SessionScope
+import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.services.analytics.api.AnalyticsService
+import kotlinx.parcelize.Parcelize
 
-@ContributesNode(CreateRoomScope::class)
-class ConfigureRoomNode @AssistedInject constructor(
+@ContributesNode(SessionScope::class)
+@AssistedInject
+class ConfigureRoomNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
-    private val presenter: ConfigureRoomPresenter,
+    presenterFactory: ConfigureRoomPresenter.Factory,
     private val analyticsService: AnalyticsService,
 ) : Node(buildContext, plugins = plugins) {
-    private val navigator = plugins<CreateRoomNavigator>().first()
+    interface Callback : Plugin {
+        fun onCreateRoomSuccess(roomId: RoomId)
+    }
+
+    @Parcelize
+    data class Inputs(
+        val isSpace: Boolean,
+        val parentSpaceId: RoomId?,
+    ) : NodeInputs, Parcelable
+
+    private val inputs = inputs<Inputs>()
+
+    private val presenter = presenterFactory.create(inputs.isSpace, inputs.parentSpaceId)
 
     init {
         lifecycle.subscribe(
@@ -40,6 +57,8 @@ class ConfigureRoomNode @AssistedInject constructor(
         )
     }
 
+    private val callback: Callback = callback()
+
     @Composable
     override fun View(modifier: Modifier) {
         val state = presenter.present()
@@ -47,9 +66,7 @@ class ConfigureRoomNode @AssistedInject constructor(
             state = state,
             modifier = modifier,
             onBackClick = this::navigateUp,
-            onCreateRoomSuccess = {
-                navigator.onOpenRoom(roomIdOrAlias = it.toRoomIdOrAlias(), serverNames = emptyList())
-            },
+            onCreateRoomSuccess = callback::onCreateRoomSuccess,
         )
     }
 }

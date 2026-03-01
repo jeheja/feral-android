@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,9 +18,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import org.matrix.rustcomponents.sdk.Room
+import org.matrix.rustcomponents.sdk.RoomListDynamicEntriesController
 import org.matrix.rustcomponents.sdk.RoomListEntriesDynamicFilterKind
 import org.matrix.rustcomponents.sdk.RoomListEntriesListener
 import org.matrix.rustcomponents.sdk.RoomListEntriesUpdate
@@ -47,7 +47,7 @@ fun RoomListInterface.loadingStateFlow(): Flow<RoomListLoadingState> =
         try {
             send(result.state)
         } catch (exception: Exception) {
-            Timber.d("loadingStateFlow() initialState failed.")
+            Timber.d(exception, "loadingStateFlow() initialState failed.")
         }
         result.stateStream
     }.catch {
@@ -56,8 +56,8 @@ fun RoomListInterface.loadingStateFlow(): Flow<RoomListLoadingState> =
 
 internal fun RoomListInterface.entriesFlow(
     pageSize: Int,
-    roomListDynamicEvents: Flow<RoomListDynamicEvents>,
-    initialFilterKind: RoomListEntriesDynamicFilterKind
+    initialFilterKind: RoomListEntriesDynamicFilterKind,
+    onControllerCreated: (RoomListDynamicEntriesController) -> Unit,
 ): Flow<List<RoomListEntriesUpdate>> =
     callbackFlow {
         val listener = object : RoomListEntriesListener {
@@ -65,22 +65,14 @@ internal fun RoomListInterface.entriesFlow(
                 trySendBlocking(roomEntriesUpdate)
             }
         }
-        val result = entriesWithDynamicAdapters(pageSize.toUInt(), listener)
+        val result = entriesWithDynamicAdaptersWith(
+            pageSize = pageSize.toUInt(),
+            enableLatestEventSorter = true,
+            listener = listener,
+        )
         val controller = result.controller()
         controller.setFilter(initialFilterKind)
-        roomListDynamicEvents.onEach { controllerEvents ->
-            when (controllerEvents) {
-                is RoomListDynamicEvents.SetFilter -> {
-                    controller.setFilter(controllerEvents.filter)
-                }
-                is RoomListDynamicEvents.LoadMore -> {
-                    controller.addOnePage()
-                }
-                is RoomListDynamicEvents.Reset -> {
-                    controller.resetToOnePage()
-                }
-            }
-        }.launchIn(this)
+        onControllerCreated(controller)
         awaitClose {
             result.entriesStream().cancelAndDestroy()
             controller.destroy()
@@ -116,7 +108,7 @@ internal fun RoomListServiceInterface.syncIndicator(): Flow<RoomListServiceSyncI
 
 internal fun RoomListServiceInterface.roomOrNull(roomId: String): Room? {
     return tryOrNull(
-        onError = { Timber.e(it, "Failed finding room with id=$roomId.") }
+        onException = { Timber.e(it, "Failed finding room with id=$roomId.") }
     ) {
         room(roomId)
     }

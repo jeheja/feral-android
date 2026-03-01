@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -10,17 +11,20 @@ package io.element.android.libraries.matrix.impl.roomlist
 import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.roomlist.RoomSummary
-import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeRustRoom
-import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeRustRoomListService
+import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeFfiRoom
+import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeFfiRoomListService
 import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.libraries.matrix.test.A_ROOM_ID_2
 import io.element.android.libraries.matrix.test.A_ROOM_ID_3
+import io.element.android.libraries.matrix.test.A_ROOM_ID_4
 import io.element.android.libraries.matrix.test.room.aRoomSummary
+import io.element.android.services.analytics.test.FakeAnalyticsService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import org.matrix.rustcomponents.sdk.LatestEventValue
 import org.matrix.rustcomponents.sdk.RoomListEntriesUpdate
 
 class RoomSummaryListProcessorTest {
@@ -31,11 +35,10 @@ class RoomSummaryListProcessorTest {
         summaries.value = listOf(aRoomSummary())
         val processor = createProcessor()
 
-        val newEntry = aRustRoom(A_ROOM_ID_2)
-        processor.postUpdate(listOf(RoomListEntriesUpdate.Append(listOf(newEntry, newEntry, newEntry))))
+        processor.postUpdate(listOf(RoomListEntriesUpdate.Append(listOf(aRustRoom(A_ROOM_ID_2), aRustRoom(A_ROOM_ID_3), aRustRoom(A_ROOM_ID_4)))))
 
         assertThat(summaries.value.count()).isEqualTo(4)
-        assertThat(summaries.value.subList(1, 4).all { it.roomId == A_ROOM_ID_2 }).isTrue()
+        assertThat(summaries.value.subList(1, 4).map { it.roomId }).isEqualTo(listOf(A_ROOM_ID_2, A_ROOM_ID_3, A_ROOM_ID_4))
     }
 
     @Test
@@ -170,15 +173,16 @@ class RoomSummaryListProcessorTest {
         assertThat(summaries.value[index].roomId).isEqualTo(A_ROOM_ID_3)
     }
 
-    private fun aRustRoom(roomId: RoomId = A_ROOM_ID) = FakeRustRoom(
+    private fun aRustRoom(roomId: RoomId = A_ROOM_ID) = FakeFfiRoom(
         roomId = roomId,
-        latestEventLambda = { null },
+        latestEventLambda = { LatestEventValue.None }
     )
 
     private fun TestScope.createProcessor() = RoomSummaryListProcessor(
         summaries,
-        FakeRustRoomListService(),
+        FakeFfiRoomListService(),
         coroutineContext = StandardTestDispatcher(testScheduler),
-        roomSummaryDetailsFactory = RoomSummaryFactory(),
+        roomSummaryFactory = RoomSummaryFactory(),
+        analyticsService = FakeAnalyticsService(),
     )
 }

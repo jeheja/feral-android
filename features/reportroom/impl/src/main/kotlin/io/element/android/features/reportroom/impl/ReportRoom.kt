@@ -1,17 +1,17 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.reportroom.impl
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
-import javax.inject.Inject
 
 interface ReportRoom {
     suspend operator fun invoke(
@@ -29,7 +29,7 @@ interface ReportRoom {
 }
 
 @ContributesBinding(SessionScope::class)
-class DefaultReportRoom @Inject constructor(
+class DefaultReportRoom(
     private val client: MatrixClient,
 ) : ReportRoom {
     override suspend operator fun invoke(

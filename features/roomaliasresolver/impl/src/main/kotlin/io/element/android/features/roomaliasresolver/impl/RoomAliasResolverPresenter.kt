@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,8 +14,8 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runCatchingUpdatingState
@@ -25,11 +26,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.jvm.optionals.getOrElse
 
-class RoomAliasResolverPresenter @AssistedInject constructor(
+@AssistedInject
+class RoomAliasResolverPresenter(
     @Assisted private val roomAlias: RoomAlias,
     private val matrixClient: MatrixClient,
 ) : Presenter<RoomAliasResolverState> {
-    interface Factory {
+    fun interface Factory {
         fun create(
             roomAlias: RoomAlias,
         ): RoomAliasResolverPresenter
@@ -43,7 +45,7 @@ class RoomAliasResolverPresenter @AssistedInject constructor(
             resolveAlias(resolveState)
         }
 
-        fun handleEvents(event: RoomAliasResolverEvents) {
+        fun handleEvent(event: RoomAliasResolverEvents) {
             when (event) {
                 RoomAliasResolverEvents.Retry -> coroutineScope.resolveAlias(resolveState)
                 RoomAliasResolverEvents.DismissError -> resolveState.value = AsyncData.Uninitialized
@@ -53,7 +55,7 @@ class RoomAliasResolverPresenter @AssistedInject constructor(
         return RoomAliasResolverState(
             roomAlias = roomAlias,
             resolveState = resolveState.value,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 

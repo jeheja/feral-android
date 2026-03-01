@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,7 +18,7 @@ import java.util.UUID
 fun File.safeDelete() {
     if (exists().not()) return
     tryOrNull(
-        onError = {
+        onException = {
             Timber.e(it, "Error, unable to delete file $path")
         },
         operation = {
@@ -30,7 +31,7 @@ fun File.safeDelete() {
 
 fun File.safeRenameTo(dest: File) {
     tryOrNull(
-        onError = {
+        onException = {
             Timber.e(it, "Error, unable to rename file $path to ${dest.path}")
         },
         operation = {

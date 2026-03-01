@@ -1,15 +1,20 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.login.impl.screens.onboarding
 
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import io.element.android.features.login.impl.login.LoginMode
+import io.element.android.features.login.impl.screens.onboarding.classic.LoginWithClassicState
+import io.element.android.features.login.impl.screens.onboarding.classic.aLoginWithClassicState
 import io.element.android.libraries.architecture.AsyncData
+import io.element.android.libraries.designsystem.R
 
 open class OnBoardingStateProvider : PreviewParameterProvider<OnBoardingState> {
     override val values: Sequence<OnBoardingState>
@@ -22,10 +27,17 @@ open class OnBoardingStateProvider : PreviewParameterProvider<OnBoardingState> {
             anOnBoardingState(defaultAccountProvider = "element.io", canCreateAccount = false, canReportBug = true),
             anOnBoardingState(canExternalSignup = true),
             anOnBoardingState(canLoginWithQrCode = true, canExternalSignup = true, canReportBug = true),
+            anOnBoardingState(customLogoResId = R.drawable.sample_background),
+            anOnBoardingState(
+                isAddingAccount = true,
+                canLoginWithQrCode = true,
+                canCreateAccount = true,
+            ),
         )
 }
 
 fun anOnBoardingState(
+    isAddingAccount: Boolean = false,
     productionApplicationName: String = "Element",
     defaultAccountProvider: String? = null,
     mustChooseAccountProvider: Boolean = false,
@@ -33,9 +45,14 @@ fun anOnBoardingState(
     canCreateAccount: Boolean = false,
     canExternalSignup: Boolean = false,
     canReportBug: Boolean = false,
+    version: String = "1.0.0",
+    @DrawableRes
+    customLogoResId: Int? = null,
     loginMode: AsyncData<LoginMode> = AsyncData.Uninitialized,
+    loginWithClassicState: LoginWithClassicState = aLoginWithClassicState(),
     eventSink: (OnBoardingEvents) -> Unit = {},
 ) = OnBoardingState(
+    isAddingAccount = isAddingAccount,
     productionApplicationName = productionApplicationName,
     defaultAccountProvider = defaultAccountProvider,
     mustChooseAccountProvider = mustChooseAccountProvider,
@@ -43,6 +60,9 @@ fun anOnBoardingState(
     canCreateAccount = canCreateAccount,
     canExternalSignup = canExternalSignup,
     canReportBug = canReportBug,
+    version = version,
     loginMode = loginMode,
+    onBoardingLogoResId = customLogoResId,
+    loginWithClassicState = loginWithClassicState,
     eventSink = eventSink,
 )

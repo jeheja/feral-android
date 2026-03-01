@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,11 +14,11 @@ import io.element.android.features.messages.impl.actionlist.anActionListState
 import io.element.android.features.messages.impl.actionlist.model.TimelineItemAction
 import io.element.android.features.messages.impl.fixtures.aTimelineItemsFactoryCreator
 import io.element.android.features.messages.impl.link.aLinkState
-import io.element.android.features.messages.impl.pinned.PinnedEventsTimelineProvider
+import io.element.android.features.messages.impl.pinned.DefaultPinnedEventsTimelineProvider
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.protection.aTimelineProtectionState
+import io.element.android.features.messages.test.timeline.FakeHtmlConverterProvider
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatcher
-import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.room.JoinedRoom
@@ -25,11 +26,12 @@ import io.element.android.libraries.matrix.api.sync.SyncService
 import io.element.android.libraries.matrix.api.timeline.MatrixTimelineItem
 import io.element.android.libraries.matrix.api.timeline.item.TimelineItemDebugInfo
 import io.element.android.libraries.matrix.test.AN_EVENT_ID
-import io.element.android.libraries.matrix.test.A_THROWABLE
+import io.element.android.libraries.matrix.test.AN_EXCEPTION
 import io.element.android.libraries.matrix.test.A_UNIQUE_ID
 import io.element.android.libraries.matrix.test.room.FakeBaseRoom
 import io.element.android.libraries.matrix.test.room.FakeJoinedRoom
 import io.element.android.libraries.matrix.test.room.aRoomInfo
+import io.element.android.libraries.matrix.test.room.powerlevels.FakeRoomPermissions
 import io.element.android.libraries.matrix.test.sync.FakeSyncService
 import io.element.android.libraries.matrix.test.timeline.FakeTimeline
 import io.element.android.libraries.matrix.test.timeline.aMessageContent
@@ -51,34 +53,15 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class PinnedMessagesListPresenterTest {
     @Test
-    fun `present - initial state feature disabled`() = runTest {
+    fun `present - initial state`() = runTest {
         val room = FakeJoinedRoom(
             baseRoom = FakeBaseRoom(
-            canRedactOwnResult = { Result.success(true) },
-            canRedactOtherResult = { Result.success(true) },
-            canUserPinUnpinResult = { Result.success(true) },
+                roomPermissions = roomPermissions(),
+            ).apply {
+                givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
+            }
         )
-        )
-        val presenter = createPinnedMessagesListPresenter(room = room, isFeatureEnabled = false)
-        presenter.test {
-            val initialState = awaitItem()
-            assertThat(initialState).isEqualTo(PinnedMessagesListState.Loading)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `present - initial state feature enabled`() = runTest {
-        val room = FakeJoinedRoom(
-            baseRoom = FakeBaseRoom(
-            canRedactOwnResult = { Result.success(true) },
-            canRedactOtherResult = { Result.success(true) },
-            canUserPinUnpinResult = { Result.success(true) },
-        ).apply {
-            givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
-        }
-        )
-        val presenter = createPinnedMessagesListPresenter(room = room, isFeatureEnabled = true)
+        val presenter = createPinnedMessagesListPresenter(room = room)
         presenter.test {
             val initialState = awaitItem()
             assertThat(initialState).isEqualTo(PinnedMessagesListState.Loading)
@@ -90,15 +73,13 @@ class PinnedMessagesListPresenterTest {
     fun `present - timeline failure state`() = runTest {
         val room = FakeJoinedRoom(
             baseRoom = FakeBaseRoom(
-            canRedactOwnResult = { Result.success(true) },
-            canRedactOtherResult = { Result.success(true) },
-            canUserPinUnpinResult = { Result.success(true) },
-        ).apply {
-            givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
-        },
+                roomPermissions = roomPermissions(),
+            ).apply {
+                givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
+            },
             createTimelineResult = { Result.failure(RuntimeException()) },
         )
-        val presenter = createPinnedMessagesListPresenter(room = room, isFeatureEnabled = true)
+        val presenter = createPinnedMessagesListPresenter(room = room)
         presenter.test {
             skipItems(3)
             val failureState = awaitItem()
@@ -111,15 +92,13 @@ class PinnedMessagesListPresenterTest {
     fun `present - empty state`() = runTest {
         val room = FakeJoinedRoom(
             baseRoom = FakeBaseRoom(
-            canRedactOwnResult = { Result.success(true) },
-            canRedactOtherResult = { Result.success(true) },
-            canUserPinUnpinResult = { Result.success(true) },
-        ).apply {
-            givenRoomInfo(aRoomInfo(pinnedEventIds = listOf()))
-        },
+                roomPermissions = roomPermissions(),
+            ).apply {
+                givenRoomInfo(aRoomInfo(pinnedEventIds = listOf()))
+            },
             createTimelineResult = { Result.success(FakeTimeline()) },
         )
-        val presenter = createPinnedMessagesListPresenter(room = room, isFeatureEnabled = true)
+        val presenter = createPinnedMessagesListPresenter(room = room)
         presenter.test {
             skipItems(3)
             val emptyState = awaitItem()
@@ -133,15 +112,13 @@ class PinnedMessagesListPresenterTest {
         val pinnedEventsTimeline = createPinnedMessagesTimeline()
         val room = FakeJoinedRoom(
             baseRoom = FakeBaseRoom(
-            canRedactOwnResult = { Result.success(true) },
-            canRedactOtherResult = { Result.success(true) },
-            canUserPinUnpinResult = { Result.success(true) },
-        ).apply {
-            givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
-        },
+                roomPermissions = roomPermissions(),
+            ).apply {
+                givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
+            },
             createTimelineResult = { Result.success(pinnedEventsTimeline) },
         )
-        val presenter = createPinnedMessagesListPresenter(room = room, isFeatureEnabled = true)
+        val presenter = createPinnedMessagesListPresenter(room = room)
         presenter.test {
             skipItems(3)
             val filledState = awaitItem() as PinnedMessagesListState.Filled
@@ -157,31 +134,29 @@ class PinnedMessagesListPresenterTest {
     @Test
     fun `present - unpin event`() = runTest {
         val successUnpinEventLambda = lambdaRecorder { _: EventId? -> Result.success(true) }
-        val failureUnpinEventLambda = lambdaRecorder { _: EventId? -> Result.failure<Boolean>(A_THROWABLE) }
+        val failureUnpinEventLambda = lambdaRecorder { _: EventId? -> Result.failure<Boolean>(AN_EXCEPTION) }
         val pinnedEventsTimeline = createPinnedMessagesTimeline()
         val analyticsService = FakeAnalyticsService()
         val room = FakeJoinedRoom(
             baseRoom = FakeBaseRoom(
-            canRedactOwnResult = { Result.success(true) },
-            canRedactOtherResult = { Result.success(true) },
-            canUserPinUnpinResult = { Result.success(true) },
-        ).apply {
-            givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
-        },
+                roomPermissions = roomPermissions(),
+            ).apply {
+                givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
+            },
             createTimelineResult = { Result.success(pinnedEventsTimeline) },
         )
-        val presenter = createPinnedMessagesListPresenter(room = room, isFeatureEnabled = true, analyticsService = analyticsService)
+        val presenter = createPinnedMessagesListPresenter(room = room, analyticsService = analyticsService)
         presenter.test {
             skipItems(3)
             val filledState = awaitItem() as PinnedMessagesListState.Filled
             val eventItem = filledState.timelineItems.first() as TimelineItem.Event
 
             pinnedEventsTimeline.unpinEventLambda = successUnpinEventLambda
-            filledState.eventSink(PinnedMessagesListEvents.HandleAction(TimelineItemAction.Unpin, eventItem))
+            filledState.eventSink(PinnedMessagesListEvent.HandleAction(TimelineItemAction.Unpin, eventItem))
             advanceUntilIdle()
 
             pinnedEventsTimeline.unpinEventLambda = failureUnpinEventLambda
-            filledState.eventSink(PinnedMessagesListEvents.HandleAction(TimelineItemAction.Unpin, eventItem))
+            filledState.eventSink(PinnedMessagesListEvent.HandleAction(TimelineItemAction.Unpin, eventItem))
             advanceUntilIdle()
 
             cancelAndIgnoreRemainingEvents()
@@ -210,20 +185,18 @@ class PinnedMessagesListPresenterTest {
         val pinnedEventsTimeline = createPinnedMessagesTimeline()
         val room = FakeJoinedRoom(
             baseRoom = FakeBaseRoom(
-            canRedactOwnResult = { Result.success(true) },
-            canRedactOtherResult = { Result.success(true) },
-            canUserPinUnpinResult = { Result.success(true) },
-        ).apply {
-            givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
-        },
+                roomPermissions = roomPermissions(),
+            ).apply {
+                givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
+            },
             createTimelineResult = { Result.success(pinnedEventsTimeline) },
         )
-        val presenter = createPinnedMessagesListPresenter(room = room, navigator = navigator, isFeatureEnabled = true)
+        val presenter = createPinnedMessagesListPresenter(room = room, navigator = navigator)
         presenter.test {
             skipItems(3)
             val filledState = awaitItem() as PinnedMessagesListState.Filled
             val eventItem = filledState.timelineItems.first() as TimelineItem.Event
-            filledState.eventSink(PinnedMessagesListEvents.HandleAction(TimelineItemAction.ViewInTimeline, eventItem))
+            filledState.eventSink(PinnedMessagesListEvent.HandleAction(TimelineItemAction.ViewInTimeline, eventItem))
             advanceUntilIdle()
             cancelAndIgnoreRemainingEvents()
             assert(onViewInTimelineClickLambda)
@@ -241,20 +214,18 @@ class PinnedMessagesListPresenterTest {
         val pinnedEventsTimeline = createPinnedMessagesTimeline()
         val room = FakeJoinedRoom(
             baseRoom = FakeBaseRoom(
-            canRedactOwnResult = { Result.success(true) },
-            canRedactOtherResult = { Result.success(true) },
-            canUserPinUnpinResult = { Result.success(true) },
-        ).apply {
-            givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
-        },
+                roomPermissions = roomPermissions(),
+            ).apply {
+                givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
+            },
             createTimelineResult = { Result.success(pinnedEventsTimeline) },
         )
-        val presenter = createPinnedMessagesListPresenter(room = room, navigator = navigator, isFeatureEnabled = true)
+        val presenter = createPinnedMessagesListPresenter(room = room, navigator = navigator)
         presenter.test {
             skipItems(3)
             val filledState = awaitItem() as PinnedMessagesListState.Filled
             val eventItem = filledState.timelineItems.first() as TimelineItem.Event
-            filledState.eventSink(PinnedMessagesListEvents.HandleAction(TimelineItemAction.ViewSource, eventItem))
+            filledState.eventSink(PinnedMessagesListEvent.HandleAction(TimelineItemAction.ViewSource, eventItem))
             advanceUntilIdle()
             cancelAndIgnoreRemainingEvents()
             assert(onShowEventDebugInfoClickLambda)
@@ -272,20 +243,18 @@ class PinnedMessagesListPresenterTest {
         val pinnedEventsTimeline = createPinnedMessagesTimeline()
         val room = FakeJoinedRoom(
             baseRoom = FakeBaseRoom(
-            canRedactOwnResult = { Result.success(true) },
-            canRedactOtherResult = { Result.success(true) },
-            canUserPinUnpinResult = { Result.success(true) },
-        ).apply {
-            givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
-        },
+                roomPermissions = roomPermissions(),
+            ).apply {
+                givenRoomInfo(aRoomInfo(pinnedEventIds = listOf(AN_EVENT_ID)))
+            },
             createTimelineResult = { Result.success(pinnedEventsTimeline) },
         )
-        val presenter = createPinnedMessagesListPresenter(room = room, navigator = navigator, isFeatureEnabled = true)
+        val presenter = createPinnedMessagesListPresenter(room = room, navigator = navigator)
         presenter.test {
             skipItems(3)
             val filledState = awaitItem() as PinnedMessagesListState.Filled
             val eventItem = filledState.timelineItems.first() as TimelineItem.Event
-            filledState.eventSink(PinnedMessagesListEvents.HandleAction(TimelineItemAction.Forward, eventItem))
+            filledState.eventSink(PinnedMessagesListEvent.HandleAction(TimelineItemAction.Forward, eventItem))
             advanceUntilIdle()
             cancelAndIgnoreRemainingEvents()
             assert(onForwardEventClickLambda)
@@ -311,19 +280,26 @@ class PinnedMessagesListPresenterTest {
         )
     }
 
+    private fun roomPermissions(
+        canRedactOther: Boolean = true,
+        canRedactOwn: Boolean = true,
+        canPinUnpin: Boolean = true,
+    ) = FakeRoomPermissions(
+        canRedactOther = canRedactOther,
+        canRedactOwn = canRedactOwn,
+        canPinUnpin = canPinUnpin,
+    )
+
     private fun TestScope.createPinnedMessagesListPresenter(
         navigator: PinnedMessagesListNavigator = FakePinnedMessagesListNavigator(),
         room: JoinedRoom = FakeJoinedRoom(),
         syncService: SyncService = FakeSyncService(),
-        isFeatureEnabled: Boolean = true,
         analyticsService: AnalyticsService = FakeAnalyticsService(),
+        featureFlagService: FakeFeatureFlagService = FakeFeatureFlagService(),
     ): PinnedMessagesListPresenter {
-        val timelineProvider = PinnedEventsTimelineProvider(
+        val timelineProvider = DefaultPinnedEventsTimelineProvider(
             room = room,
             syncService = syncService,
-            featureFlagService = FakeFeatureFlagService(
-                initialState = mapOf(FeatureFlags.PinnedEvents.key to isFeatureEnabled)
-            ),
             dispatchers = testCoroutineDispatchers(),
         )
         timelineProvider.launchIn(backgroundScope)
@@ -337,7 +313,9 @@ class PinnedMessagesListPresenterTest {
             actionListPresenter = { anActionListState() },
             linkPresenter = { aLinkState() },
             analyticsService = analyticsService,
-            appCoroutineScope = this,
+            featureFlagService = featureFlagService,
+            sessionCoroutineScope = this,
+            htmlConverterProvider = FakeHtmlConverterProvider(),
         )
     }
 }

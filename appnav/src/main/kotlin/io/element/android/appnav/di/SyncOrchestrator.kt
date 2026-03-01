@@ -1,23 +1,28 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.appnav.di
 
 import androidx.annotation.VisibleForTesting
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.features.networkmonitor.api.NetworkMonitor
 import io.element.android.features.networkmonitor.api.NetworkStatus
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.core.coroutine.childScope
-import io.element.android.libraries.matrix.api.MatrixClient
+import io.element.android.libraries.matrix.api.sync.SyncService
 import io.element.android.libraries.matrix.api.sync.SyncState
+import io.element.android.services.analytics.api.AnalyticsService
+import io.element.android.services.analytics.api.recordTransaction
+import io.element.android.services.analyticsproviders.api.AnalyticsUserData
 import io.element.android.services.appnavstate.api.AppForegroundStateService
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
@@ -30,22 +35,26 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
-class SyncOrchestrator @AssistedInject constructor(
-    @Assisted matrixClient: MatrixClient,
+@AssistedInject
+class SyncOrchestrator(
+    @Assisted private val syncService: SyncService,
+    @Assisted sessionCoroutineScope: CoroutineScope,
     private val appForegroundStateService: AppForegroundStateService,
     private val networkMonitor: NetworkMonitor,
     dispatchers: CoroutineDispatchers,
+    private val analyticsService: AnalyticsService,
 ) {
     @AssistedFactory
     interface Factory {
-        fun create(matrixClient: MatrixClient): SyncOrchestrator
+        fun create(
+            syncService: SyncService,
+            sessionCoroutineScope: CoroutineScope,
+        ): SyncOrchestrator
     }
-
-    private val syncService = matrixClient.syncService()
 
     private val tag = "SyncOrchestrator"
 
-    private val coroutineScope = matrixClient.sessionCoroutineScope.childScope(dispatchers.io, tag)
+    private val coroutineScope = sessionCoroutineScope.childScope(dispatchers.io, tag)
 
     private val started = AtomicBoolean(false)
 
@@ -64,10 +73,13 @@ class SyncOrchestrator @AssistedInject constructor(
             // Perform an initial sync if the sync service is not running, to check whether the homeserver is accessible
             // Otherwise, if the device is offline the sync service will never start and the SyncState will be Idle, not Offline
             Timber.tag(tag).d("performing initial sync attempt")
-            syncService.startSync()
+            analyticsService.recordTransaction("First sync", "syncService.startSync()") { transaction ->
+                syncService.startSync()
 
-            // Wait until the sync service is not idle, either it will be running or in error/offline state
-            syncService.syncState.first { it != SyncState.Idle }
+                // Wait until the sync service is not idle, either it will be running or in error/offline state
+                val firstState = syncService.syncState.first { it != SyncState.Idle }
+                transaction.putIndexableData(AnalyticsUserData.FIRST_SYNC_STATE, firstState.name)
+            }
 
             observeStates()
         }

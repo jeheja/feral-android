@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,8 +12,12 @@ import android.content.Context
 import android.os.Build
 import androidx.core.net.toFile
 import androidx.core.net.toUri
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.Provider
+import dev.zacsweers.metro.SingleIn
 import io.element.android.appconfig.RageshakeConfig
+import io.element.android.features.rageshake.api.logs.createWriteToFilesConfiguration
 import io.element.android.features.rageshake.api.reporter.BugReporter
 import io.element.android.features.rageshake.api.reporter.BugReporterListener
 import io.element.android.features.rageshake.impl.crash.CrashDataStore
@@ -23,21 +28,29 @@ import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.core.data.tryOrNull
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.core.mimetype.MimeTypes
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.ApplicationContext
-import io.element.android.libraries.di.SingleIn
+import io.element.android.libraries.di.annotations.AppCoroutineScope
+import io.element.android.libraries.di.annotations.ApplicationContext
 import io.element.android.libraries.matrix.api.MatrixClientProvider
 import io.element.android.libraries.matrix.api.SdkMetadata
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.tracing.TracingService
 import io.element.android.libraries.network.useragent.UserAgentProvider
 import io.element.android.libraries.sessionstorage.api.SessionStore
+import io.element.android.libraries.sessionstorage.api.sessionIdFlow
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import org.json.JSONException
 import org.json.JSONObject
@@ -51,16 +64,16 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import javax.inject.Inject
-import javax.inject.Provider
 
 /**
  * BugReporter creates and sends the bug reports.
  */
 @SingleIn(AppScope::class)
 @ContributesBinding(AppScope::class)
-class DefaultBugReporter @Inject constructor(
+class DefaultBugReporter(
     @ApplicationContext private val context: Context,
+    @AppCoroutineScope
+    private val appCoroutineScope: CoroutineScope,
     private val screenshotHolder: ScreenshotHolder,
     private val crashDataStore: CrashDataStore,
     private val coroutineDispatchers: CoroutineDispatchers,
@@ -71,6 +84,7 @@ class DefaultBugReporter @Inject constructor(
     private val bugReporterUrlProvider: BugReporterUrlProvider,
     private val sdkMetadata: SdkMetadata,
     private val matrixClientProvider: MatrixClientProvider,
+    private val tracingService: TracingService,
 ) : BugReporter {
     companion object {
         // filenames
@@ -81,7 +95,27 @@ class DefaultBugReporter @Inject constructor(
     private val logcatCommandDebug = arrayOf("logcat", "-d", "-v", "threadtime", "*:*")
     private var currentTracingLogLevel: String? = null
 
-    private val logCatErrFile = File(logDirectory().absolutePath, LOG_CAT_FILENAME)
+    private val baseLogDirectory = File(context.cacheDir, LOG_DIRECTORY_NAME)
+    private var currentLogDirectory: File = baseLogDirectory
+
+    init {
+        if (buildMeta.isEnterpriseBuild) {
+            val logSubfolder = runBlocking {
+                sessionStore.getLatestSession()
+            }?.userId?.let(::UserId)?.domainName
+            setCurrentLogDirectory(logSubfolder)
+            sessionStore.sessionIdFlow()
+                .map {
+                    it?.let(::UserId)?.domainName
+                }
+                .distinctUntilChanged()
+                .onEach { logSubfolder ->
+                    setCurrentLogDirectory(logSubfolder)
+                    tracingService.updateWriteToFilesConfiguration(createWriteToFilesConfiguration())
+                }
+                .launchIn(appCoroutineScope)
+        }
+    }
 
     override suspend fun sendBugReport(
         withDevicesLogs: Boolean,
@@ -89,11 +123,22 @@ class DefaultBugReporter @Inject constructor(
         withScreenshot: Boolean,
         problemDescription: String,
         canContact: Boolean,
+        sendPushRules: Boolean,
         listener: BugReporterListener,
     ) {
+        val url = bugReporterUrlProvider.provide().first()
+        if (url == null) {
+            // It should not happen, but if the URL is null, we cannot proceed
+            Timber.e("## sendBugReport() : bug report URL is null")
+            error("Bug report URL is null, cannot send bug report")
+        }
         // enumerate files to delete
         val bugReportFiles: MutableList<File> = ArrayList()
         var response: Response? = null
+
+        // Start at something like 1000 lines to have some 'buffer' in case unexpected lines were added
+        var totalLogLines = 1000L
+
         try {
             var serverError: String? = null
             withContext(coroutineDispatchers.io) {
@@ -106,23 +151,23 @@ class DefaultBugReporter @Inject constructor(
                     }
                 }
                 val gzippedFiles = mutableListOf<File>()
-                if (withDevicesLogs) {
-                    val files = getLogFiles().sortedByDescending { it.lastModified() }
-                    files.mapNotNullTo(gzippedFiles) { file ->
-                        when {
-                            file.extension == "gz" -> file
-                            else -> compressFile(file)
-                        }
-                    }
-                }
+                var filesTooBig = emptyList<String>()
+
                 if (withCrashLogs || withDevicesLogs) {
                     saveLogCat()
-                    val gzippedLogcat = compressFile(logCatErrFile)
-                    if (gzippedLogcat != null) {
-                        gzippedFiles.add(0, gzippedLogcat)
-                    }
+                        ?.takeIf { it.length() < RageshakeConfig.MAX_LOG_CONTENT_SIZE }
+                        ?.takeIf { countLogLines(it) + totalLogLines < RageshakeConfig.MAX_LOG_LINES_SIZE }
+                        ?.let { logCatFile ->
+                            compressFile(logCatFile).also {
+                                logCatFile.safeDelete()
+                            }
+                        }
+                        ?.let { gzippedLogcat ->
+                            gzippedFiles.add(0, gzippedLogcat)
+                        }
                 }
                 val sessionData = sessionStore.getLatestSession()
+                val numberOfAccounts = sessionStore.numberOfSessions()
                 val deviceId = sessionData?.deviceId ?: "undefined"
                 val userId = sessionData?.userId?.let { UserId(it) }
                 // build the multi part request
@@ -131,6 +176,7 @@ class DefaultBugReporter @Inject constructor(
                     .addFormDataPart("app", RageshakeConfig.BUG_REPORT_APP_NAME)
                     .addFormDataPart("user_agent", userAgentProvider.provide())
                     .addFormDataPart("user_id", userId?.toString() ?: "undefined")
+                    .addFormDataPart("number_of_accounts", numberOfAccounts.toString())
                     .addFormDataPart("can_contact", canContact.toString())
                     .addFormDataPart("device_id", deviceId)
                     .addFormDataPart("device", Build.MODEL.trim())
@@ -144,15 +190,68 @@ class DefaultBugReporter @Inject constructor(
                     .addFormDataPart("label", buildMeta.versionName)
                     .addFormDataPart("label", buildMeta.flavorDescription)
                     .addFormDataPart("branch_name", buildMeta.gitBranchName)
+
                 userId?.let {
                     matrixClientProvider.getOrNull(it)?.let { client ->
-                        val curveKey = client.encryptionService().deviceCurve25519()
-                        val edKey = client.encryptionService().deviceEd25519()
+                        val curveKey = client.encryptionService.deviceCurve25519()
+                        val edKey = client.encryptionService.deviceEd25519()
                         if (curveKey != null && edKey != null) {
                             builder.addFormDataPart("device_keys", "curve25519:$curveKey, ed25519:$edKey")
                         }
+
+                        if (sendPushRules) {
+                            client.notificationSettingsService.getRawPushRules().getOrNull()?.let { pushRules ->
+                                val logLines = pushRules.lineSequence().count()
+
+                                if (totalLogLines + logLines < RageshakeConfig.MAX_LOG_LINES_SIZE) {
+                                    builder.addFormDataPart(
+                                        name = "file",
+                                        filename = "push_rules.json",
+                                        body = pushRules.toByteArray().toRequestBody(MimeTypes.Json.toMediaTypeOrNull())
+                                    )
+                                } else {
+                                    Timber.w("Could not upload push rules because it would exceed the max log lines size")
+                                }
+                            }
+                        }
                     }
                 }
+
+                if (withDevicesLogs) {
+                    val files = getLogFiles().sortedByDescending { it.lastModified() }
+                    val filesBySize = files.groupBy {
+                        it.length() < RageshakeConfig.MAX_LOG_CONTENT_SIZE
+                    }.toMutableMap()
+
+                    filesBySize[true].orEmpty().mapNotNullTo(gzippedFiles) { file ->
+                        val logLines = countLogLines(file)
+                        totalLogLines += logLines
+
+                        when {
+                            totalLogLines > RageshakeConfig.MAX_LOG_LINES_SIZE -> {
+                                // Add it to the list of omitted files too
+                                (filesBySize.getOrPut(false) { mutableListOf() } as MutableList<File>).add(file)
+
+                                Timber.e(
+                                    "Could not upload file ${file.name} because it would exceed the max log lines size " +
+                                        "($totalLogLines/${RageshakeConfig.MAX_LOG_LINES_SIZE}"
+                                )
+
+                                totalLogLines -= logLines
+
+                                null
+                            }
+                            file.extension == "gz" -> file
+                            else -> compressFile(file)
+                        }
+                    }
+                    filesTooBig = filesBySize[false].orEmpty().map { it.name }
+                }
+
+                if (filesTooBig.isNotEmpty()) {
+                    builder.addFormDataPart("omitted_logs", filesTooBig.toString())
+                }
+
                 if (crashCallStack.isNotEmpty() && withCrashLogs) {
                     builder.addFormDataPart("label", "crash")
                 }
@@ -220,13 +319,13 @@ class DefaultBugReporter @Inject constructor(
                 }
                 // build the request
                 val request = Request.Builder()
-                    .url(bugReporterUrlProvider.provide())
+                    .url(url)
                     .post(requestBody)
                     .build()
                 var errorMessage: String? = null
                 // trigger the request
                 try {
-                    response = okHttpClient.get()
+                    response = okHttpClient()
                         .newCall(request)
                         .execute()
                 } catch (e: CancellationException) {
@@ -286,16 +385,37 @@ class DefaultBugReporter @Inject constructor(
     }
 
     override fun logDirectory(): File {
-        return File(context.cacheDir, LOG_DIRECTORY_NAME).apply {
+        return currentLogDirectory.apply {
             mkdirs()
+        }
+    }
+
+    private fun setCurrentLogDirectory(subfolderName: String?) {
+        currentLogDirectory = if (subfolderName == null) {
+            baseLogDirectory
+        } else {
+            File(baseLogDirectory, subfolderName)
         }
     }
 
     suspend fun deleteAllFiles(predicate: (File) -> Boolean) {
         withContext(coroutineDispatchers.io) {
-            getLogFiles()
-                .filter(predicate)
-                .forEach { it.safeDelete() }
+            deleteAllFilesRecursive(baseLogDirectory, predicate)
+        }
+    }
+
+    private fun deleteAllFilesRecursive(
+        directory: File,
+        predicate: (File) -> Boolean,
+    ) {
+        directory.listFiles()?.forEach { file ->
+            if (file.isDirectory) {
+                deleteAllFilesRecursive(file, predicate)
+            } else {
+                if (predicate(file)) {
+                    file.safeDelete()
+                }
+            }
         }
     }
 
@@ -308,10 +428,14 @@ class DefaultBugReporter @Inject constructor(
      */
     private fun getLogFiles(): List<File> {
         return tryOrNull(
-            onError = { Timber.e(it, "## getLogFiles() failed") }
+            onException = { Timber.e(it, "## getLogFiles() failed") }
         ) {
             val logDirectory = logDirectory()
-            logDirectory.listFiles()?.toList()
+            logDirectory.listFiles()
+                ?.filter {
+                    it.isFile &&
+                        !it.name.endsWith(LOG_CAT_FILENAME)
+                }
         }.orEmpty()
     }
 
@@ -324,18 +448,19 @@ class DefaultBugReporter @Inject constructor(
      *
      * @return the file if the operation succeeds
      */
-    override fun saveLogCat() {
-        if (logCatErrFile.exists()) {
-            logCatErrFile.safeDelete()
+    override fun saveLogCat(): File? {
+        val file = File(baseLogDirectory, LOG_CAT_FILENAME)
+        if (file.exists()) {
+            file.safeDelete()
         }
-        try {
-            logCatErrFile.writer().use {
-                getLogCatError(it)
+        return try {
+            file.writer().use {
+                getLogCatContent(it)
             }
-        } catch (error: OutOfMemoryError) {
-            Timber.e(error, "## saveLogCat() : fail to write logcat OOM")
+            file
         } catch (e: Exception) {
             Timber.e(e, "## saveLogCat() : fail to write logcat")
+            null
         }
     }
 
@@ -344,15 +469,10 @@ class DefaultBugReporter @Inject constructor(
      *
      * @param streamWriter the stream writer
      */
-    private fun getLogCatError(streamWriter: OutputStreamWriter) {
-        val logcatProcess: Process
-
-        try {
-            logcatProcess = Runtime.getRuntime().exec(logcatCommandDebug)
-        } catch (e1: IOException) {
-            return
-        }
-
+    private fun getLogCatContent(streamWriter: OutputStreamWriter) {
+        val logcatProcess = tryOrNull {
+            Runtime.getRuntime().exec(logcatCommandDebug)
+        } ?: return
         try {
             val separator = System.lineSeparator()
             logcatProcess.inputStream
@@ -363,7 +483,11 @@ class DefaultBugReporter @Inject constructor(
                     streamWriter.append(separator)
                 }
         } catch (e: IOException) {
-            Timber.e(e, "getLog fails")
+            Timber.e(e, "getLogCatContent fails")
         }
+    }
+
+    private fun countLogLines(file: File): Int {
+        return file.reader().useLines { it.count() }
     }
 }

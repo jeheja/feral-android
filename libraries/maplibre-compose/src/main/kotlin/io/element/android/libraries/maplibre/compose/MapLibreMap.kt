@@ -1,14 +1,15 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  * Copyright 2021 Google LLC
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.maplibre.compose
 
-import android.content.ComponentCallbacks
+import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
@@ -71,10 +72,7 @@ public fun MapLibreMap(
     uiSettings: MapUiSettings = DefaultMapUiSettings,
     symbolManagerSettings: MapSymbolManagerSettings = DefaultMapSymbolManagerSettings,
     locationSettings: MapLocationSettings = DefaultMapLocationSettings,
-    content: (
-        @Composable @MapLibreMapComposable
-        () -> Unit
-    )? = null,
+    content: (@Composable @MapLibreMapComposable () -> Unit)? = null,
 ) {
     // When in preview, early return a Box with the received modifier preserving layout
     if (LocalInspectionMode.current) {
@@ -235,11 +233,15 @@ private fun MapView.lifecycleObserver(previousState: MutableState<Lifecycle.Even
         previousState.value = event
     }
 
-private fun MapView.componentCallbacks(): ComponentCallbacks =
-    object : ComponentCallbacks {
-        override fun onConfigurationChanged(config: Configuration) {}
+private fun MapView.componentCallbacks(): ComponentCallbacks2 =
+    object : ComponentCallbacks2 {
+        override fun onConfigurationChanged(config: Configuration) = Unit
 
-        override fun onLowMemory() {
+        @Suppress("OVERRIDE_DEPRECATION")
+        override fun onLowMemory() = Unit
+
+        override fun onTrimMemory(level: Int) {
+            // We call the `MapView.onLowMemory` method for any memory trim level
             this@componentCallbacks.onLowMemory()
         }
     }

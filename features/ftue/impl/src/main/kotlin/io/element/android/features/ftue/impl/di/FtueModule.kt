@@ -1,22 +1,23 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.ftue.impl.di
 
-import com.squareup.anvil.annotations.ContributesTo
-import dagger.Binds
-import dagger.Module
+import dev.zacsweers.metro.BindingContainer
+import dev.zacsweers.metro.Binds
+import dev.zacsweers.metro.ContributesTo
 import io.element.android.features.ftue.impl.sessionverification.choosemode.ChooseSelfVerificationModePresenter
 import io.element.android.features.ftue.impl.sessionverification.choosemode.ChooseSelfVerificationModeState
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.di.SessionScope
 
 @ContributesTo(SessionScope::class)
-@Module
+@BindingContainer
 interface FtueModule {
     @Binds
     fun bindChooseSelfVerificationMethodPresenter(presenter: ChooseSelfVerificationModePresenter): Presenter<ChooseSelfVerificationModeState>

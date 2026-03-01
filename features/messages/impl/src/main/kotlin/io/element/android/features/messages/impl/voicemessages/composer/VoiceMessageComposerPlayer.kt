@@ -1,13 +1,16 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.messages.impl.voicemessages.composer
 
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.core.mimetype.MimeTypes
+import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.mediaplayer.api.MediaPlayer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -20,17 +23,18 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
 
 /**
  * A media player for the voice message composer.
  *
  * @param mediaPlayer The [MediaPlayer] to use.
- * @param coroutineScope
+ * @param sessionCoroutineScope
  */
-class VoiceMessageComposerPlayer @Inject constructor(
+@Inject
+class VoiceMessageComposerPlayer(
     private val mediaPlayer: MediaPlayer,
-    private val coroutineScope: CoroutineScope,
+    @SessionCoroutineScope
+    private val sessionCoroutineScope: CoroutineScope,
 ) {
     companion object {
         const val MIME_TYPE = MimeTypes.Ogg
@@ -116,7 +120,7 @@ class VoiceMessageComposerPlayer @Inject constructor(
 
         seekJob?.cancelAndJoin()
         seekingTo.value = position
-        seekJob = coroutineScope.launch {
+        seekJob = sessionCoroutineScope.launch {
             val mediaState = mediaPlayer.ensureMediaReady(mediaPath)
             val duration = mediaState.duration ?: return@launch
             val positionMs = (duration * position).toLong()

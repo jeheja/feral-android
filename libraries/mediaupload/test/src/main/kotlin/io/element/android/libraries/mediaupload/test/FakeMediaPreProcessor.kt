@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,6 +14,7 @@ import io.element.android.libraries.matrix.api.media.AudioInfo
 import io.element.android.libraries.matrix.api.media.FileInfo
 import io.element.android.libraries.matrix.api.media.ImageInfo
 import io.element.android.libraries.matrix.api.media.VideoInfo
+import io.element.android.libraries.mediaupload.api.MediaOptimizationConfig
 import io.element.android.libraries.mediaupload.api.MediaPreProcessor
 import io.element.android.libraries.mediaupload.api.MediaUploadInfo
 import io.element.android.tests.testutils.simulateLongTask
@@ -24,6 +26,9 @@ class FakeMediaPreProcessor(
     private val processLatch: CompletableDeferred<Unit>? = null,
 ) : MediaPreProcessor {
     var processCallCount = 0
+        private set
+
+    var cleanUpCallCount = 0
         private set
 
     private var result: Result<MediaUploadInfo> = Result.success(
@@ -42,7 +47,7 @@ class FakeMediaPreProcessor(
         uri: Uri,
         mimeType: String,
         deleteOriginal: Boolean,
-        compressIfPossible: Boolean
+        mediaOptimizationConfig: MediaOptimizationConfig,
     ): Result<MediaUploadInfo> = simulateLongTask {
         processLatch?.await()
         processCallCount++
@@ -107,5 +112,9 @@ class FakeMediaPreProcessor(
                 )
             )
         )
+    }
+
+    override fun cleanUp() {
+        cleanUpCallCount += 1
     }
 }

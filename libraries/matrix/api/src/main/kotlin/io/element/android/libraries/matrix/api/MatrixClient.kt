@@ -1,16 +1,18 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.api
 
 import io.element.android.libraries.core.data.tryOrNull
+import io.element.android.libraries.matrix.api.analytics.SdkStoreSizes
 import io.element.android.libraries.matrix.api.core.DeviceId
+import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.MatrixPatterns
-import io.element.android.libraries.matrix.api.core.ProgressCallback
 import io.element.android.libraries.matrix.api.core.RoomAlias
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.RoomIdOrAlias
@@ -18,7 +20,10 @@ import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.createroom.CreateRoomParameters
 import io.element.android.libraries.matrix.api.encryption.EncryptionService
+import io.element.android.libraries.matrix.api.linknewdevice.LinkDesktopHandler
+import io.element.android.libraries.matrix.api.linknewdevice.LinkMobileHandler
 import io.element.android.libraries.matrix.api.media.MatrixMediaLoader
+import io.element.android.libraries.matrix.api.media.MediaPreviewService
 import io.element.android.libraries.matrix.api.notification.NotificationService
 import io.element.android.libraries.matrix.api.notificationsettings.NotificationSettingsService
 import io.element.android.libraries.matrix.api.oidc.AccountManagementAction
@@ -31,9 +36,10 @@ import io.element.android.libraries.matrix.api.room.RoomMembershipObserver
 import io.element.android.libraries.matrix.api.room.alias.ResolvedRoomAlias
 import io.element.android.libraries.matrix.api.roomdirectory.RoomDirectoryService
 import io.element.android.libraries.matrix.api.roomlist.RoomListService
-import io.element.android.libraries.matrix.api.roomlist.RoomSummary
+import io.element.android.libraries.matrix.api.spaces.SpaceService
 import io.element.android.libraries.matrix.api.sync.SlidingSyncVersion
 import io.element.android.libraries.matrix.api.sync.SyncService
+import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.user.MatrixSearchUserResults
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.api.verification.SessionVerificationService
@@ -41,8 +47,6 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import java.util.Optional
 
 interface MatrixClient {
@@ -50,12 +54,23 @@ interface MatrixClient {
     val deviceId: DeviceId
     val userProfile: StateFlow<MatrixUser>
     val roomListService: RoomListService
-    val mediaLoader: MatrixMediaLoader
+    val spaceService: SpaceService
+    val syncService: SyncService
+    val sessionVerificationService: SessionVerificationService
+    val pushersService: PushersService
+    val notificationService: NotificationService
+    val notificationSettingsService: NotificationSettingsService
+    val encryptionService: EncryptionService
+    val roomDirectoryService: RoomDirectoryService
+    val mediaPreviewService: MediaPreviewService
+    val matrixMediaLoader: MatrixMediaLoader
     val sessionCoroutineScope: CoroutineScope
     val ignoredUsersFlow: StateFlow<ImmutableList<UserId>>
+    val roomMembershipObserver: RoomMembershipObserver
     suspend fun getJoinedRoom(roomId: RoomId): JoinedRoom?
     suspend fun getRoom(roomId: RoomId): BaseRoom?
-    suspend fun findDM(userId: UserId): RoomId?
+    suspend fun findDM(userId: UserId): Result<RoomId?>
+    suspend fun getJoinedRoomIds(): Result<Set<RoomId>>
     suspend fun ignoreUser(userId: UserId): Result<Unit>
     suspend fun unignoreUser(userId: UserId): Result<Unit>
     suspend fun createRoom(createRoomParams: CreateRoomParameters): Result<RoomId>
@@ -65,17 +80,11 @@ interface MatrixClient {
     suspend fun setDisplayName(displayName: String): Result<Unit>
     suspend fun uploadAvatar(mimeType: String, data: ByteArray): Result<Unit>
     suspend fun removeAvatar(): Result<Unit>
-    suspend fun joinRoom(roomId: RoomId): Result<RoomSummary?>
-    suspend fun joinRoomByIdOrAlias(roomIdOrAlias: RoomIdOrAlias, serverNames: List<String>): Result<RoomSummary?>
-    suspend fun knockRoom(roomIdOrAlias: RoomIdOrAlias, message: String, serverNames: List<String>): Result<RoomSummary?>
-    fun syncService(): SyncService
-    fun sessionVerificationService(): SessionVerificationService
-    fun pushersService(): PushersService
-    fun notificationService(): NotificationService
-    fun notificationSettingsService(): NotificationSettingsService
-    fun encryptionService(): EncryptionService
-    fun roomDirectoryService(): RoomDirectoryService
+    suspend fun joinRoom(roomId: RoomId): Result<RoomInfo?>
+    suspend fun joinRoomByIdOrAlias(roomIdOrAlias: RoomIdOrAlias, serverNames: List<String>): Result<RoomInfo?>
+    suspend fun knockRoom(roomIdOrAlias: RoomIdOrAlias, message: String, serverNames: List<String>): Result<RoomInfo?>
     suspend fun getCacheSize(): Long
+    suspend fun getDatabaseSizes(): Result<SdkStoreSizes>
 
     /**
      * Will close the client and delete the cache data.
@@ -95,15 +104,14 @@ interface MatrixClient {
      */
     suspend fun getUserProfile(): Result<MatrixUser>
     suspend fun getAccountManagementUrl(action: AccountManagementAction?): Result<String?>
-    suspend fun uploadMedia(mimeType: String, data: ByteArray, progressCallback: ProgressCallback?): Result<String>
-    fun roomMembershipObserver(): RoomMembershipObserver
+    suspend fun uploadMedia(mimeType: String, data: ByteArray): Result<String>
 
     /**
-     * Get a room summary flow for a given room ID or alias.
-     * The flow will emit a new value whenever the room summary is updated.
+     * Get a room info flow for a given room ID.
+     * The flow will emit a new value whenever the room info is updated.
      * The flow will emit Optional.empty item if the room is not found.
      */
-    fun getRoomSummaryFlow(roomIdOrAlias: RoomIdOrAlias): Flow<Optional<RoomSummary>>
+    fun getRoomInfoFlow(roomId: RoomId): Flow<Optional<RoomInfo>>
 
     fun isMe(userId: UserId?) = userId == sessionId
 
@@ -143,7 +151,7 @@ interface MatrixClient {
     /**
      * Execute generic GET requests through the SDKs internal HTTP client.
      */
-    suspend fun getUrl(url: String): Result<String>
+    suspend fun getUrl(url: String): Result<ByteArray>
 
     /**
      * Get a room preview for a given room ID or alias. This is especially useful for rooms that the user is not a member of, or hasn't joined yet.
@@ -155,11 +163,6 @@ interface MatrixClient {
      */
     suspend fun currentSlidingSyncVersion(): Result<SlidingSyncVersion>
 
-    /**
-     * Returns the available sliding sync versions for the current user.
-     */
-    suspend fun availableSlidingSyncVersions(): Result<List<SlidingSyncVersion>>
-
     fun canDeactivateAccount(): Boolean
     suspend fun deactivateAccount(password: String, eraseData: Boolean): Result<Unit>
 
@@ -167,17 +170,59 @@ interface MatrixClient {
      * Check if the user can report a room.
      */
     suspend fun canReportRoom(): Boolean
-}
 
-/**
- * Get a room info flow for a given room ID or alias.
- * The flow will emit a new value whenever the room info is updated.
- * The flow will emit Optional.empty item if the room is not found.
- */
-fun MatrixClient.getRoomInfoFlow(roomIdOrAlias: RoomIdOrAlias): Flow<Optional<RoomInfo>> {
-    return getRoomSummaryFlow(roomIdOrAlias)
-        .map { roomSummary -> roomSummary.map { it.info } }
-        .distinctUntilChanged()
+    /**
+     * Return true if Livekit Rtc is supported, i.e. if Element Call is available.
+     */
+    suspend fun isLivekitRtcSupported(): Boolean
+
+    /**
+     * Returns the maximum file upload size allowed by the Matrix server.
+     */
+    suspend fun getMaxFileUploadSize(): Result<Long>
+
+    /**
+     * Returns the list of shared recent emoji reactions for this account.
+     */
+    suspend fun getRecentEmojis(): Result<List<String>>
+
+    /**
+     * Adds an emoji to the list of recent emoji reactions for this account.
+     */
+    suspend fun addRecentEmoji(emoji: String): Result<Unit>
+
+    /**
+     * Marks the room with the provided [roomId] as read, sending a fully read receipt for [eventId].
+     *
+     * This method should be used with caution as providing the [eventId] ourselves can result in incorrect read receipts.
+     * Use [Timeline.markAsRead] instead when possible.
+     */
+    suspend fun markRoomAsFullyRead(roomId: RoomId, eventId: EventId): Result<Unit>
+
+    /**
+     * Check if linking a new device using QrCode is supported by the server.
+     */
+    suspend fun canLinkNewDevice(): Result<Boolean>
+
+    /**
+     * Create a handler to link a new mobile device, i.e. a device capable of scanning QrCodes.
+     */
+    fun createLinkMobileHandler(): Result<LinkMobileHandler>
+
+    /**
+     * Create a handler to link a new desktop device, i.e. a device not capable of scanning QrCodes.
+     */
+    fun createLinkDesktopHandler(): Result<LinkDesktopHandler>
+
+    /**
+     * Performs a database optimization that should flush cached data and improve performance.
+     */
+    suspend fun performDatabaseVacuum(): Result<Unit>
+
+    /**
+     * Resets the cached client `well-known` config by the SDK.
+     */
+    suspend fun resetWellKnownConfig(): Result<Unit>
 }
 
 /**

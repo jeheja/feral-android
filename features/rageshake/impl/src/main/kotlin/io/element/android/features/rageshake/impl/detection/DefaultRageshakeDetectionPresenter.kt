@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,26 +12,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import com.squareup.anvil.annotations.ContributesBinding
-import io.element.android.features.rageshake.api.detection.RageshakeDetectionEvents
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import io.element.android.features.rageshake.api.detection.RageshakeDetectionEvent
 import io.element.android.features.rageshake.api.detection.RageshakeDetectionPresenter
 import io.element.android.features.rageshake.api.detection.RageshakeDetectionState
-import io.element.android.features.rageshake.api.preferences.RageshakePreferencesEvents
+import io.element.android.features.rageshake.api.preferences.RageshakePreferencesEvent
 import io.element.android.features.rageshake.api.preferences.RageshakePreferencesPresenter
 import io.element.android.features.rageshake.api.screenshot.ImageResult
 import io.element.android.features.rageshake.impl.rageshake.RageShake
 import io.element.android.features.rageshake.impl.screenshot.ScreenshotHolder
-import io.element.android.libraries.di.AppScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
 
 @ContributesBinding(AppScope::class)
-class DefaultRageshakeDetectionPresenter @Inject constructor(
+class DefaultRageshakeDetectionPresenter(
     private val screenshotHolder: ScreenshotHolder,
     private val rageShake: RageShake,
     private val preferencesPresenter: RageshakePreferencesPresenter,
@@ -49,27 +48,17 @@ class DefaultRageshakeDetectionPresenter @Inject constructor(
             mutableStateOf(false)
         }
 
-        fun handleEvents(event: RageshakeDetectionEvents) {
+        fun handleEvent(event: RageshakeDetectionEvent) {
             when (event) {
-                RageshakeDetectionEvents.Disable -> {
-                    preferencesState.eventSink(RageshakePreferencesEvents.SetIsEnabled(false))
+                RageshakeDetectionEvent.Disable -> {
+                    preferencesState.eventSink(RageshakePreferencesEvent.SetIsEnabled(false))
                     showDialog.value = false
                 }
-                RageshakeDetectionEvents.StartDetection -> isStarted.value = true
-                RageshakeDetectionEvents.StopDetection -> isStarted.value = false
-                is RageshakeDetectionEvents.ProcessScreenshot -> localCoroutineScope.processScreenshot(takeScreenshot, showDialog, event.imageResult)
-                RageshakeDetectionEvents.Dismiss -> showDialog.value = false
+                RageshakeDetectionEvent.StartDetection -> isStarted.value = true
+                RageshakeDetectionEvent.StopDetection -> isStarted.value = false
+                is RageshakeDetectionEvent.ProcessScreenshot -> localCoroutineScope.processScreenshot(takeScreenshot, showDialog, event.imageResult)
+                RageshakeDetectionEvent.Dismiss -> showDialog.value = false
             }
-        }
-
-        val state = remember(preferencesState, isStarted.value, takeScreenshot.value, showDialog.value) {
-            RageshakeDetectionState(
-                isStarted = isStarted.value,
-                takeScreenshot = takeScreenshot.value,
-                showDialog = showDialog.value,
-                preferenceState = preferencesState,
-                eventSink = ::handleEvents
-            )
         }
 
         LaunchedEffect(preferencesState.sensitivity) {
@@ -83,14 +72,25 @@ class DefaultRageshakeDetectionPresenter @Inject constructor(
             !showDialog.value
 
         LaunchedEffect(shouldStart) {
-            handleRageShake(shouldStart, state, takeScreenshot)
+            handleRageShake(
+                start = shouldStart,
+                sensitivity = preferencesState.sensitivity,
+                takeScreenshot = takeScreenshot,
+            )
         }
-        return state
+
+        return RageshakeDetectionState(
+            isStarted = isStarted.value,
+            takeScreenshot = takeScreenshot.value,
+            showDialog = showDialog.value,
+            preferenceState = preferencesState,
+            eventSink = ::handleEvent,
+        )
     }
 
-    private fun handleRageShake(start: Boolean, state: RageshakeDetectionState, takeScreenshot: MutableState<Boolean>) {
+    private fun handleRageShake(start: Boolean, sensitivity: Float, takeScreenshot: MutableState<Boolean>) {
         if (start) {
-            rageShake.start(state.preferenceState.sensitivity)
+            rageShake.start(sensitivity)
             rageShake.setInterceptor {
                 takeScreenshot.value = true
             }

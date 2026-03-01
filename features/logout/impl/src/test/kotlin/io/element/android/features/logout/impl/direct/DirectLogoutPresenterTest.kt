@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,7 +18,7 @@ import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.encryption.BackupUploadState
 import io.element.android.libraries.matrix.api.encryption.EncryptionService
-import io.element.android.libraries.matrix.test.A_THROWABLE
+import io.element.android.libraries.matrix.test.AN_EXCEPTION
 import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.encryption.FakeEncryptionService
 import io.element.android.tests.testutils.WarmUpRule
@@ -117,7 +118,7 @@ class DirectLogoutPresenterTest {
     fun `present - logout with error then cancel`() = runTest {
         val matrixClient = FakeMatrixClient().apply {
             logoutLambda = { _, _ ->
-                throw A_THROWABLE
+                throw AN_EXCEPTION
             }
         }
         val presenter = createDirectLogoutPresenter(
@@ -134,7 +135,7 @@ class DirectLogoutPresenterTest {
             val loadingState = awaitItem()
             assertThat(loadingState.logoutAction).isInstanceOf(AsyncAction.Loading::class.java)
             val errorState = awaitItem()
-            assertThat(errorState.logoutAction).isEqualTo(AsyncAction.Failure(A_THROWABLE))
+            assertThat(errorState.logoutAction).isEqualTo(AsyncAction.Failure(AN_EXCEPTION))
             errorState.eventSink.invoke(DirectLogoutEvents.CloseDialogs)
             val finalState = awaitItem()
             assertThat(finalState.logoutAction).isEqualTo(AsyncAction.Uninitialized)
@@ -146,9 +147,7 @@ class DirectLogoutPresenterTest {
         val matrixClient = FakeMatrixClient().apply {
             logoutLambda = { ignoreSdkError, _ ->
                 if (!ignoreSdkError) {
-                    throw A_THROWABLE
-                } else {
-                    null
+                    throw AN_EXCEPTION
                 }
             }
         }
@@ -166,7 +165,7 @@ class DirectLogoutPresenterTest {
             val loadingState = awaitItem()
             assertThat(loadingState.logoutAction).isInstanceOf(AsyncAction.Loading::class.java)
             val errorState = awaitItem()
-            assertThat(errorState.logoutAction).isEqualTo(AsyncAction.Failure(A_THROWABLE))
+            assertThat(errorState.logoutAction).isEqualTo(AsyncAction.Failure(AN_EXCEPTION))
             errorState.eventSink.invoke(DirectLogoutEvents.Logout(ignoreSdkError = true))
             val loadingState2 = awaitItem()
             assertThat(loadingState2.logoutAction).isInstanceOf(AsyncAction.Loading::class.java)

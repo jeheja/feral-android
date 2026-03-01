@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,11 +10,10 @@ package io.element.android.libraries.androidutils.file
 
 import android.content.Context
 import android.net.Uri
-import com.squareup.anvil.annotations.ContributesBinding
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.ApplicationContext
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
+import io.element.android.libraries.di.annotations.ApplicationContext
 import timber.log.Timber
-import javax.inject.Inject
 
 interface TemporaryUriDeleter {
     /**
@@ -23,7 +23,7 @@ interface TemporaryUriDeleter {
 }
 
 @ContributesBinding(AppScope::class)
-class DefaultTemporaryUriDeleter @Inject constructor(
+class DefaultTemporaryUriDeleter(
     @ApplicationContext private val context: Context,
 ) : TemporaryUriDeleter {
     private val baseCacheUri = "content://${context.packageName}.fileprovider/cache"

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,18 +12,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.encryption.EncryptionService
 import io.element.android.libraries.matrix.api.room.JoinedRoom
-import io.element.android.libraries.matrix.ui.room.observeRoomMemberIdentityStateChange
+import io.element.android.libraries.matrix.ui.room.roomMemberIdentityStateChange
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
 
-class IdentityChangeStatePresenter @Inject constructor(
+@Inject
+class IdentityChangeStatePresenter(
     private val room: JoinedRoom,
     private val encryptionService: EncryptionService,
 ) : Presenter<IdentityChangeState> {
@@ -30,7 +32,7 @@ class IdentityChangeStatePresenter @Inject constructor(
     override fun present(): IdentityChangeState {
         val coroutineScope = rememberCoroutineScope()
         val roomMemberIdentityStateChange by produceState(persistentListOf()) {
-            observeRoomMemberIdentityStateChange(room)
+            room.roomMemberIdentityStateChange(waitForEncryption = true).collect { value = it }
         }
 
         fun handleEvent(event: IdentityChangeEvent) {

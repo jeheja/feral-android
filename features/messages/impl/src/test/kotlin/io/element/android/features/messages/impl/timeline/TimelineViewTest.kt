@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.element.android.features.messages.impl.timeline.components.MessageShieldData
 import io.element.android.features.messages.impl.timeline.components.aCriticalShield
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemImageContent
@@ -24,9 +26,9 @@ import io.element.android.features.messages.impl.timeline.protection.TimelinePro
 import io.element.android.features.messages.impl.timeline.protection.aTimelineProtectionState
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.UniqueId
-import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageShield
+import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.tests.testutils.EnsureNeverCalled
 import io.element.android.tests.testutils.EnsureNeverCalledWithParam
@@ -36,7 +38,7 @@ import io.element.android.tests.testutils.clickOn
 import io.element.android.tests.testutils.setSafeContent
 import io.element.android.wysiwyg.link.Link
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestRule
@@ -48,7 +50,7 @@ class TimelineViewTest {
 
     @Test
     fun `reaching the end of the timeline with more events to load emits a LoadMore event`() {
-        val eventsRecorder = EventsRecorder<TimelineEvents>()
+        val eventsRecorder = EventsRecorder<TimelineEvent>()
         rule.setTimelineView(
             state = aTimelineState(
                 timelineItems = persistentListOf<TimelineItem>(
@@ -60,12 +62,12 @@ class TimelineViewTest {
                 eventSink = eventsRecorder,
             ),
         )
-        eventsRecorder.assertSingle(TimelineEvents.LoadMore(Timeline.PaginationDirection.BACKWARDS))
+        eventsRecorder.assertSingle(TimelineEvent.LoadMore(Timeline.PaginationDirection.BACKWARDS))
     }
 
     @Test
     fun `reaching the end of the timeline does not send a LoadMore event`() {
-        val eventsRecorder = EventsRecorder<TimelineEvents>(expectEvents = false)
+        val eventsRecorder = EventsRecorder<TimelineEvent>(expectEvents = false)
         rule.setTimelineView(
             state = aTimelineState(
                 eventSink = eventsRecorder,
@@ -75,7 +77,7 @@ class TimelineViewTest {
 
     @Test
     fun `scroll to bottom on live timeline does not emit the Event`() {
-        val eventsRecorder = EventsRecorder<TimelineEvents>(expectEvents = false)
+        val eventsRecorder = EventsRecorder<TimelineEvent>(expectEvents = false)
         rule.setTimelineView(
             state = aTimelineState(
                 isLive = true,
@@ -89,7 +91,7 @@ class TimelineViewTest {
 
     @Test
     fun `scroll to bottom on detached timeline emits the expected Event`() {
-        val eventsRecorder = EventsRecorder<TimelineEvents>()
+        val eventsRecorder = EventsRecorder<TimelineEvent>()
         rule.setTimelineView(
             state = aTimelineState(
                 isLive = false,
@@ -98,12 +100,12 @@ class TimelineViewTest {
         )
         val contentDescription = rule.activity.getString(CommonStrings.a11y_jump_to_bottom)
         rule.onNodeWithContentDescription(contentDescription).performClick()
-        eventsRecorder.assertSingle(TimelineEvents.JumpToLive)
+        eventsRecorder.assertSingle(TimelineEvent.JumpToLive)
     }
 
     @Test
     fun `show shield dialog`() {
-        val eventsRecorder = EventsRecorder<TimelineEvents>()
+        val eventsRecorder = EventsRecorder<TimelineEvent>()
         rule.setTimelineView(
             state = aTimelineState(
                 timelineItems = persistentListOf<TimelineItem>(
@@ -116,19 +118,19 @@ class TimelineViewTest {
                 eventSink = eventsRecorder,
             ),
         )
-        val contentDescription = rule.activity.getString(CommonStrings.event_shield_reason_unverified_identity)
+        val contentDescription = rule.activity.getString(CommonStrings.a11y_encryption_details)
         rule.onNodeWithContentDescription(contentDescription).performClick()
         eventsRecorder.assertList(
             listOf(
-                TimelineEvents.OnScrollFinished(0),
-                TimelineEvents.ShowShieldDialog(MessageShield.UnverifiedIdentity(true)),
+                TimelineEvent.OnScrollFinished(0),
+                TimelineEvent.ShowShieldDialog(MessageShieldData(MessageShield.UnverifiedIdentity(true))),
             )
         )
     }
 
     @Test
     fun `hide shield dialog`() {
-        val eventsRecorder = EventsRecorder<TimelineEvents>()
+        val eventsRecorder = EventsRecorder<TimelineEvent>()
         rule.setTimelineView(
             state = aTimelineState(
                 isLive = false,
@@ -137,18 +139,18 @@ class TimelineViewTest {
             ),
         )
         rule.clickOn(CommonStrings.action_ok)
-        eventsRecorder.assertSingle(TimelineEvents.HideShieldDialog)
+        eventsRecorder.assertSingle(TimelineEvent.HideShieldDialog)
     }
 
     @Test
     fun `scrolling near to the start of the loaded items triggers a pre-fetch`() {
-        val eventsRecorder = EventsRecorder<TimelineEvents>()
+        val eventsRecorder = EventsRecorder<TimelineEvent>()
         val items = List<TimelineItem>(200) {
             aTimelineItemEvent(
                 eventId = EventId("\$event_$it"),
                 content = aTimelineItemUnknownContent(),
             )
-        }.toPersistentList()
+        }.toImmutableList()
 
         rule.setTimelineView(
             state = aTimelineState(
@@ -165,8 +167,8 @@ class TimelineViewTest {
 
         eventsRecorder.assertList(
             listOf(
-                TimelineEvents.OnScrollFinished(firstIndex = 0),
-                TimelineEvents.LoadMore(Timeline.PaginationDirection.BACKWARDS),
+                TimelineEvent.OnScrollFinished(firstIndex = 0),
+                TimelineEvent.LoadMore(Timeline.PaginationDirection.BACKWARDS),
             )
         )
     }
@@ -175,7 +177,7 @@ class TimelineViewTest {
 private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setTimelineView(
     state: TimelineState,
     timelineProtectionState: TimelineProtectionState = aTimelineProtectionState(),
-    onUserDataClick: (UserId) -> Unit = EnsureNeverCalledWithParam(),
+    onUserDataClick: (MatrixUser) -> Unit = EnsureNeverCalledWithParam(),
     onLinkClick: (Link) -> Unit = EnsureNeverCalledWithParam(),
     onMessageClick: (TimelineItem.Event) -> Unit = EnsureNeverCalledWithParam(),
     onMessageLongClick: (TimelineItem.Event) -> Unit = EnsureNeverCalledWithParam(),
@@ -187,7 +189,7 @@ private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setTimel
     onJoinCallClick: () -> Unit = EnsureNeverCalled(),
     forceJumpToBottomVisibility: Boolean = false,
 ) {
-    setSafeContent {
+    setSafeContent(clearAndroidUiDispatcher = true) {
         TimelineView(
             state = state,
             timelineProtectionState = timelineProtectionState,
