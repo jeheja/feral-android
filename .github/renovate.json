@@ -25,6 +25,17 @@
         "/^org.maplibre/",
         "/^org.jetbrains.kotlinx:kotlinx-datetime/"
       ]
+    },
+    {
+      "matchPackageNames": [
+        "io.element.android:element-call-embedded"
+      ],
+      "automerge": false,
+      "groupName": "element-call-embedded",
+      "labels": [
+        "PR-Dependencies",
+        "element-call"
+      ]
     }
   ]
 }
