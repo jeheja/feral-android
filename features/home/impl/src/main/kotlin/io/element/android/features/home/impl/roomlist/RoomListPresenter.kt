@@ -27,6 +27,7 @@ import dev.zacsweers.metro.Inject
 import im.vector.app.features.analytics.plan.Interaction
 import io.element.android.features.announcement.api.Announcement
 import io.element.android.features.announcement.api.AnnouncementService
+import io.element.android.features.appupdate.api.AppUpdateBannerState
 import io.element.android.features.home.impl.datasource.RoomListDataSource
 import io.element.android.features.home.impl.filters.RoomListFilter.Rooms
 import io.element.android.features.home.impl.filters.RoomListFiltersState
@@ -83,6 +84,7 @@ class RoomListPresenter(
     private val analyticsService: AnalyticsService,
     private val acceptDeclineInvitePresenter: Presenter<AcceptDeclineInviteState>,
     private val fullScreenIntentPermissionsPresenter: Presenter<FullScreenIntentPermissionsState>,
+    private val appUpdateBannerPresenter: Presenter<AppUpdateBannerState>,
     private val batteryOptimizationPresenter: Presenter<BatteryOptimizationState>,
     private val notificationCleaner: NotificationCleaner,
     private val appPreferencesStore: AppPreferencesStore,
@@ -253,6 +255,7 @@ class RoomListPresenter(
 
                 RoomListContentState.Rooms(
                     securityBannerState = securityBannerState,
+                    appUpdateBannerState = appUpdateBannerPresenter.present(),
                     showNewNotificationSoundBanner = showNewNotificationSoundBanner,
                     fullScreenIntentPermissionsState = fullScreenIntentPermissionsPresenter.present(),
                     batteryOptimizationState = batteryOptimizationPresenter.present(),

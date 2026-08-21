@@ -12,6 +12,8 @@ import com.google.common.truth.Truth.assertThat
 import im.vector.app.features.analytics.plan.Interaction
 import io.element.android.features.announcement.api.Announcement
 import io.element.android.features.announcement.api.AnnouncementService
+import io.element.android.features.appupdate.api.AppUpdateBannerState
+import io.element.android.features.appupdate.api.anAppUpdateBannerState
 import io.element.android.features.home.impl.FakeDateTimeObserver
 import io.element.android.features.home.impl.datasource.RoomListDataSource
 import io.element.android.features.home.impl.datasource.aRoomListRoomSummaryFactory
@@ -668,6 +670,7 @@ class RoomListPresenterTest {
         appPreferencesStore: AppPreferencesStore = InMemoryAppPreferencesStore(),
         seenInvitesStore: SeenInvitesStore = InMemorySeenInvitesStore(),
         announcementService: AnnouncementService = FakeAnnouncementService(),
+        appUpdateBannerPresenter: Presenter<AppUpdateBannerState> = Presenter { anAppUpdateBannerState() },
     ) = RoomListPresenter(
         client = client,
         leaveRoomPresenter = { leaveRoomState },
@@ -690,6 +693,7 @@ class RoomListPresenterTest {
         analyticsService = analyticsService,
         acceptDeclineInvitePresenter = acceptDeclineInvitePresenter,
         fullScreenIntentPermissionsPresenter = { aFullScreenIntentPermissionsState() },
+        appUpdateBannerPresenter = appUpdateBannerPresenter,
         batteryOptimizationPresenter = { aBatteryOptimizationState() },
         notificationCleaner = notificationCleaner,
         appPreferencesStore = appPreferencesStore,

@@ -9,6 +9,8 @@
 package io.element.android.features.home.impl.roomlist
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import io.element.android.features.appupdate.api.AppUpdateBannerState
+import io.element.android.features.appupdate.api.anAppUpdateBannerState
 import io.element.android.features.home.impl.model.RoomListRoomSummary
 import io.element.android.libraries.fullscreenintent.api.FullScreenIntentPermissionsState
 import io.element.android.libraries.fullscreenintent.api.aFullScreenIntentPermissionsState
@@ -35,6 +37,7 @@ open class RoomListContentStateProvider : PreviewParameterProvider<RoomListConte
 
 internal fun aRoomsContentState(
     securityBannerState: SecurityBannerState = SecurityBannerState.None,
+    appUpdateBannerState: AppUpdateBannerState = anAppUpdateBannerState(),
     showNewNotificationSoundBanner: Boolean = false,
     summaries: ImmutableList<RoomListRoomSummary> = aRoomListRoomSummaryList(),
     fullScreenIntentPermissionsState: FullScreenIntentPermissionsState = aFullScreenIntentPermissionsState(),
@@ -42,6 +45,7 @@ internal fun aRoomsContentState(
     seenRoomInvites: Set<RoomId> = emptySet(),
 ) = RoomListContentState.Rooms(
     securityBannerState = securityBannerState,
+    appUpdateBannerState = appUpdateBannerState,
     showNewNotificationSoundBanner = showNewNotificationSoundBanner,
     fullScreenIntentPermissionsState = fullScreenIntentPermissionsState,
     batteryOptimizationState = batteryOptimizationState,

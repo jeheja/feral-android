@@ -9,6 +9,7 @@
 package io.element.android.features.home.impl.roomlist
 
 import androidx.compose.runtime.Immutable
+import io.element.android.features.appupdate.api.AppUpdateBannerState
 import io.element.android.features.home.impl.filters.RoomListFiltersState
 import io.element.android.features.home.impl.model.RoomListRoomSummary
 import io.element.android.features.home.impl.search.RoomListSearchState
@@ -69,6 +70,7 @@ sealed interface RoomListContentState {
 
     data class Rooms(
         val securityBannerState: SecurityBannerState,
+        val appUpdateBannerState: AppUpdateBannerState,
         val fullScreenIntentPermissionsState: FullScreenIntentPermissionsState,
         val batteryOptimizationState: BatteryOptimizationState,
         val showNewNotificationSoundBanner: Boolean,

@@ -228,6 +228,12 @@ private fun RoomsViewList(
         modifier = modifier,
         contentPadding = contentPadding,
     ) {
+        // Feral: in-app updater banner (docs/FERAL_MAINTENANCE.md)
+        if (state.appUpdateBannerState.update != null) {
+            item {
+                AppUpdateBanner(state = state.appUpdateBannerState)
+            }
+        }
         when (state.securityBannerState) {
             SecurityBannerState.SetUpRecovery -> {
                 item {
