@@ -110,7 +110,7 @@ class AppUpdateChecker(
         val pending = runCatchingExceptions {
             json.decodeFromString(StoredUpdate.serializer(), encoded).toAvailableUpdate()
         }.getOrNull() ?: return null
-        if (pending.versionCode <= buildMeta.versionCode) return null
+        if (pending.versionCode.releaseOrdinal() <= buildMeta.versionCode.releaseOrdinal()) return null
         if (pending.versionCode == ignored) return null
         return pending
     }

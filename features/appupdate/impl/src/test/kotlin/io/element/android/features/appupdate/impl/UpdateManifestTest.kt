@@ -90,4 +90,16 @@ class UpdateManifestTest {
         )
         assertThat(update).isNull()
     }
+
+    @Test
+    fun `abi split of the same release is not offered to a universal install`() {
+        // Installed universal 26.08.1 (…10) must not be offered the arm64 split (…13):
+        // the last digit is the ABI code, not a newer release.
+        assertThat(parse().selectUpdate(listOf("arm64-v8a"), 4026081010L, null)).isNull()
+    }
+
+    @Test
+    fun `next release is offered to a universal install`() {
+        assertThat(parse().selectUpdate(listOf("arm64-v8a"), 4026080000L, null)).isNotNull()
+    }
 }
