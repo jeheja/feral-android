@@ -1,0 +1,74 @@
+# Feral CI — compile + guard the members-only lock on every Feral change.
+#
+# Purpose (see docs/FERAL_MAINTENANCE.md): the release APK is built and SIGNED
+# off-box (eheyu). This workflow is the *compile verifier*: it builds an UNSIGNED
+# FOSS debug APK and runs the members-only guard test on GitHub's runners, so a
+# broken build or a silently-reverted lock is caught here — long before anything is
+# signed. No secrets and no keystore are ever used here.
+#
+# NOTE: pin third-party actions by commit SHA before treating this as trusted CI.
+name: Feral CI
+
+on:
+  push:
+    branches:
+      - "feral/**"
+  pull_request:
+    branches:
+      - "develop"
+      - "feral/**"
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: feral-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guard-test:
+    name: Members-only guard test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Run enterprise (FOSS) unit tests incl. the members-only guard
+        run: ./gradlew :features:enterprise:impl-foss:testDebugUnitTest --stacktrace
+
+  compile-foss:
+    name: Compile unsigned FOSS debug APK
+    runs-on: ubuntu-latest
+    steps:
+      # element-x-android is a large build; reclaim runner disk first.
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        with:
+          tool-cache: true
+          android: false # keep the preinstalled Android SDK
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      # assembleFdroidDebug = FOSS flavor (UnifiedPush, no Firebase/google-services
+      # secret needed), debug = auto-signed with the throwaway debug key.
+      # This also forces Metro to resolve the DI graph, so a duplicate/unresolved
+      # `@ContributesBinding(replaces = ...)` for FeralEnterpriseService fails HERE.
+      - name: Assemble unsigned FOSS debug APK
+        run: ./gradlew :app:assembleFdroidDebug --stacktrace
+      - name: Upload APK artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: feral-fdroid-debug-unsigned
+          path: app/build/outputs/apk/fdroid/debug/*.apk
+          if-no-files-found: warn
+          retention-days: 7
