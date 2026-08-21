@@ -3,8 +3,8 @@
 # described in docs/FERAL_MAINTENANCE.md.
 #
 # It NEVER ships anything: it only opens a PR (clean merge) or an issue (conflicts).
-# A human then reviews / rebases-onto-tag, and the signed release is still built on
-# eheyu. It follows the *release TAGS* (vYY.MM.N), not the moving `develop`.
+# A human then reviews / rebases-onto-tag; the release is still built unsigned by
+# feral-release.yml and signed by hand on eheyu. It follows the *release TAGS* (vYY.MM.N), not the moving `develop`.
 #
 # Before trusting: pin actions by SHA and run once via "Run workflow" (dispatch)
 # before relying on the schedule.

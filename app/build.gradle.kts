@@ -140,7 +140,9 @@ android {
                 "login_redirect_scheme",
                 oidcRedirectSchemeBase,
             )
-            signingConfig = signingConfigs.getByName("release")
+            // No signing.properties (CI, feral-release.yml) => no signing config at all =>
+            // AGP packages *-unsigned.apk; signed later on eheyu (tools/feral/sign-release.sh).
+            signingConfig = signingConfigs.getByName("release").takeIf { rootProject.file("signing.properties").exists() }
 
             optimization {
                 enable = true

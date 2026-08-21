@@ -113,6 +113,12 @@ assumé). Pas de ship automatique.
   d'un **APK FOSS debug NON signé** (`assembleFdroidDebug`, valide aussi le graphe
   Metro) + le **test garde-fou**. Zéro secret, zéro keystore. C'est le vérificateur
   de compilation.
+- **`.github/workflows/feral-release.yml`** — manuel (`Run workflow`) ou tag
+  `feral-v<ver>` (= versionName de `Versions.kt`, vérifié) : garde-fou members-only
+  puis build R8 **gplay release NON signé** (4 ABI + universel), artefact
+  `feral-<ver>-gplay-release-unsigned` avec `SHA256SUMS` + `BUILD-INFO.txt` (commit,
+  versionCode par APK). Refuse de tourner si `signing.properties` existe. Signature
+  sur eheyu — voir §11.
 - **`.github/workflows/feral-upstream-sync.yml`** — planifié : détecte le dernier
   tag stable upstream et ouvre une **PR de sync** (merge propre) ou une **issue**
   (conflits → rebase manuel). Ne ship jamais rien. Le lancer d'abord à la main
@@ -253,15 +259,40 @@ par le build CI puis un build signé eheyu.
   + .sha256 y sont copiés. `update.json` n'y sera déposé qu'à la **prochaine**
   release (une app sans updater ne le lit pas ; 404 = silencieux côté app).
 
-### Runbook de release (sur eheyu)
+### Runbook de release (build CI non signé → signature sur eheyu)
+1. Bump `plugins/src/main/kotlin/Versions.kt` (`versionYear`/`versionMonth`/
+   `versionReleaseNumber` → versionName `YY.MM.N`, versionCode `20YYMM0N`×10+abi ;
+   doit rester **strictement supérieur** à celui de l'APK installé chez les membres),
+   pousser la branche.
+2. GitHub → Actions → **« Feral release (unsigned) »** → *Run workflow* sur la branche
+   (ou pousser un tag `feral-v<ver>`). ~30–40 min. Artefact
+   `feral-<ver>-gplay-release-unsigned` : 4 APK par ABI + universel (`*-unsigned.apk`),
+   `SHA256SUMS`, `BUILD-INFO.txt` (versionCode lus via aapt2). Aucun secret en CI.
+3. Sur **eheyu** (seule machine avec le keystore + `signing.properties`) :
 ```
-./gradlew assembleGplayRelease            # build signé (signing.properties)
-./tools/feral/publish-release.sh \
-    --version 26.08.1 \
-    --apk-dir app/build/outputs/apk/gplay/release \
-    --changelog-fr "…" --changelog-en "…" \
-    --deploy loic_feral@172.232.45.124
+git fetch origin && git checkout <branche> && git pull
+unzip -d ~/feral-rel/<ver> ~/Téléchargements/feral-<ver>-gplay-release-unsigned.zip
+./tools/feral/sign-release.sh --version <ver> --in ~/feral-rel/<ver>
+./tools/feral/publish-release.sh --version <ver> --apk-dir ~/feral-rel/<ver>/signed \
+    --changelog-fr "…" --changelog-en "…" --deploy loic_feral@172.232.45.124
 ```
+`sign-release.sh` : zipalign + apksigner (mots de passe passés par env, jamais en
+argv), renomme en `Feral-<ver>[-abi].apk`, et **refuse** : tout APK dont le certificat
+≠ `AppUpdateConfig.SIGNING_CERT_SHA256` (mauvais keystore/alias = abort, rien n'est
+produit), un APK qui n'est pas `feral.app` à la `--version` donnée, et un artefact
+bâti depuis un autre commit que celui extrait (`BUILD-INFO.txt` ;
+`--allow-commit-mismatch` pour passer outre). Sortie atomique (rien dans `signed/`
+tant que ce n'est pas signé ET vérifié). Si `Permission denied` après `git pull` :
+`chmod +x tools/feral/*.sh`. Pour re-signer, vider `signed/` et `publish/` d'abord
+(le script remplace les APK, pas les fichiers d'une autre version). Voie alternative toujours valable : `./gradlew assembleGplayRelease` sur
+eheyu (signé directement via `signing.properties`) puis `publish-release.sh`.
+4. Vérifier : `curl -s https://feralisme.fr/media/downloads/android/update.json`,
+   la page membre, puis installer **par-dessus** l'ancienne version sur un téléphone
+   (`adb install -r Feral-<ver>-arm64-v8a.apk`) — doit passer sans désinstallation.
+   La première release embarquant l'updater est forcément téléchargée à la main
+   (l'APK 25.05.4 ne sait pas se mettre à jour) ; les suivantes arrivent via la
+   bannière in-app.
+
 Le script : renomme selon la convention `Feral-<ver>[-abi].apk`, génère
 `.sha256`/`update.json`/`version.json`/`latest.json` (versionCode lus via aapt),
 déploie **les APK d'abord, les manifestes en dernier** (atomicité), vers le

@@ -1,0 +1,119 @@
+# Feral release build — UNSIGNED gplay release APKs, built on GitHub's runners.
+#
+# Why unsigned: the Feral release keystore never leaves the signing machine (eheyu),
+# see docs/FERAL_MAINTENANCE.md §8/§11. This workflow does the long part (guard tests,
+# R8 release build, 4 ABI splits + universal APK) with NO secret and NO keystore.
+# A human then downloads the artifact and, on eheyu, runs:
+#   tools/feral/sign-release.sh     (zipalign + apksigner, pinned-certificate check)
+#   tools/feral/publish-release.sh  (manifests + deploy to feralisme.fr)
+#
+# Trigger: "Run workflow" on the branch to release, or pushing a `feral-v<ver>` tag
+# (the tag must equal the versionName from plugins/src/main/kotlin/Versions.kt).
+# Note: `${{ }}` expressions are never interpolated into `run:` scripts here — use
+# the $GITHUB_* environment variables instead.
+name: Feral release (unsigned)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "feral-v*"
+
+concurrency:
+  group: feral-release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CI_GRADLE_ARG_PROPERTIES: --stacktrace --no-daemon --no-configuration-cache
+
+jobs:
+  build-unsigned:
+    name: Build unsigned gplay release APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      # element-x-android is a large build; reclaim runner disk first (same options as
+      # upstream release.yml: large-packages is slow for ~5 GB, keep the swap for R8).
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        with:
+          tool-cache: true
+          android: false # keep the preinstalled Android SDK (build-tools/aapt2)
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: false
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Refuse to build with a keystore present
+        run: test ! -f signing.properties || { echo "signing.properties must never exist in CI" >&2; exit 1; }
+      # The same guard as feral-ci.yml, on the exact tree being released: a tag push or
+      # a dispatch on develop would otherwise bypass it. A silently-reverted
+      # members-only lock still compiles (Metro falls back to DefaultEnterpriseService),
+      # only this test catches it — so it must run on the release path too.
+      - name: Feral guard tests (members-only lock + updater manifest)
+        run: ./gradlew :features:enterprise:impl-foss:testDebugUnitTest :features:appupdate:impl:testDebugUnitTest $CI_GRADLE_ARG_PROPERTIES
+      # No signing.properties => the `release` signingConfig is not attached
+      # (app/build.gradle.kts) => AGP packages *-unsigned.apk. Flavor gplay = what
+      # members already run (Firebase push).
+      - name: Assemble gplay release (unsigned)
+        run: ./gradlew :app:assembleGplayRelease $CI_GRADLE_ARG_PROPERTIES
+      - name: Collect outputs
+        id: collect
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=app/build/outputs/apk/gplay/release
+          ls -la "$OUT"
+          # Every APK must be unsigned: a signed one here would mean a key leaked into CI.
+          for f in "$OUT"/*.apk; do
+            case "$f" in
+              *-unsigned.apk) ;;
+              *) echo "Unexpected signed APK: $f" >&2; exit 1 ;;
+            esac
+          done
+          AAPT=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          badge() {
+            "$AAPT" dump badging "$1" \
+              | sed -n "s/^package: name='\([^']*\)' versionCode='\([0-9]*\)' versionName='\([^']*\)'.*/package=\1 versionCode=\2 versionName=\3/p" \
+              | head -1
+          }
+          # Version read from the universal APK, in the main shell (not inside a pipeline:
+          # assignments made in a `{ … } | tee` group are lost with the subshell).
+          UNI=$(ls "$OUT"/*universal*-unsigned.apk)
+          VER=$(badge "$UNI" | sed -n 's/.*versionName=\(.*\)$/\1/p')
+          [ -n "$VER" ] || { echo "could not read versionName from $UNI" >&2; exit 1; }
+          case "$GITHUB_REF" in
+            refs/tags/*)
+              [ "$GITHUB_REF_NAME" = "feral-v$VER" ] \
+                || { echo "tag $GITHUB_REF_NAME != versionName $VER (plugins/src/main/kotlin/Versions.kt)" >&2; exit 1; } ;;
+          esac
+          {
+            echo "commit: $GITHUB_SHA"
+            echo "ref: $GITHUB_REF"
+            echo "versionName: $VER"
+            for f in "$OUT"/*.apk; do
+              echo "$(basename "$f")  $(badge "$f")"
+            done
+          } > "$OUT/BUILD-INFO.txt"
+          cat "$OUT/BUILD-INFO.txt"
+          (cd "$OUT" && sha256sum ./*.apk | tee SHA256SUMS)
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+      - name: Upload unsigned APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: feral-${{ steps.collect.outputs.version }}-gplay-release-unsigned
+          path: |
+            app/build/outputs/apk/gplay/release/*.apk
+            app/build/outputs/apk/gplay/release/SHA256SUMS
+            app/build/outputs/apk/gplay/release/BUILD-INFO.txt
+          if-no-files-found: error
+          retention-days: 30
