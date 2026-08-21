@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Feral Android release signer — run on the SIGNING machine (eheyu), never in CI.
 #
-# Input : the UNSIGNED gplay release APKs built by the "Feral release (unsigned)"
-#         GitHub workflow (artifact feral-<ver>-gplay-release-unsigned, unzipped:
-#         app-gplay-<abi|universal>-release-unsigned.apk + SHA256SUMS + BUILD-INFO.txt).
+# Input : the UNSIGNED release APKs built by the "Feral release (unsigned)" GitHub
+#         workflow (artifact feral-<ver>-release-unsigned, unzipped:
+#         app-fdroid-<abi|universal>-release-unsigned.apk + SHA256SUMS + BUILD-INFO.txt).
+#         "fdroid" is only Element's name for the no-Google variant (UnifiedPush),
+#         nothing is published on F-Droid; a gplay (Firebase) APK is refused.
 # Output: Feral-<ver>[-<abi>].apk signed with the Feral release keystore, in --out.
 #         Then: tools/feral/publish-release.sh --version <ver> --apk-dir <out> …
 #
@@ -30,7 +32,7 @@ usage() {
 Usage: sign-release.sh --version <versionName> --in <unsigned-apk-dir> [--out <dir>]
                        [--props <signing.properties>] [--allow-commit-mismatch]
 Example:
-  unzip -d ~/feral-rel/26.08.0 ~/Downloads/feral-26.08.0-gplay-release-unsigned.zip
+  unzip -d ~/feral-rel/26.08.0 ~/Downloads/feral-26.08.0-release-unsigned.zip
   ./tools/feral/sign-release.sh --version 26.08.0 --in ~/feral-rel/26.08.0
   ./tools/feral/publish-release.sh --version 26.08.0 --apk-dir ~/feral-rel/26.08.0/signed --deploy loic_feral@172.232.45.124
 USAGE
@@ -60,9 +62,9 @@ OUT="${OUT:-$IN/signed}"
 [ -f "$PROPS" ] || { echo "ERROR: $PROPS not found (keystore properties)" >&2; exit 1; }
 
 shopt -s nullglob
-INPUTS=("$IN"/app-gplay-*-release-unsigned.apk)
+INPUTS=("$IN"/app-fdroid-*-release-unsigned.apk)
 [ ${#INPUTS[@]} -gt 0 ] \
-    || { echo "ERROR: no app-gplay-*-release-unsigned.apk directly in $IN (point --in at the unzipped artifact directory)" >&2; exit 1; }
+    || { echo "ERROR: no app-fdroid-*-release-unsigned.apk directly in $IN (a gplay/Firebase build is refused on purpose) (point --in at the unzipped artifact directory)" >&2; exit 1; }
 
 # --- provenance: the artifact must come from the commit checked out here ------------
 if [ -f "$IN/BUILD-INFO.txt" ] && git -C "$ROOT" rev-parse --verify HEAD >/dev/null 2>&1; then

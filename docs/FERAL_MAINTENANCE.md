@@ -115,8 +115,8 @@ assumé). Pas de ship automatique.
   de compilation.
 - **`.github/workflows/feral-release.yml`** — manuel (`Run workflow`) ou tag
   `feral-v<ver>` (= versionName de `Versions.kt`, vérifié) : garde-fou members-only
-  puis build R8 **gplay release NON signé** (4 ABI + universel), artefact
-  `feral-<ver>-gplay-release-unsigned` avec `SHA256SUMS` + `BUILD-INFO.txt` (commit,
+  puis build R8 **release `fdroid` (sans Google) NON signé** (4 ABI + universel),
+  artefact `feral-<ver>-release-unsigned` avec `SHA256SUMS` + `BUILD-INFO.txt` (commit,
   versionCode par APK). Refuse de tourner si `signing.properties` existe. Signature
   sur eheyu — voir §11.
 - **`.github/workflows/feral-upstream-sync.yml`** — planifié : détecte le dernier
@@ -259,19 +259,37 @@ par le build CI puis un build signé eheyu.
   + .sha256 y sont copiés. `update.json` n'y sera déposé qu'à la **prochaine**
   release (une app sans updater ne le lit pas ; 404 = silencieux côté app).
 
+### Variante buildée : `fdroid` = « sans Google » (décision 2026-08-22)
+`gplay` / `fdroid` sont les noms **internes à Element** de deux variantes du même
+APK, baptisées d'après les stores où Element publie. **Feral ne publie sur aucun
+store** : dans les deux cas c'est un fichier `.apk` hébergé sur feralisme.fr. Seule
+différence : le canal de notifications quand l'app est fermée.
+- `gplay` : Firebase (Google) + passerelle push de matrix.org codée en dur
+  (`FirebaseConfig.PUSHER_HTTP_URL`). C'était la variante de l'APK 25.05.4.
+- `fdroid` : **aucun code Google** ; UnifiedPush (appli distributeur, ex. ntfy) avec
+  repli interne « background sync » (`KeepInternalDistributor`) ; passerelle par
+  défaut `matrix.gateway.unifiedpush.org` (`UnifiedPushConfig`).
+Depuis 26.08.0 on build **`fdroid`** (`assembleFdroidRelease`) ; `sign-release.sh`
+refuse un APK gplay. Même `applicationId`/clé ⇒ s'installe par-dessus 25.05.4.
+**À faire ensuite** : héberger **ntfy** sur le VPS (il implémente la passerelle
+`/_matrix/push/v1/notify` ; l'app la découvre via l'endpoint du distributeur) ⇒
+notifications 100 % privées ; les membres installent l'appli ntfy pointée sur le VPS.
+
 ### Runbook de release (build CI non signé → signature sur eheyu)
 1. Bump `plugins/src/main/kotlin/Versions.kt` (`versionYear`/`versionMonth`/
    `versionReleaseNumber` → versionName `YY.MM.N`, versionCode `20YYMM0N`×10+abi ;
    doit rester **strictement supérieur** à celui de l'APK installé chez les membres),
    pousser la branche.
 2. GitHub → Actions → **« Feral release (unsigned) »** → *Run workflow* sur la branche
-   (ou pousser un tag `feral-v<ver>`). ~30–40 min. Artefact
-   `feral-<ver>-gplay-release-unsigned` : 4 APK par ABI + universel (`*-unsigned.apk`),
+   (ou pousser un tag `feral-v<ver>` — seule voie tant que le workflow n'est pas sur
+   la branche par défaut : GitHub ne liste dans Actions que les workflows de `develop`
+   ou ayant déjà tourné). ~30–40 min. Artefact
+   `feral-<ver>-release-unsigned` : 4 APK par ABI + universel (`*-unsigned.apk`),
    `SHA256SUMS`, `BUILD-INFO.txt` (versionCode lus via aapt2). Aucun secret en CI.
 3. Sur **eheyu** (seule machine avec le keystore + `signing.properties`) :
 ```
 git fetch origin && git checkout <branche> && git pull
-unzip -d ~/feral-rel/<ver> ~/Téléchargements/feral-<ver>-gplay-release-unsigned.zip
+unzip -d ~/feral-rel/<ver> ~/Téléchargements/feral-<ver>-release-unsigned.zip
 ./tools/feral/sign-release.sh --version <ver> --in ~/feral-rel/<ver>
 ./tools/feral/publish-release.sh --version <ver> --apk-dir ~/feral-rel/<ver>/signed \
     --changelog-fr "…" --changelog-en "…" --deploy loic_feral@172.232.45.124
@@ -285,7 +303,8 @@ bâti depuis un autre commit que celui extrait (`BUILD-INFO.txt` ;
 tant que ce n'est pas signé ET vérifié). Si `Permission denied` après `git pull` :
 `chmod +x tools/feral/*.sh`. Pour re-signer, vider `signed/` et `publish/` d'abord
 (le script remplace les APK, pas les fichiers d'une autre version). Voie alternative toujours valable : `./gradlew assembleGplayRelease` sur
-eheyu (signé directement via `signing.properties`) puis `publish-release.sh`.
+eheyu (`./gradlew assembleFdroidRelease`, signé directement via `signing.properties`)
+puis `publish-release.sh`.
 4. Vérifier : `curl -s https://feralisme.fr/media/downloads/android/update.json`,
    la page membre, puis installer **par-dessus** l'ancienne version sur un téléphone
    (`adb install -r Feral-<ver>-arm64-v8a.apk`) — doit passer sans désinstallation.

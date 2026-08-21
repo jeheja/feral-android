@@ -1,4 +1,9 @@
-# Feral release build — UNSIGNED gplay release APKs, built on GitHub's runners.
+# Feral release build — UNSIGNED release APKs, built on GitHub's runners.
+#
+# Variant: `fdroid` = Element's name for the build WITHOUT any Google code (push via
+# UnifiedPush / background sync). It is NOT an F-Droid publication: the output is a plain
+# APK hosted on feralisme.fr. (`gplay` = the same app with Firebase push — not used
+# since 26.08.0, decision 2026-08-22, see docs/FERAL_MAINTENANCE.md §11.)
 #
 # Why unsigned: the Feral release keystore never leaves the signing machine (eheyu),
 # see docs/FERAL_MAINTENANCE.md §8/§11. This workflow does the long part (guard tests,
@@ -31,7 +36,7 @@ env:
 
 jobs:
   build-unsigned:
-    name: Build unsigned gplay release APKs
+    name: Build unsigned release APKs (no Google)
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -62,16 +67,15 @@ jobs:
       - name: Feral guard tests (members-only lock + updater manifest)
         run: ./gradlew :features:enterprise:impl-foss:testDebugUnitTest :features:appupdate:impl:testDebugUnitTest $CI_GRADLE_ARG_PROPERTIES
       # No signing.properties => the `release` signingConfig is not attached
-      # (app/build.gradle.kts) => AGP packages *-unsigned.apk. Flavor gplay = what
-      # members already run (Firebase push).
-      - name: Assemble gplay release (unsigned)
-        run: ./gradlew :app:assembleGplayRelease $CI_GRADLE_ARG_PROPERTIES
+      # (app/build.gradle.kts) => AGP packages *-unsigned.apk.
+      - name: Assemble fdroid (no-Google) release (unsigned)
+        run: ./gradlew :app:assembleFdroidRelease $CI_GRADLE_ARG_PROPERTIES
       - name: Collect outputs
         id: collect
         shell: bash
         run: |
           set -euo pipefail
-          OUT=app/build/outputs/apk/gplay/release
+          OUT=app/build/outputs/apk/fdroid/release
           ls -la "$OUT"
           # Every APK must be unsigned: a signed one here would mean a key leaked into CI.
           for f in "$OUT"/*.apk; do
@@ -110,10 +114,10 @@ jobs:
       - name: Upload unsigned APKs
         uses: actions/upload-artifact@v4
         with:
-          name: feral-${{ steps.collect.outputs.version }}-gplay-release-unsigned
+          name: feral-${{ steps.collect.outputs.version }}-release-unsigned
           path: |
-            app/build/outputs/apk/gplay/release/*.apk
-            app/build/outputs/apk/gplay/release/SHA256SUMS
-            app/build/outputs/apk/gplay/release/BUILD-INFO.txt
+            app/build/outputs/apk/fdroid/release/*.apk
+            app/build/outputs/apk/fdroid/release/SHA256SUMS
+            app/build/outputs/apk/fdroid/release/BUILD-INFO.txt
           if-no-files-found: error
           retention-days: 30
