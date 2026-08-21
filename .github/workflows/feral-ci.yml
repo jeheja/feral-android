@@ -20,6 +20,10 @@ on:
       - "feral/**"
   workflow_dispatch:
 
+env:
+  # Same as upstream build.yml (the 4g of gradle.properties is a laptop setting).
+  GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError -XX:+UseG1GC -Dkotlin.daemon.jvm.options=-Xmx4g
+
 # Cancel superseded runs on the same ref.
 concurrency:
   group: feral-ci-${{ github.ref }}

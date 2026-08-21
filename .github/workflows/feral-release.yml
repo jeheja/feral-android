@@ -33,6 +33,9 @@ permissions:
 
 env:
   CI_GRADLE_ARG_PROPERTIES: --stacktrace --no-daemon --no-configuration-cache
+  # Same as upstream release.yml: R8 + lintVital in one daemon OOM at the 4g of
+  # gradle.properties (seen on the first feral-v26.08.0 run).
+  GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError -XX:+UseG1GC -Dkotlin.daemon.jvm.options=-Xmx4g
 
 jobs:
   build-unsigned:
