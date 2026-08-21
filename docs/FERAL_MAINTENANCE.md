@@ -302,7 +302,7 @@ bâti depuis un autre commit que celui extrait (`BUILD-INFO.txt` ;
 `--allow-commit-mismatch` pour passer outre). Sortie atomique (rien dans `signed/`
 tant que ce n'est pas signé ET vérifié). Si `Permission denied` après `git pull` :
 `chmod +x tools/feral/*.sh`. Pour re-signer, vider `signed/` et `publish/` d'abord
-(le script remplace les APK, pas les fichiers d'une autre version). Voie alternative toujours valable : `./gradlew assembleGplayRelease` sur
+(le script remplace les APK, pas les fichiers d'une autre version). Voie alternative toujours valable : `./gradlew assembleFdroidRelease` sur
 eheyu (`./gradlew assembleFdroidRelease`, signé directement via `signing.properties`)
 puis `publish-release.sh`.
 4. Vérifier : `curl -s https://feralisme.fr/media/downloads/android/update.json`,
