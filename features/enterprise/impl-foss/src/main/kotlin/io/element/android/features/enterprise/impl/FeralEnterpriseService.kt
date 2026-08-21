@@ -60,9 +60,9 @@ class FeralEnterpriseService : EnterpriseService {
      * The ONLY homeservers a Feral build may connect to. This is the members-only
      * allow-list.
      *
-     * TODO(feral): confirm `feralism.net` is a live Matrix homeserver before relying
-     *  on it in onboarding — `feralisme.fr` is the canonical server (Matrix
-     *  server_name `feralisme.fr`). Trim this list to what is actually reachable.
+     * Verified 2026-08-21: `feralism.net` resolves to the same VPS but does NOT serve
+     * Matrix (404 on /_matrix/client/versions, no well-known), so it must not be
+     * offered in onboarding. Re-add it here if it ever becomes a real homeserver.
      */
     private val feralServers = listOf(
         FeralServer(
@@ -70,10 +70,10 @@ class FeralEnterpriseService : EnterpriseService {
             description = "Serveur France",
             locales = setOf("fr", "FR"),
         ),
-        FeralServer(
-            url = "https://feralism.net",
-            description = "International server",
-        ),
+        // FeralServer(
+        //     url = "https://feralism.net",
+        //     description = "International server",
+        // ),
     )
 
     // A Feral FOSS build is NOT an Element "enterprise" build; keep this false so we

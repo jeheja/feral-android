@@ -44,8 +44,9 @@ sécurité.** Les builds manuels (signature) sont assumés.
   doit rester `false`, la liste doit contenir `https://feralisme.fr` et rejeter
   les serveurs tiers. Il tourne en CI (§5) et casse le build **avant** qu'un APK
   « n'importe quel homeserver » puisse être signé.
-- ⚠️ À vérifier : `feralism.net` est-il un vrai homeserver Matrix ? Sinon, réduire
-  `feralServers` à `feralisme.fr` (cf. TODO dans le code).
+- ✅ Vérifié (2026-08-21) : `feralism.net` ne sert **pas** Matrix (404 sur
+  `/_matrix/client/versions`) → liste réduite à `feralisme.fr` seul,
+  `feralism.net` laissé en commentaire pour une éventuelle activation future.
 
 ## 3. Modèle de branches
 
