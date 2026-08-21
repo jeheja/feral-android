@@ -213,3 +213,61 @@ MaJ malveillante signée à tous les membres.
 ---
 
 _Analyse et mise en place initiales : 2026-08-21._
+
+---
+
+## 11. Updater intégré — implémentation (2026-08-21)
+
+**Statut : implémenté** (branche `feral/fix-members-only-and-maintenance`), à valider
+par le build CI puis un build signé eheyu.
+
+### Côté app
+- Nouveau module **`features/appupdate/{api,impl}`** (auto-inclus par
+  `settings.gradle` + `allFeaturesImpl`) :
+  - `AppUpdateChecker` — GET public `…/media/downloads/android/update.json`
+    (OkHttp + kotlinx `ignoreUnknownKeys`), au plus une requête / 6 h
+    (`AppUpdateConfig.CHECK_INTERVAL_MS`), résultat mis en cache (DataStore
+    `feral_appupdate`), fail-quiet. Anti-downgrade (`versionCode` strictement
+    supérieur) + version ignorée après « fermer ».
+  - `ApkDownloader` — télécharge dans `cacheDir/updates/` (FileProvider `cache-path`),
+    vérifie **sha256 manifeste** + **empreinte du certificat de signature épinglée**
+    (`AppUpdateConfig.SIGNING_CERT_SHA256`, extraite de l'APK 25.05.4 servi) +
+    **versionCode de l'archive** (> installé et == manifeste) + `packageName`,
+    puis lance l'installation (`ACTION_VIEW` + FileProvider ; permission
+    `REQUEST_INSTALL_PACKAGES` déjà dans le manifeste).
+  - `AppUpdateBannerPresenter` — check au premier affichage de la liste, bannière
+    via le composant design-system `Announcement`.
+- **Édits cœur minimaux** (5 fichiers home) : champ `appUpdateBannerState` dans
+  `RoomListContentState.Rooms`, presenter injecté, `AppUpdateBanner` en tête de la
+  LazyColumn, fixtures/tests mis à jour. Strings dans
+  `strings_feral_appupdate.xml` (en+fr, hors Localazy).
+- `appconfig/AppUpdateConfig.kt` : URL du canal, empreinte certif, intervalle,
+  interrupteur `ENABLED`.
+- ⚠️ Le versionCode par ABI = base×10+chiffre ABI (`app/build.gradle.kts`) → le
+  manifeste porte un versionCode **par APK** (géré par le script de release).
+
+### Côté serveur (fait, sans sudo)
+- `/var/www/html/feralism/media/downloads/android/` créé — servi publiquement par le
+  bloc nginx `location /media/` existant (vérifié 200/206 en HTTPS). Les APK 25.05.4
+  + .sha256 y sont copiés. `update.json` n'y sera déposé qu'à la **prochaine**
+  release (une app sans updater ne le lit pas ; 404 = silencieux côté app).
+
+### Runbook de release (sur eheyu)
+```
+./gradlew assembleGplayRelease            # build signé (signing.properties)
+./tools/feral/publish-release.sh \
+    --version 26.08.1 \
+    --apk-dir app/build/outputs/apk/gplay/release \
+    --changelog-fr "…" --changelog-en "…" \
+    --deploy loic_feral@172.232.45.124
+```
+Le script : renomme selon la convention `Feral-<ver>[-abi].apk`, génère
+`.sha256`/`update.json`/`version.json`/`latest.json` (versionCode lus via aapt),
+déploie **les APK d'abord, les manifestes en dernier** (atomicité), vers le
+répertoire public ET `protected_downloads/` (page membre).
+
+### Invariants de sécurité implémentés
+sha256 (transport) + certificat épinglé (authenticité — sans le keystore eheyu,
+aucun APK accepté) + versionCode monotone (anti-downgrade) + `packageName` vérifié +
+HTTPS. Non implémenté (amélioration future) : signature détachée du manifeste,
+TLS pinning.

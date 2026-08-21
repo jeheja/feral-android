@@ -37,8 +37,8 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v4
-      - name: Run enterprise (FOSS) unit tests incl. the members-only guard
-        run: ./gradlew :features:enterprise:impl-foss:testDebugUnitTest --stacktrace
+      - name: Run Feral guard tests (members-only lock + updater manifest)
+        run: ./gradlew :features:enterprise:impl-foss:testDebugUnitTest :features:appupdate:impl:testDebugUnitTest --stacktrace
 
   compile-foss:
     name: Compile unsigned FOSS debug APK
