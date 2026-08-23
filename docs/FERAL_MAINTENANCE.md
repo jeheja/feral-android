@@ -150,9 +150,18 @@ assumé). Pas de ship automatique.
 **Aucun fork d'Element Call.** Les 3 clients consomment EC en boîte noire :
 - **Android** : artefact Maven Central `io.element.android:element-call-embedded`
   (unique conso : `features/call/impl`). MaJ = **bump d'une ligne** dans
-  `gradle/libs.versions.toml` + rebuild. **Ne jamais bumper en standalone** :
-  laisser le merge du tag upstream porter la version EC qu'il embarque et teste.
-  Un bump Renovate isolé reste review-required (risque d'incompat widget/SDK).
+  `gradle/libs.versions.toml` + rebuild. Décision du propriétaire (2026-08-23) :
+  **Feral embarque la dernière version d'EC**, même si le tag upstream est en retard.
+  Un bump EC est un **changement d'API hôte**, pas une ligne Renovate : lire les
+  release notes (breaking changes), puis **tester un vrai appel avec le build debug**
+  sur le Pixel (console EC dans logcat, `grep '\[ElementCall\]'`) avant de publier.
+  ⚠ Leçon 26.08.6/26.08.7 : EC 0.24.0 loggue un objet cyclique dans son constructeur
+  `Connection` ; le shim `console.*` injecté par l'hôte (`JSON.stringify` nu, upstream
+  #4097) levait « Converting circular structure to JSON » **dans EC** → aucun appel
+  n'atteignait le SFU (« UNKNOWN_ERROR », element-hq/element-call#4164). Correctif
+  Feral : `FeralCallWebViewConsoleShim.kt` (Feral-owned, cycle-safe) + un hook d'une
+  ligne dans `WebViewWidgetMessageInterceptor.kt` (marqué « Modified by Feral »). Ce
+  hook et la version EC se conservent **ensemble** à chaque sync.
 - **Web déployé** (`/opt/feral-source`) : widget distant `call.element.io`. À
   terme, **self-héberger la SPA EC** (Feral a déjà LiveKit + lk-jwt) pour ne pas
   fuiter les métadonnées d'appel vers Element.
