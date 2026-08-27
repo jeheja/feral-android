@@ -109,11 +109,79 @@ sortir les customisations du code cœur vers des points d'extension conçus pour
 | App id / nom | édition de `BuildTimeConfig` + `appconfig` | idem (déjà central), OK à garder |
 | Serveur / members-only | ✅ `FeralEnterpriseService` (impl-foss, Metro `replaces`) | conserver ce pattern |
 | Branding visuel (logo, couleurs, thème) | patchs dans `OnBoardingView.kt`, `SuperButton.kt` | un `productFlavor` Feral + overrides `res/` |
+| Icônes de lanceur / badge | ✅ **générées** par `tools/feral/gen-app-icons.py` depuis `tools/feral/brand/` (voir « Pipeline d'icônes » ci-dessous) | conserver ; ne jamais retoucher un `.webp` à la main |
 | Notice members-only i18n | 1 clé ajoutée dans les `translations.xml` Localazy régénérés | ressource **Feral-owned** hors des fichiers Localazy |
-| Icône de barre d'état des notifications (« small icon ») | ✅ `app/src/main/res/drawable/ic_notification.xml` (Feral-owned, `<bitmap>`) + `drawable-*dpi/ic_notification_feral.png` : surcharge par précédence du module `app` de `libraries/designsystem/…/ic_notification.xml` (le tourbillon Element), aucun fichier upstream touché (26.08.9) | conserver ce pattern ; régénérer les PNG depuis `ic_launcher_monochrome.webp` si le logo change |
+| Icône de barre d'état des notifications (« small icon ») | ✅ `app/src/main/res/drawable/ic_notification.xml` (Feral-owned, `<bitmap>`) + `drawable-*dpi/ic_notification_feral.png` : surcharge par précédence du module `app` de `libraries/designsystem/…/ic_notification.xml` (le tourbillon Element), aucun fichier upstream touché (26.08.9) | conserver ce pattern ; les PNG sont désormais régénérés par `tools/feral/gen-app-icons.py` (plus de recadrage manuel du `.webp`) |
 
 Cible : ~4 commits atomiques, sur des fichiers que **Feral possède**, hors des
 fichiers churny upstream.
+
+### Pipeline d'icônes — `tools/feral/gen-app-icons.py` (2026-08-28)
+
+Toutes les icônes Feral sont **dérivées**, jamais éditées à la main. Sources dans
+`tools/feral/brand/` :
+
+| Source | Rôle |
+|---|---|
+| `feral-badge.png` | le badge : 480×480, plateau quasi-noir `#010302`, disque vert glossy Ø 416 centré, glyphe blanc par-dessus |
+| `feral-glyph.svg` | le **vecteur** du même glyphe (trace potrace inversée : le canevas est plein, le logo est en creux → le masque = le canal alpha nié) |
+
+Le script reconstruit d'abord un « plateau » propre — le badge **sans** son glyphe —
+en exploitant la symétrie gauche/droite du dégradé (remplissage miroir) puis une
+diffusion par convolution normalisée ; tout ce qui est reconstruit se retrouve de
+toute façon recouvert par le glyphe.
+
+**Géométrie** (constantes en tête du script) :
+
+- une icône adaptative = deux calques de **108 dp** dont le masque du lanceur ne
+  montre jamais que les **72 dp** centraux ;
+- `DISC_DP = 86` : plus petit diamètre qui couvre encore les coins d'un masque
+  *squircle* (ils portent à ≈ 85,7 dp) → **aucune forme de lanceur ne peut faire
+  apparaître le plateau noir**, tout en gardant ≈ 84 % du dégradé de la sphère ;
+- le glyphe est dimensionné sur le **viewport** (72 dp), pas sur le disque, pour que
+  ce que voit l'utilisateur dans le masque garde le ratio glyphe/disque du badge
+  (256/416 = 0,6154) → 44,3 dp.
+
+**Sorties** (`python3 tools/feral/gen-app-icons.py` ; `--check` compare sans écrire) :
+
+| Fichier | Taille | Contenu |
+|---|---|---|
+| `appicon/element/…/mipmap-*/ic_launcher_foreground.webp` | 108/162/216/324/432 px | glyphe blanc sur transparent — **les vraies tailles 108 dp** (upstream livre 48…192 px, qu'Android ré-agrandit ×2,25) |
+| `…/ic_launcher_monochrome.webp` | idem | même calque, pour les icônes thémées Android 13+ |
+| `…/mipmap-*/ic_launcher.webp` / `ic_launcher_round.webp` | 48/72/96/144/192 px | icônes *legacy* (minSdk 24 ⇒ elles servent encore sur Android 7) : la composition découpée au masque arrondi / circulaire |
+| `appicon/element/src/{release,nightly}/res/drawable/ic_launcher_background.xml` | 1 ko | `<vector>` à dégradé linéaire vertical 13 arrêts (`aapt:attr`, API 24+) — visuellement indistinguable du raster, `nightly` = même dégradé assombri ×0,68. `debug` garde le jaune upstream `#F7F07E` |
+| `appicon/element/src/main/ic_launcher-playstore.png` | 512 px | le badge tel que dessiné, opaque (l'asset était encore celui d'Element) |
+| `app/src/main/res/drawable-*/ic_notification_feral.png` | 24/36/48/72/96 px | glyphe blanc recadré au contenu |
+| `features/login/impl/…/drawable-xxhdpi/feral_badge.png` | 480 px (160 dp) | le disque **sans plateau** (coins transparents) pour l'écran d'accueil — `FeralLogo.kt` le dessine sans teinte |
+
+⚠ Le glyphe noir `feral_logo_black.png` reste utilisé par l'écran de bascule
+Element-Classic (`LoginWithClassicView.kt`) : ne pas le supprimer.
+
+⚠ **Bug corrigé au passage** : depuis `83481b0ab3` (26.08.0) les calques adaptatifs
+Feral étaient livrés aux tailles *legacy* (48…192 px) au lieu de l'échelle 108 dp
+d'upstream (108…432 px) — Android les ré-agrandissait ×2,25 et l'icône du lanceur
+sortait floue sur tous les appareils. Le script rétablit exactement l'échelle
+upstream, donc `IconExpectedSize` / `IconDipSize` / `IconDuplicates` se comportent
+comme chez upstream (l'`ignore` de `ic_launcher_monochrome.webp` dans
+`tools/lint/lint.xml` reste nécessaire, comme upstream).
+
+**Non touché, volontairement :**
+
+- `appicon/element/src/debug/…/ic_launcher_background.xml` — le jaune upstream
+  `#F7F07E` sert justement à distinguer un build debug d'un build release.
+- `appicon/enterprise/**` — jamais construit (`enterprise/` est vide donc
+  `isEnterpriseBuild == false`), et ses noms de ressources sont suffixés
+  `_enterprise` : aucune collision possible.
+- `fastlane/metadata/**` (icon.png, featureGraphic.png encore aux couleurs
+  d'Element) — fichiers upstream, décrivant Element X, que Feral ne publie sur
+  aucun store ([[Android APK without Google]]) ; les modifier coûterait un marqueur
+  « Modified by Feral » à chaque rebase pour zéro bénéfice livré.
+- `tests/uitests/src/test/snapshots/images/**` — les goldens Paparazzi de
+  `appicon.element_*` et des écrans onboarding / LoginWithClassic sont désormais
+  périmés. Ce sont des fichiers **upstream** et Feral CI ne lance pas les tests
+  d'écran (`feral-ci.yml` = tests de garde + `assembleFdroidDebug`) : même
+  traitement que les 7 tests de login rendus rouges par `MATRIX_ORG_URL = ""`
+  (§ « Décisions engageantes ») — on ne réenregistre pas, on ne « corrige » pas.
 
 ## 5. Automatisation (« toujours à jour »)
 
